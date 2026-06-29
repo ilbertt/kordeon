@@ -1,11 +1,12 @@
-# Contributing to <repository-name>
+# Contributing to kordeon
 
 ## Development setup
 
 ```bash
-git clone <repository-url>
-cd <repository-name>
+git clone https://github.com/ilbertt/kordeon
+cd kordeon
 bun install
+bun run build
 ```
 
 ## Commit messages

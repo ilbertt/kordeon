@@ -2,16 +2,17 @@
   "name": "@repo/my-package",
   "private": true,
   "type": "module",
-  "scripts": {
-    "build": "bun run build.ts",
-    "check:types": "bun run --bun tsc"
-  },
-  "devDependencies": {
-    "@repo/pack-utils": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
-    "typescript": "catalog:"
+  "exports": {
+    ".": "./src/index.ts"
   },
   "imports": {
     "#*": "./src/*"
+  },
+  "scripts": {
+    "check:types": "bun run --bun tsc"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "typescript": "catalog:"
   }
 }

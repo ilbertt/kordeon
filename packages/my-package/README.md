@@ -1,16 +1,11 @@
 # @repo/my-package
 
-> **Note:** This is the internal development package. The README that gets published to npm lives in [`pkg/README.md`](./pkg/README.md) — that is the one users of your package will see.
+A template internal package inside the kordeon monorepo.
 
-A template publishable package inside the monorepo.
+It is consumed directly from TypeScript source by other workspaces via its `@repo/my-package` name — there is no build step, and it is not published to npm.
 
-The internal workspace package (`@repo/my-package`) builds into [`pkg/`](./pkg/), which is the directory published to npm as `@my-org/my-package`.
+## Usage
 
-## Publishing
-
-The [`pkg/`](./pkg/) directory is the publish root. The commands to build and publish are:
-
-```sh
-bun run build
-cd pkg && bun publish
+```ts
+import { helloWorld } from '@repo/my-package';
 ```

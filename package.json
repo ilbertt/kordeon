@@ -1,5 +1,5 @@
 {
-  "name": "bun-monorepo",
+  "name": "kordeon-monorepo",
   "type": "module",
   "private": true,
   "scripts": {
