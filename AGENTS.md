@@ -36,6 +36,10 @@ When running a script, always check `package.json` scripts (root and per-app) fo
 - Packages are **internal-only** — consumed from TypeScript source via their `@repo/*` name, not published to npm. A package needs a README only when there's contributor-relevant context that isn't obvious from the source.
 - The root `README.md` is the project homepage: it lists the apps/packages and a quick-start. Keep it short.
 
+## UI
+
+All shadcn/ui components live in `@repo/ui` — the single source of truth for components and the theme. It is the **only** workspace with a `components.json`; add components there with `bun run --filter '@repo/ui' ui:add <name>`. Apps consume `@repo/ui` (`@repo/ui/components/*`, `@repo/ui/globals.css`) and never run shadcn directly. The shared theme tokens live once in `@repo/ui/src/styles/globals.css`, whose `@source` globs scan all `apps/**` and `packages/**`. React TypeScript options are shared via `@repo/typescript-config/react.json`.
+
 ## Keeping this file up to date
 
 When a change affects code style, tooling, conventions, or project taste (new lint rules, formatter config, naming patterns, dependency choices, etc.), propose updating this file to reflect it.

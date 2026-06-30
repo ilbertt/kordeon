@@ -12,7 +12,8 @@
       "!**/node_modules",
       "!**/dist",
       "!**/bun.lock",
-      "!**/*.lock"
+      "!**/*.lock",
+      "!**/routeTree.gen.ts"
     ]
   },
   "formatter": {
