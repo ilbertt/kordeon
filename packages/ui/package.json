@@ -9,11 +9,6 @@
     "./components/*": "./src/components/*.tsx",
     "./hooks/*": "./src/hooks/*.ts"
   },
-  "imports": {
-    "#components/*": "./src/components/*.tsx",
-    "#lib/*": "./src/lib/*.ts",
-    "#hooks/*": "./src/hooks/*.ts"
-  },
   "scripts": {
     "ui:add": "bun run --bun shadcn add",
     "check:types": "bun run --bun tsc"
