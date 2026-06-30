@@ -29,7 +29,14 @@ export function ScrollStage({ children }: { children: React.ReactNode }) {
       const ease = p * p * (3 - 2 * p);
       const rest = 1 - ease;
 
-      frame.style.width = `${94 + 6 * ease}%`;
+      const vw = window.innerWidth;
+      let startWidth = 92;
+      if (vw >= 1024) {
+        startWidth = 50;
+      } else if (vw >= 768) {
+        startWidth = 70;
+      }
+      frame.style.width = `${startWidth + (100 - startWidth) * ease}%`;
       frame.style.transform = `translateX(-50%) translateY(${85 * rest}%)`;
       frame.style.borderTopLeftRadius = `${20 * rest}px`;
       frame.style.borderTopRightRadius = `${20 * rest}px`;
@@ -37,7 +44,7 @@ export function ScrollStage({ children }: { children: React.ReactNode }) {
       frame.style.pointerEvents = ease > 0.99 ? 'auto' : 'none';
 
       if (intro) {
-        intro.style.opacity = `${Math.max(0, 1 - ease * 1.8)}`;
+        intro.style.opacity = `${Math.max(0, 1 - ease * 2.2)}`;
         intro.style.transform = `translateY(${-20 * ease}px)`;
       }
     };
@@ -70,7 +77,10 @@ export function ScrollStage({ children }: { children: React.ReactNode }) {
           }}
         />
         <CursorField className="z-0" />
-        <div ref={introRef} className="absolute inset-x-0 top-[15vh] z-10 px-4 text-center">
+        <div
+          ref={introRef}
+          className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center px-4 text-center"
+        >
           <h1 className="text-balance font-semibold text-4xl tracking-tight sm:text-5xl">
             Where humans and agents collaborate
           </h1>
@@ -80,9 +90,8 @@ export function ScrollStage({ children }: { children: React.ReactNode }) {
         </div>
         <div
           ref={frameRef}
-          className="absolute bottom-0 left-1/2 z-20 h-svh overflow-hidden bg-card"
+          className="absolute bottom-0 left-1/2 z-20 h-svh w-[92%] overflow-hidden bg-card md:w-[70%] lg:w-1/2"
           style={{
-            width: '94%',
             transform: 'translateX(-50%) translateY(85%)',
             borderTopLeftRadius: '20px',
             borderTopRightRadius: '20px',
