@@ -1,21 +1,21 @@
 import { Badge } from '@repo/ui/components/badge';
 import { Button } from '@repo/ui/components/button';
-import { Cursor } from '@repo/ui/components/cursor';
+import { Cursor } from '@repo/ui/custom/cursor';
+import { cn } from '@repo/ui/lib/utils';
 import { createFileRoute } from '@tanstack/react-router';
 import {
   ArrowRight,
   Bot,
   Check,
-  CreditCard,
   Eye,
+  GitBranch,
+  GitMerge,
   GitPullRequest,
-  Hash,
-  ListChecks,
+  GitPullRequestDraft,
   type LucideIcon,
   Plus,
   Search,
   Send,
-  Sparkles,
   Users,
   Workflow,
   Zap,
@@ -40,10 +40,26 @@ type Message = {
   cta?: boolean;
 };
 
+// Each channel is a feature — a branch/PR — so it carries a git status that
+// drives its icon and accent, the way a stacked-PR list reads at a glance.
+type ChannelStatus = 'main' | 'draft' | 'open' | 'merged';
+
+const STATUS: Record<ChannelStatus, { icon: LucideIcon; className: string }> = {
+  main: { icon: GitBranch, className: 'text-muted-foreground' },
+  draft: { icon: GitPullRequestDraft, className: 'text-muted-foreground' },
+  open: { icon: GitPullRequest, className: 'text-chart-2' },
+  merged: { icon: GitMerge, className: 'text-primary' },
+};
+
+function StatusIcon({ status, className }: { status: ChannelStatus; className?: string }) {
+  const { icon: Icon, className: color } = STATUS[status];
+  return <Icon className={cn('size-4 shrink-0', color, className)} />;
+}
+
 type Channel = {
   id: string;
   label: string;
-  icon: LucideIcon;
+  status: ChannelStatus;
   topic: string;
   members: string;
   preview: PreviewKind;
@@ -54,7 +70,7 @@ const channels: Channel[] = [
   {
     id: 'welcome',
     label: 'welcome',
-    icon: Sparkles,
+    status: 'main',
     topic: 'Where humans and agents collaborate',
     members: 'You, Agent',
     preview: 'app',
@@ -76,7 +92,7 @@ const channels: Channel[] = [
   {
     id: 'collaborate',
     label: 'collaborate',
-    icon: Users,
+    status: 'draft',
     topic: 'Humans and agents in one thread',
     members: 'Luca, Maya, Agent',
     preview: 'chat',
@@ -106,7 +122,7 @@ const channels: Channel[] = [
   {
     id: 'plan',
     label: 'refine-the-plan',
-    icon: ListChecks,
+    status: 'draft',
     topic: 'Shape the spec together before any code is written',
     members: 'Luca, Agent',
     preview: 'plan',
@@ -135,7 +151,7 @@ const channels: Channel[] = [
   {
     id: 'handoff',
     label: 'hand-off',
-    icon: Bot,
+    status: 'open',
     topic: 'Approve the plan, the agent implements it',
     members: 'Luca, Agent',
     preview: 'code',
@@ -164,7 +180,7 @@ const channels: Channel[] = [
   {
     id: 'preview',
     label: 'live-preview',
-    icon: Eye,
+    status: 'merged',
     topic: 'Watch it render as the agent ships each step',
     members: 'Luca, Agent',
     preview: 'app',
@@ -187,7 +203,7 @@ const channels: Channel[] = [
   {
     id: 'pricing',
     label: 'pricing',
-    icon: CreditCard,
+    status: 'open',
     topic: 'Simple, usage-based pricing',
     members: 'You, Agent',
     preview: 'pricing',
@@ -286,7 +302,7 @@ function Sidebar({ activeId, onSelect }: { activeId: string; onSelect: (id: stri
                   : 'flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground'
               }
             >
-              <channel.icon className="size-4 shrink-0" />
+              <StatusIcon status={channel.status} />
               <span className="hidden truncate md:inline">{channel.label}</span>
             </button>
           );
@@ -306,7 +322,7 @@ function Thread({ channel }: { channel: Channel }) {
   return (
     <section className="flex min-w-0 flex-1 flex-col">
       <div className="flex h-14 shrink-0 items-center gap-2 border-border border-b px-5">
-        <Hash className="size-4 text-muted-foreground" />
+        <StatusIcon status={channel.status} />
         <span className="font-medium">{channel.label}</span>
         <span className="mx-2 hidden text-border sm:inline">|</span>
         <span className="hidden truncate text-muted-foreground text-sm sm:inline">

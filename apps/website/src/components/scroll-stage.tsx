@@ -3,9 +3,10 @@ import { useEffect, useRef } from 'react';
 import { CursorField } from '#components/cursor-field';
 
 /**
- * The product window peeks ~15% from the bottom and rises to full-bleed as the
- * user scrolls — the peek is the (intuitive) cue to scroll. Behind it, a field
- * of collaborative cursors drifts across a faint canvas grid.
+ * The product renders at full layout and scales like a screenshot: it starts
+ * small — peeking from the bottom (the cue to scroll) — and zooms to full-bleed
+ * as the user scrolls, so text and spacing scale together. Behind it, a field of
+ * collaborative cursors drifts across a faint canvas grid.
  */
 export function ScrollStage({ children }: { children: React.ReactNode }) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -30,17 +31,17 @@ export function ScrollStage({ children }: { children: React.ReactNode }) {
       const rest = 1 - ease;
 
       const vw = window.innerWidth;
-      let startWidth = 92;
-      if (vw >= 1024) {
-        startWidth = 50;
-      } else if (vw >= 768) {
-        startWidth = 70;
+      let startScale = 0.5;
+      if (vw < 768) {
+        startScale = 0.92;
+      } else if (vw < 1024) {
+        startScale = 0.7;
       }
-      frame.style.width = `${startWidth + (100 - startWidth) * ease}%`;
-      frame.style.transform = `translateX(-50%) translateY(${85 * rest}%)`;
-      frame.style.borderTopLeftRadius = `${20 * rest}px`;
-      frame.style.borderTopRightRadius = `${20 * rest}px`;
-      frame.style.boxShadow = `0 ${-10 * rest}px ${48 * rest}px rgb(0 0 0 / ${0.2 * rest})`;
+      const scale = startScale + (1 - startScale) * ease;
+
+      frame.style.transform = `translateY(${85 * rest}vh) scale(${scale})`;
+      frame.style.borderRadius = `${22 * rest}px`;
+      frame.style.boxShadow = `0 ${6 * rest}px ${50 * rest}px rgb(0 0 0 / ${0.18 * rest})`;
       frame.style.pointerEvents = ease > 0.99 ? 'auto' : 'none';
 
       if (intro) {
@@ -90,11 +91,11 @@ export function ScrollStage({ children }: { children: React.ReactNode }) {
         </div>
         <div
           ref={frameRef}
-          className="absolute bottom-0 left-1/2 z-20 h-svh w-[92%] overflow-hidden bg-card md:w-[70%] lg:w-1/2"
+          className="absolute inset-0 z-20 overflow-hidden bg-card"
           style={{
-            transform: 'translateX(-50%) translateY(85%)',
-            borderTopLeftRadius: '20px',
-            borderTopRightRadius: '20px',
+            transformOrigin: 'top center',
+            transform: 'translateY(85vh) scale(0.5)',
+            borderRadius: '22px',
             pointerEvents: 'none',
           }}
         >
