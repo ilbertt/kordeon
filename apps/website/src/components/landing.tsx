@@ -83,9 +83,20 @@ function StatusIcon({ status, className }: { status: ChannelStatus; className?: 
   return <Icon className={cn('size-4 shrink-0', color, className)} />;
 }
 
+// A channel's slug is its single identifier: the URL fragment (`#refine-the-plan`),
+// the sidebar/thread display name, and the React key — so there's no separate id
+// to drift out of sync. Adding a channel means adding a member here first.
+enum ChannelSlug {
+  Welcome = 'welcome',
+  Collaborate = 'collaborate',
+  RefineThePlan = 'refine-the-plan',
+  HandOff = 'hand-off',
+  LivePreview = 'live-preview',
+  Pricing = 'pricing',
+}
+
 type Channel = {
-  id: string;
-  label: string;
+  slug: ChannelSlug;
   status: ChannelStatus;
   topic: string;
   members: PersonId[];
@@ -96,8 +107,7 @@ type Channel = {
 
 const channels: Channel[] = [
   {
-    id: 'welcome',
-    label: 'welcome',
+    slug: ChannelSlug.Welcome,
     status: 'main',
     topic: 'Where humans collaborate and agents execute',
     members: ['you', 'maya', 'theo', 'ada', 'korde'],
@@ -118,8 +128,7 @@ const channels: Channel[] = [
     ],
   },
   {
-    id: 'collaborate',
-    label: 'collaborate',
+    slug: ChannelSlug.Collaborate,
     status: 'draft',
     topic: 'Humans and agents in one thread',
     members: ['maya', 'theo', 'ada', 'you', 'korde'],
@@ -155,8 +164,7 @@ const channels: Channel[] = [
     ],
   },
   {
-    id: 'plan',
-    label: 'refine-the-plan',
+    slug: ChannelSlug.RefineThePlan,
     status: 'draft',
     topic: 'Shape the spec together before any code is written',
     members: ['maya', 'theo', 'you', 'korde'],
@@ -190,8 +198,7 @@ const channels: Channel[] = [
     ],
   },
   {
-    id: 'handoff',
-    label: 'hand-off',
+    slug: ChannelSlug.HandOff,
     status: 'open',
     topic: 'Approve the plan, the agent implements it',
     members: ['maya', 'theo', 'you', 'korde'],
@@ -219,8 +226,7 @@ const channels: Channel[] = [
     ],
   },
   {
-    id: 'preview',
-    label: 'live-preview',
+    slug: ChannelSlug.LivePreview,
     status: 'merged',
     topic: 'Watch it render as the agent ships each step',
     members: ['maya', 'theo', 'ada', 'you', 'korde'],
@@ -248,8 +254,7 @@ const channels: Channel[] = [
     ],
   },
   {
-    id: 'pricing',
-    label: 'pricing',
+    slug: ChannelSlug.Pricing,
     status: 'open',
     topic: 'Simple, usage-based pricing',
     members: ['you', 'korde'],
@@ -330,16 +335,14 @@ function Facepile({ ids, online }: { ids: PersonId[]; online?: boolean }) {
   );
 }
 
-// The feature the page opens on. Every feature is navigated by URL fragment
-// (`#collaborate`, `#hand-off`, …) where the fragment is the channel `label`;
-// the default feature (`welcome`) is the bare homepage. Because there are no
+// The feature the page opens on when there's no fragment. Because there are no
 // per-feature routes, all channels render into the one prerendered page — only
 // the active one is shown — so every feature's content stays in the crawlable
 // HTML and remains SEO-indexable.
-const DEFAULT_ID = 'welcome';
+const DEFAULT_SLUG = ChannelSlug.Welcome;
 
 function channelBySlug(slug: string): Channel | undefined {
-  return channels.find((channel) => channel.label === slug);
+  return channels.find((channel) => channel.slug === slug);
 }
 
 function subscribeToHash(onChange: () => void) {
@@ -347,38 +350,40 @@ function subscribeToHash(onChange: () => void) {
   return () => window.removeEventListener('hashchange', onChange);
 }
 
-// The active feature is derived from `location.hash`; `useSyncExternalStore`
-// keeps SSR/prerender (no hash → default) and the client in sync without a
-// hydration mismatch.
-function useActiveChannelId() {
+// The active feature is derived from `location.hash`. `useSyncExternalStore` is
+// the SSR-safe way to read it: the prerender/hydration pass uses the default and
+// the client re-reads after mount, so there's no hydration mismatch. TanStack
+// Router has no type-safe hash validation, so `ChannelSlug` is what keeps the
+// fragment type-safe end to end.
+function useActiveSlug(): ChannelSlug {
   return useSyncExternalStore(
     subscribeToHash,
-    () => channelBySlug(window.location.hash.slice(1))?.id ?? DEFAULT_ID,
-    () => DEFAULT_ID,
+    () => channelBySlug(window.location.hash.slice(1))?.slug ?? DEFAULT_SLUG,
+    () => DEFAULT_SLUG,
   );
 }
 
 export function Landing() {
-  const activeId = useActiveChannelId();
+  const activeSlug = useActiveSlug();
 
   return (
     <ScrollStage>
-      <AppShell activeId={activeId} />
+      <AppShell activeSlug={activeSlug} />
     </ScrollStage>
   );
 }
 
-function AppShell({ activeId }: { activeId: string }) {
+function AppShell({ activeSlug }: { activeSlug: ChannelSlug }) {
   return (
     <div className="flex h-full flex-col bg-background text-foreground">
       <TopBar />
       <div className="flex min-h-0 flex-1">
-        <Sidebar activeId={activeId} />
+        <Sidebar activeSlug={activeSlug} />
         {channels.map((channel) => (
-          <Thread key={channel.id} channel={channel} active={channel.id === activeId} />
+          <Thread key={channel.slug} channel={channel} active={channel.slug === activeSlug} />
         ))}
         {channels.map((channel) => (
-          <PreviewPane key={channel.id} channel={channel} active={channel.id === activeId} />
+          <PreviewPane key={channel.slug} channel={channel} active={channel.slug === activeSlug} />
         ))}
       </div>
     </div>
@@ -410,9 +415,6 @@ function TopBar() {
         </Badge>
       </div>
       <div className="flex items-center gap-3">
-        <div className="hidden lg:flex">
-          <Facepile ids={TEAM} />
-        </div>
         <a
           href={REPO_URL}
           target="_blank"
@@ -435,7 +437,7 @@ function TopBar() {
   );
 }
 
-function Sidebar({ activeId }: { activeId: string }) {
+function Sidebar({ activeSlug }: { activeSlug: ChannelSlug }) {
   return (
     <aside className="flex w-16 shrink-0 flex-col border-border border-r bg-muted/30 md:w-64">
       <div className="hidden items-center justify-between px-4 py-3 md:flex">
@@ -448,14 +450,14 @@ function Sidebar({ activeId }: { activeId: string }) {
       </div>
       <nav className="mt-2 flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-2">
         {channels.map((channel) => {
-          const isActive = channel.id === activeId;
+          const isActive = channel.slug === activeSlug;
           const className = isActive
             ? 'flex items-center gap-2 rounded-md bg-primary/10 px-2.5 py-2 text-left font-medium text-primary text-sm'
             : 'flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground';
           return (
-            <a key={channel.id} href={`#${channel.label}`} className={className}>
+            <a key={channel.slug} href={`#${channel.slug}`} className={className}>
               <StatusIcon status={channel.status} />
-              <span className="hidden truncate md:inline">#{channel.label}</span>
+              <span className="hidden truncate md:inline">#{channel.slug}</span>
               <span className="ml-auto hidden items-center gap-1 text-muted-foreground text-xs md:flex">
                 <Users className="size-3" />
                 {channel.members.length}
@@ -478,7 +480,7 @@ function Thread({ channel, active }: { channel: Channel; active: boolean }) {
     <section className={cn('min-w-0 flex-1 flex-col', active ? 'flex' : 'hidden')}>
       <div className="flex h-14 shrink-0 items-center gap-2 border-border border-b px-5">
         <StatusIcon status={channel.status} />
-        <span className="font-medium">#{channel.label}</span>
+        <span className="font-medium">#{channel.slug}</span>
         <span className="mx-2 hidden text-border sm:inline">|</span>
         <span className="hidden truncate text-muted-foreground text-sm lg:inline">
           {channel.topic}
@@ -496,7 +498,7 @@ function Thread({ channel, active }: { channel: Channel; active: boolean }) {
       <div className="shrink-0 px-5 pb-5">
         <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 shadow-sm">
           <Plus className="size-4 text-muted-foreground" />
-          <span className="flex-1 text-muted-foreground text-sm">Message #{channel.label}…</span>
+          <span className="flex-1 text-muted-foreground text-sm">Message #{channel.slug}…</span>
           <Button size="sm" variant="ghost" className="text-muted-foreground">
             <Send />
           </Button>
