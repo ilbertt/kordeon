@@ -35,14 +35,10 @@ Check `package.json` scripts (root and per-app) for other available commands.
 
 When running a script, always check `package.json` scripts (root and per-app) for available commands first.
 
-## READMEs
+## Package docs
 
-- Packages are **internal-only** — consumed from TypeScript source via their `@repo/*` name, not published to npm. A package needs a README only when there's contributor-relevant context that isn't obvious from the source.
-- The root `README.md` is the project homepage: it lists the apps/packages and a quick-start. Keep it short.
-
-## UI
-
-All shadcn/ui components live in `@repo/ui` — the single source of truth for components and the theme. It is the **only** workspace with a `components.json`; add components there with `bun run --filter '@repo/ui' ui:add <name>`. Apps consume `@repo/ui` (`@repo/ui/components/*`, `@repo/ui/globals.css`) and never run shadcn directly. Our own components live in `@repo/ui/src/custom/` (imported as `@repo/ui/custom/*`), kept separate from the shadcn-owned `components/` so re-running the CLI can't clobber them. The shared theme tokens live once in `@repo/ui/src/styles/globals.css`, whose `@source` globs scan all `apps/**` and `packages/**`. React TypeScript options are shared via `@repo/typescript-config/react.json`.
+- The root `README.md` is a short homepage / quick-start — don't enumerate the repo structure; the tree already shows it.
+- A workspace's own conventions live in its `AGENTS.md` (e.g. [`packages/ui/AGENTS.md`](packages/ui/AGENTS.md)) — not duplicated here or in a README. Packages are internal-only: consumed from TypeScript source via their `@repo/*` name, never published.
 
 ## Keeping this file up to date
 
