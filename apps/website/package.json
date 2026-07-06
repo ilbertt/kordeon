@@ -6,8 +6,7 @@
     "dev": "bun run --bun vite dev --port 3000",
     "build": "bun run --bun vite build",
     "preview": "bun run --bun vite preview",
-    "check:types": "bun run --bun tsc",
-    "deploy": "bun run build && wrangler deploy"
+    "check:types": "bun run --bun tsc"
   },
   "dependencies": {
     "@repo/ui": "workspace:*",
