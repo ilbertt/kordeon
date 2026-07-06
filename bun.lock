@@ -15,13 +15,6 @@
         "typescript": "catalog:",
       },
     },
-    "apps/my-app": {
-      "name": "@repo/my-app",
-      "devDependencies": {
-        "@repo/typescript-config": "workspace:*",
-        "typescript": "catalog:",
-      },
-    },
     "apps/website": {
       "name": "@repo/website",
       "dependencies": {
@@ -242,8 +235,6 @@
     "@oozcitak/util": ["@oozcitak/util@10.0.0", "", {}, "sha512-hAX0pT/73190NLqBPPWSdBVGtbY6VOhWYK3qqHqtXQ1gK7kS2yz4+ivsN07hpJ6I3aeMtKP6J6npsEKOAzuTLA=="],
 
     "@oxc-project/types": ["@oxc-project/types@0.137.0", "", {}, "sha512-WT+Gb24i8hmvo85AIv2oEYouEXkRlKAlT9WaCa3TfLgNCN+GhrJOGZuIlMouAh38Qe4QOx26eUOVsq70qXrywA=="],
-
-    "@repo/my-app": ["@repo/my-app@workspace:apps/my-app"],
 
     "@repo/typescript-config": ["@repo/typescript-config@workspace:packages/typescript-config"],
 
