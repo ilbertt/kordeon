@@ -1,7 +1,6 @@
 import { Badge } from '@repo/ui/components/badge';
-import { Button } from '@repo/ui/components/button';
+import { Button, buttonVariants } from '@repo/ui/components/button';
 import { cn } from '@repo/ui/lib/utils';
-import { Link, useParams } from '@tanstack/react-router';
 import {
   ArrowRight,
   Bot,
@@ -19,6 +18,7 @@ import {
   Workflow,
   Zap,
 } from 'lucide-react';
+import { useSyncExternalStore } from 'react';
 import { CollabPrompt } from '#components/collab-prompt';
 import { ScrollStage } from '#components/scroll-stage';
 import { ThemeToggle } from '#components/theme-toggle';
@@ -330,31 +330,36 @@ function Facepile({ ids, online }: { ids: PersonId[]; online?: boolean }) {
   );
 }
 
-// Every feature is a real, indexable route (`/collaborate`, `/hand-off`, …). The
-// channel `label` is the URL slug; the default feature (`welcome`) is the
-// homepage at `/`. `Landing` is shared by both routes so navigating between them
-// swaps the active feature without tearing down the scroll stage.
-export const DEFAULT_ID = 'welcome';
+// The feature the page opens on. Every feature is navigated by URL fragment
+// (`#collaborate`, `#hand-off`, …) where the fragment is the channel `label`;
+// the default feature (`welcome`) is the bare homepage. Because there are no
+// per-feature routes, all channels render into the one prerendered page — only
+// the active one is shown — so every feature's content stays in the crawlable
+// HTML and remains SEO-indexable.
+const DEFAULT_ID = 'welcome';
 
-export function channelBySlug(slug: string): Channel | undefined {
+function channelBySlug(slug: string): Channel | undefined {
   return channels.find((channel) => channel.label === slug);
 }
 
-export function metaFor(channel: Channel) {
-  return {
-    meta: [
-      { title: `${channel.topic} — kordeon` },
-      {
-        name: 'description',
-        content: `${channel.topic}. kordeon is a workspace where humans and agents build software together — chat, refine the plan, and hand it off to an agent.`,
-      },
-    ],
-  };
+function subscribeToHash(onChange: () => void) {
+  window.addEventListener('hashchange', onChange);
+  return () => window.removeEventListener('hashchange', onChange);
+}
+
+// The active feature is derived from `location.hash`; `useSyncExternalStore`
+// keeps SSR/prerender (no hash → default) and the client in sync without a
+// hydration mismatch.
+function useActiveChannelId() {
+  return useSyncExternalStore(
+    subscribeToHash,
+    () => channelBySlug(window.location.hash.slice(1))?.id ?? DEFAULT_ID,
+    () => DEFAULT_ID,
+  );
 }
 
 export function Landing() {
-  const { feature } = useParams({ strict: false });
-  const activeId = channelBySlug(feature ?? '')?.id ?? DEFAULT_ID;
+  const activeId = useActiveChannelId();
 
   return (
     <ScrollStage>
@@ -364,17 +369,30 @@ export function Landing() {
 }
 
 function AppShell({ activeId }: { activeId: string }) {
-  const active = channels.find((channel) => channel.id === activeId)!;
-
   return (
     <div className="flex h-full flex-col bg-background text-foreground">
       <TopBar />
       <div className="flex min-h-0 flex-1">
-        <Sidebar activeId={active.id} />
-        <Thread channel={active} />
-        <PreviewPane channel={active} />
+        <Sidebar activeId={activeId} />
+        {channels.map((channel) => (
+          <Thread key={channel.id} channel={channel} active={channel.id === activeId} />
+        ))}
+        {channels.map((channel) => (
+          <PreviewPane key={channel.id} channel={channel} active={channel.id === activeId} />
+        ))}
       </div>
     </div>
+  );
+}
+
+const REPO_URL = 'https://github.com/ilbertt/kordeon';
+
+// lucide-react no longer ships brand marks, so the GitHub logo is inlined.
+function GithubIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={className}>
+      <path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.04-.02-2.05-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.09 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.53.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.49 5.93.43.37.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.21.7.83.58A12 12 0 0 0 24 12.5C24 5.87 18.63.5 12 .5Z" />
+    </svg>
   );
 }
 
@@ -395,6 +413,15 @@ function TopBar() {
         <div className="hidden lg:flex">
           <Facepile ids={TEAM} />
         </div>
+        <a
+          href={REPO_URL}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="kordeon on GitHub"
+          className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+        >
+          <GithubIcon />
+        </a>
         <ThemeToggle />
         <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
           Sign in
@@ -425,30 +452,15 @@ function Sidebar({ activeId }: { activeId: string }) {
           const className = isActive
             ? 'flex items-center gap-2 rounded-md bg-primary/10 px-2.5 py-2 text-left font-medium text-primary text-sm'
             : 'flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground';
-          const inner = (
-            <>
+          return (
+            <a key={channel.id} href={`#${channel.label}`} className={className}>
               <StatusIcon status={channel.status} />
               <span className="hidden truncate md:inline">#{channel.label}</span>
               <span className="ml-auto hidden items-center gap-1 text-muted-foreground text-xs md:flex">
                 <Users className="size-3" />
                 {channel.members.length}
               </span>
-            </>
-          );
-          return channel.id === DEFAULT_ID ? (
-            <Link key={channel.id} to="/" resetScroll={false} className={className}>
-              {inner}
-            </Link>
-          ) : (
-            <Link
-              key={channel.id}
-              to="/$feature"
-              params={{ feature: channel.label }}
-              resetScroll={false}
-              className={className}
-            >
-              {inner}
-            </Link>
+            </a>
           );
         })}
       </nav>
@@ -460,10 +472,10 @@ function Sidebar({ activeId }: { activeId: string }) {
   );
 }
 
-function Thread({ channel }: { channel: Channel }) {
+function Thread({ channel, active }: { channel: Channel; active: boolean }) {
   const typist = channel.typing ? PEOPLE[channel.typing] : null;
   return (
-    <section className="flex min-w-0 flex-1 flex-col">
+    <section className={cn('min-w-0 flex-1 flex-col', active ? 'flex' : 'hidden')}>
       <div className="flex h-14 shrink-0 items-center gap-2 border-border border-b px-5">
         <StatusIcon status={channel.status} />
         <span className="font-medium">#{channel.label}</span>
@@ -627,9 +639,14 @@ function PlanCard({ items }: { items: PlanItem[] }) {
   );
 }
 
-function PreviewPane({ channel }: { channel: Channel }) {
+function PreviewPane({ channel, active }: { channel: Channel; active: boolean }) {
   return (
-    <aside className="hidden w-[22rem] shrink-0 flex-col border-border border-l bg-muted/20 xl:flex">
+    <aside
+      className={cn(
+        'w-[22rem] shrink-0 flex-col border-border border-l bg-muted/20',
+        active ? 'hidden xl:flex' : 'hidden',
+      )}
+    >
       <div className="flex h-14 shrink-0 items-center justify-between border-border border-b px-5">
         <div className="flex items-center gap-2 font-medium text-sm">
           <Eye className="size-4 text-muted-foreground" />
