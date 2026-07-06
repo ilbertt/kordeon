@@ -4,7 +4,7 @@ Bun + TypeScript monorepo (`apps/*`, `packages/*`).
 
 ## Docs
 
-[`docs/`](./docs) holds product knowledge the code can't express — the *why* and the intent. Read the relevant doc before working on a feature. When a change shifts product direction, the landing page's look/feel, or makes a notable technical decision, update the matching doc in the same change (append a dated entry to [`docs/decisions.md`](./docs/decisions.md)). Keep docs minimal — capture only what the code can't; the code is always the source of truth.
+[`docs/`](./docs) holds product knowledge the code can't express — the *why* and the intent. Read the relevant doc before working on a feature, and update the matching doc in the same change when you shift product direction or the landing page's look/feel. Keep docs minimal — capture only what the code can't; the code is always the source of truth.
 
 ## Stack
 
@@ -39,6 +39,7 @@ When running a script, always check `package.json` scripts (root and per-app) fo
 
 - The root `README.md` is a short homepage / quick-start — don't enumerate the repo structure; the tree already shows it.
 - A workspace's own conventions live in its `AGENTS.md` (e.g. [`packages/ui/AGENTS.md`](packages/ui/AGENTS.md)) — not duplicated here or in a README. Packages are internal-only: consumed from TypeScript source via their `@repo/*` name, never published.
+- In `AGENTS.md` files, never explain structure (the tree already shows it), and never explain usage for non-public packages — document only non-obvious conventions and rationale.
 
 ## Keeping this file up to date
 
