@@ -2,6 +2,10 @@
 
 Bun + TypeScript monorepo (`apps/*`, `packages/*`).
 
+## Docs
+
+[`docs/`](./docs) holds product knowledge the code can't express — the *why* and the intent. Read the relevant doc before working on a feature. When a change shifts product direction, the landing page's look/feel, or makes a notable technical decision, update the matching doc in the same change (append a dated entry to [`docs/decisions.md`](./docs/decisions.md)). Keep docs minimal — capture only what the code can't; the code is always the source of truth.
+
 ## Stack
 
 - **Runtime:** Bun
@@ -38,7 +42,7 @@ When running a script, always check `package.json` scripts (root and per-app) fo
 
 ## UI
 
-All shadcn/ui components live in `@repo/ui` — the single source of truth for components and the theme. It is the **only** workspace with a `components.json`; add components there with `bun run --filter '@repo/ui' ui:add <name>`. Apps consume `@repo/ui` (`@repo/ui/components/*`, `@repo/ui/globals.css`) and never run shadcn directly. The shared theme tokens live once in `@repo/ui/src/styles/globals.css`, whose `@source` globs scan all `apps/**` and `packages/**`. React TypeScript options are shared via `@repo/typescript-config/react.json`.
+All shadcn/ui components live in `@repo/ui` — the single source of truth for components and the theme. It is the **only** workspace with a `components.json`; add components there with `bun run --filter '@repo/ui' ui:add <name>`. Apps consume `@repo/ui` (`@repo/ui/components/*`, `@repo/ui/globals.css`) and never run shadcn directly. Our own components live in `@repo/ui/src/custom/` (imported as `@repo/ui/custom/*`), kept separate from the shadcn-owned `components/` so re-running the CLI can't clobber them. The shared theme tokens live once in `@repo/ui/src/styles/globals.css`, whose `@source` globs scan all `apps/**` and `packages/**`. React TypeScript options are shared via `@repo/typescript-config/react.json`.
 
 ## Keeping this file up to date
 
