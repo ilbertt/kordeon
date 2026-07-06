@@ -1,7 +1,6 @@
 import { Badge } from '@repo/ui/components/badge';
-import { Button } from '@repo/ui/components/button';
+import { Button, buttonVariants } from '@repo/ui/components/button';
 import { cn } from '@repo/ui/lib/utils';
-import { Link, useParams } from '@tanstack/react-router';
 import {
   ArrowRight,
   Bot,
@@ -19,6 +18,7 @@ import {
   Workflow,
   Zap,
 } from 'lucide-react';
+import { useSyncExternalStore } from 'react';
 import { CollabPrompt } from '#components/collab-prompt';
 import { ScrollStage } from '#components/scroll-stage';
 import { ThemeToggle } from '#components/theme-toggle';
@@ -83,9 +83,20 @@ function StatusIcon({ status, className }: { status: ChannelStatus; className?: 
   return <Icon className={cn('size-4 shrink-0', color, className)} />;
 }
 
+// A channel's slug is its single identifier: the URL fragment (`#refine-the-plan`),
+// the sidebar/thread display name, and the React key — so there's no separate id
+// to drift out of sync. Adding a channel means adding a member here first.
+enum ChannelSlug {
+  Welcome = 'welcome',
+  Collaborate = 'collaborate',
+  RefineThePlan = 'refine-the-plan',
+  HandOff = 'hand-off',
+  LivePreview = 'live-preview',
+  Pricing = 'pricing',
+}
+
 type Channel = {
-  id: string;
-  label: string;
+  slug: ChannelSlug;
   status: ChannelStatus;
   topic: string;
   members: PersonId[];
@@ -96,8 +107,7 @@ type Channel = {
 
 const channels: Channel[] = [
   {
-    id: 'welcome',
-    label: 'welcome',
+    slug: ChannelSlug.Welcome,
     status: 'main',
     topic: 'Where humans collaborate and agents execute',
     members: ['you', 'maya', 'theo', 'ada', 'korde'],
@@ -118,8 +128,7 @@ const channels: Channel[] = [
     ],
   },
   {
-    id: 'collaborate',
-    label: 'collaborate',
+    slug: ChannelSlug.Collaborate,
     status: 'draft',
     topic: 'Humans and agents in one thread',
     members: ['maya', 'theo', 'ada', 'you', 'korde'],
@@ -155,8 +164,7 @@ const channels: Channel[] = [
     ],
   },
   {
-    id: 'plan',
-    label: 'refine-the-plan',
+    slug: ChannelSlug.RefineThePlan,
     status: 'draft',
     topic: 'Shape the spec together before any code is written',
     members: ['maya', 'theo', 'you', 'korde'],
@@ -190,8 +198,7 @@ const channels: Channel[] = [
     ],
   },
   {
-    id: 'handoff',
-    label: 'hand-off',
+    slug: ChannelSlug.HandOff,
     status: 'open',
     topic: 'Approve the plan, the agent implements it',
     members: ['maya', 'theo', 'you', 'korde'],
@@ -219,8 +226,7 @@ const channels: Channel[] = [
     ],
   },
   {
-    id: 'preview',
-    label: 'live-preview',
+    slug: ChannelSlug.LivePreview,
     status: 'merged',
     topic: 'Watch it render as the agent ships each step',
     members: ['maya', 'theo', 'ada', 'you', 'korde'],
@@ -248,8 +254,7 @@ const channels: Channel[] = [
     ],
   },
   {
-    id: 'pricing',
-    label: 'pricing',
+    slug: ChannelSlug.Pricing,
     status: 'open',
     topic: 'Simple, usage-based pricing',
     members: ['you', 'korde'],
@@ -330,51 +335,69 @@ function Facepile({ ids, online }: { ids: PersonId[]; online?: boolean }) {
   );
 }
 
-// Every feature is a real, indexable route (`/collaborate`, `/hand-off`, …). The
-// channel `label` is the URL slug; the default feature (`welcome`) is the
-// homepage at `/`. `Landing` is shared by both routes so navigating between them
-// swaps the active feature without tearing down the scroll stage.
-export const DEFAULT_ID = 'welcome';
+// The feature the page opens on when there's no fragment. Because there are no
+// per-feature routes, all channels render into the one prerendered page — only
+// the active one is shown — so every feature's content stays in the crawlable
+// HTML and remains SEO-indexable.
+const DEFAULT_SLUG = ChannelSlug.Welcome;
 
-export function channelBySlug(slug: string): Channel | undefined {
-  return channels.find((channel) => channel.label === slug);
+function channelBySlug(slug: string): Channel | undefined {
+  return channels.find((channel) => channel.slug === slug);
 }
 
-export function metaFor(channel: Channel) {
-  return {
-    meta: [
-      { title: `${channel.topic} — kordeon` },
-      {
-        name: 'description',
-        content: `${channel.topic}. kordeon is a workspace where humans and agents build software together — chat, refine the plan, and hand it off to an agent.`,
-      },
-    ],
-  };
+function subscribeToHash(onChange: () => void) {
+  window.addEventListener('hashchange', onChange);
+  return () => window.removeEventListener('hashchange', onChange);
+}
+
+// The active feature is derived from `location.hash`. `useSyncExternalStore` is
+// the SSR-safe way to read it: the prerender/hydration pass uses the default and
+// the client re-reads after mount, so there's no hydration mismatch. TanStack
+// Router has no type-safe hash validation, so `ChannelSlug` is what keeps the
+// fragment type-safe end to end.
+function useActiveSlug(): ChannelSlug {
+  return useSyncExternalStore(
+    subscribeToHash,
+    () => channelBySlug(window.location.hash.slice(1))?.slug ?? DEFAULT_SLUG,
+    () => DEFAULT_SLUG,
+  );
 }
 
 export function Landing() {
-  const { feature } = useParams({ strict: false });
-  const activeId = channelBySlug(feature ?? '')?.id ?? DEFAULT_ID;
+  const activeSlug = useActiveSlug();
 
   return (
     <ScrollStage>
-      <AppShell activeId={activeId} />
+      <AppShell activeSlug={activeSlug} />
     </ScrollStage>
   );
 }
 
-function AppShell({ activeId }: { activeId: string }) {
-  const active = channels.find((channel) => channel.id === activeId)!;
-
+function AppShell({ activeSlug }: { activeSlug: ChannelSlug }) {
   return (
     <div className="flex h-full flex-col bg-background text-foreground">
       <TopBar />
       <div className="flex min-h-0 flex-1">
-        <Sidebar activeId={active.id} />
-        <Thread channel={active} />
-        <PreviewPane channel={active} />
+        <Sidebar activeSlug={activeSlug} />
+        {channels.map((channel) => (
+          <Thread key={channel.slug} channel={channel} active={channel.slug === activeSlug} />
+        ))}
+        {channels.map((channel) => (
+          <PreviewPane key={channel.slug} channel={channel} active={channel.slug === activeSlug} />
+        ))}
       </div>
     </div>
+  );
+}
+
+const REPO_URL = 'https://github.com/ilbertt/kordeon';
+
+// lucide-react no longer ships brand marks, so the GitHub logo is inlined.
+function GithubIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={className}>
+      <path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.04-.02-2.05-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.09 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.53.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.49 5.93.43.37.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.21.7.83.58A12 12 0 0 0 24 12.5C24 5.87 18.63.5 12 .5Z" />
+    </svg>
   );
 }
 
@@ -392,9 +415,15 @@ function TopBar() {
         </Badge>
       </div>
       <div className="flex items-center gap-3">
-        <div className="hidden lg:flex">
-          <Facepile ids={TEAM} />
-        </div>
+        <a
+          href={REPO_URL}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="kordeon on GitHub"
+          className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+        >
+          <GithubIcon />
+        </a>
         <ThemeToggle />
         <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
           Sign in
@@ -408,7 +437,7 @@ function TopBar() {
   );
 }
 
-function Sidebar({ activeId }: { activeId: string }) {
+function Sidebar({ activeSlug }: { activeSlug: ChannelSlug }) {
   return (
     <aside className="flex w-16 shrink-0 flex-col border-border border-r bg-muted/30 md:w-64">
       <div className="hidden items-center justify-between px-4 py-3 md:flex">
@@ -421,34 +450,19 @@ function Sidebar({ activeId }: { activeId: string }) {
       </div>
       <nav className="mt-2 flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-2">
         {channels.map((channel) => {
-          const isActive = channel.id === activeId;
+          const isActive = channel.slug === activeSlug;
           const className = isActive
             ? 'flex items-center gap-2 rounded-md bg-primary/10 px-2.5 py-2 text-left font-medium text-primary text-sm'
             : 'flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground';
-          const inner = (
-            <>
+          return (
+            <a key={channel.slug} href={`#${channel.slug}`} className={className}>
               <StatusIcon status={channel.status} />
-              <span className="hidden truncate md:inline">#{channel.label}</span>
+              <span className="hidden truncate md:inline">#{channel.slug}</span>
               <span className="ml-auto hidden items-center gap-1 text-muted-foreground text-xs md:flex">
                 <Users className="size-3" />
                 {channel.members.length}
               </span>
-            </>
-          );
-          return channel.id === DEFAULT_ID ? (
-            <Link key={channel.id} to="/" resetScroll={false} className={className}>
-              {inner}
-            </Link>
-          ) : (
-            <Link
-              key={channel.id}
-              to="/$feature"
-              params={{ feature: channel.label }}
-              resetScroll={false}
-              className={className}
-            >
-              {inner}
-            </Link>
+            </a>
           );
         })}
       </nav>
@@ -460,13 +474,13 @@ function Sidebar({ activeId }: { activeId: string }) {
   );
 }
 
-function Thread({ channel }: { channel: Channel }) {
+function Thread({ channel, active }: { channel: Channel; active: boolean }) {
   const typist = channel.typing ? PEOPLE[channel.typing] : null;
   return (
-    <section className="flex min-w-0 flex-1 flex-col">
+    <section className={cn('min-w-0 flex-1 flex-col', active ? 'flex' : 'hidden')}>
       <div className="flex h-14 shrink-0 items-center gap-2 border-border border-b px-5">
         <StatusIcon status={channel.status} />
-        <span className="font-medium">#{channel.label}</span>
+        <span className="font-medium">#{channel.slug}</span>
         <span className="mx-2 hidden text-border sm:inline">|</span>
         <span className="hidden truncate text-muted-foreground text-sm lg:inline">
           {channel.topic}
@@ -484,7 +498,7 @@ function Thread({ channel }: { channel: Channel }) {
       <div className="shrink-0 px-5 pb-5">
         <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 shadow-sm">
           <Plus className="size-4 text-muted-foreground" />
-          <span className="flex-1 text-muted-foreground text-sm">Message #{channel.label}…</span>
+          <span className="flex-1 text-muted-foreground text-sm">Message #{channel.slug}…</span>
           <Button size="sm" variant="ghost" className="text-muted-foreground">
             <Send />
           </Button>
@@ -627,9 +641,14 @@ function PlanCard({ items }: { items: PlanItem[] }) {
   );
 }
 
-function PreviewPane({ channel }: { channel: Channel }) {
+function PreviewPane({ channel, active }: { channel: Channel; active: boolean }) {
   return (
-    <aside className="hidden w-[22rem] shrink-0 flex-col border-border border-l bg-muted/20 xl:flex">
+    <aside
+      className={cn(
+        'w-[22rem] shrink-0 flex-col border-border border-l bg-muted/20',
+        active ? 'hidden xl:flex' : 'hidden',
+      )}
+    >
       <div className="flex h-14 shrink-0 items-center justify-between border-border border-b px-5">
         <div className="flex items-center gap-2 font-medium text-sm">
           <Eye className="size-4 text-muted-foreground" />
