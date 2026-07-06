@@ -7,11 +7,11 @@ export const Route = createRootRoute({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'kordeon — Where humans and agents collaborate' },
+      { title: 'kordeon — Where humans collaborate and agents execute' },
       {
         name: 'description',
         content:
-          'Chat and refine the plan together, hand it off to an AI agent, and watch the preview come to life. Where humans and agents collaborate.',
+          'Chat and refine the plan together, hand it off to an AI agent, and watch the preview come to life. Where humans collaborate and agents execute.',
       },
     ],
     links: [{ rel: 'stylesheet', href: appCss }],

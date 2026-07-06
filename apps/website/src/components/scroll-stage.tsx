@@ -83,7 +83,7 @@ export function ScrollStage({ children }: { children: React.ReactNode }) {
           className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center px-4 text-center"
         >
           <h1 className="text-balance font-semibold text-4xl tracking-tight sm:text-5xl">
-            Where humans and agents collaborate
+            Where humans collaborate and agents execute
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-balance text-muted-foreground">
             Chat, refine the plan, and hand it to an agent — together, in one place.
