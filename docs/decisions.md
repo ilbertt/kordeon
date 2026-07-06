@@ -3,9 +3,7 @@
 Append-only log of genuine project decisions and why we made them. Newest at the
 bottom, each under a dated heading. Reserve this for real choices with rationale
 (especially a rejected alternative) — setup and tooling conventions live in
-[AGENTS.md](../AGENTS.md), product intent lives in [vision.md](./vision.md) and
-[landing-page.md](./landing-page.md), and the code is always the source of truth for
-the *how*.
+[AGENTS.md](../AGENTS.md), and the code is always the source of truth for the *how*.
 
 ## 2026-07-06 — One shared UI package
 

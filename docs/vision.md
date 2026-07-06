@@ -6,6 +6,3 @@ The loop: a team **chats** to shape an idea, **refines a plan** together, **hand
 off** to an agent that implements it, and **previews** the result — all in one place.
 Think Slack's conversation model + Cursor's agentic editing, with humans and agents
 as first-class participants in the same threads.
-
-The landing page is a live demo of this idea — it looks and behaves like the product.
-See [landing-page.md](./landing-page.md).
