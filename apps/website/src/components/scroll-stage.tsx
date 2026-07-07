@@ -8,7 +8,13 @@ import { CursorField } from '#components/cursor-field';
  * as the user scrolls, so text and spacing scale together. Behind it, a field of
  * collaborative cursors drifts across a faint canvas grid.
  */
-export function ScrollStage({ children }: { children: React.ReactNode }) {
+export function ScrollStage({
+  children,
+  openFullOnLoad,
+}: {
+  children: React.ReactNode;
+  openFullOnLoad?: () => boolean;
+}) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const introRef = useRef<HTMLDivElement>(null);
@@ -19,6 +25,15 @@ export function ScrollStage({ children }: { children: React.ReactNode }) {
     const intro = introRef.current;
     if (!(wrap && frame)) {
       return;
+    }
+
+    // Deep-linked to a section: jump to the end of the scroll track so the
+    // product is already full at that section, instead of playing the intro.
+    if (openFullOnLoad?.()) {
+      window.scrollTo({
+        top: Math.max(0, wrap.offsetHeight - window.innerHeight),
+        behavior: 'instant',
+      });
     }
 
     let raf = 0;
@@ -65,7 +80,7 @@ export function ScrollStage({ children }: { children: React.ReactNode }) {
         cancelAnimationFrame(raf);
       }
     };
-  }, []);
+  }, [openFullOnLoad]);
 
   return (
     <div ref={wrapRef} className="relative h-[200vh]">

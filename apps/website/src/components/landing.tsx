@@ -6,11 +6,13 @@ import {
   Bot,
   Check,
   Eye,
+  FileText,
   GitBranch,
   GitMerge,
   GitPullRequest,
   GitPullRequestDraft,
   type LucideIcon,
+  Mic,
   Plus,
   Search,
   Send,
@@ -20,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
 import { CollabPrompt } from '#components/collab-prompt';
+import { CursorField } from '#components/cursor-field';
 import { ScrollStage } from '#components/scroll-stage';
 import { ThemeToggle } from '#components/theme-toggle';
 
@@ -48,7 +51,7 @@ type PersonId = keyof typeof PEOPLE;
 
 const TEAM: PersonId[] = ['maya', 'theo', 'ada', 'you', 'korde'];
 
-type PreviewKind = 'app' | 'chat' | 'plan' | 'code' | 'pricing';
+type PreviewKind = 'app' | 'plan' | 'code' | 'pricing';
 
 type PlanItem = { id: string; label: string; done: boolean };
 
@@ -102,6 +105,9 @@ type Channel = {
   members: PersonId[];
   typing?: PersonId;
   preview: PreviewKind;
+  // When set, the composer in the chat panel hosts a live, co-written draft
+  // instead of a plain input — collaborative composing is a chat activity.
+  compose?: 'collab';
   messages: Message[];
 };
 
@@ -133,7 +139,8 @@ const channels: Channel[] = [
     topic: 'Humans and agents in one thread',
     members: ['maya', 'theo', 'ada', 'you', 'korde'],
     typing: 'ada',
-    preview: 'chat',
+    preview: 'app',
+    compose: 'collab',
     messages: [
       {
         id: 'c1',
@@ -345,6 +352,14 @@ function channelBySlug(slug: string): Channel | undefined {
   return channels.find((channel) => channel.slug === slug);
 }
 
+// On load, a URL that deep-links to a real section (e.g. `#refine-the-plan`)
+// should present the product already full at that section, skipping the
+// scroll-in intro. A missing or unknown hash keeps the intro. Module-scope so
+// its identity is stable — ScrollStage runs it once on mount.
+function hasSectionHash(): boolean {
+  return channelBySlug(window.location.hash.slice(1)) !== undefined;
+}
+
 function subscribeToHash(onChange: () => void) {
   window.addEventListener('hashchange', onChange);
   return () => window.removeEventListener('hashchange', onChange);
@@ -367,7 +382,7 @@ export function Landing() {
   const activeSlug = useActiveSlug();
 
   return (
-    <ScrollStage>
+    <ScrollStage openFullOnLoad={hasSectionHash}>
       <AppShell activeSlug={activeSlug} />
     </ScrollStage>
   );
@@ -409,10 +424,6 @@ function TopBar() {
           <Workflow className="size-4" />
         </span>
         <span className="font-semibold tracking-tight">kordeon</span>
-        <Badge variant="secondary" className="ml-1 hidden gap-1 sm:inline-flex">
-          <span className="size-1.5 rounded-full bg-chart-2" />
-          Private beta
-        </Badge>
       </div>
       <div className="flex items-center gap-3">
         <a
@@ -495,16 +506,61 @@ function Thread({ channel, active }: { channel: Channel; active: boolean }) {
         ))}
       </div>
       {typist ? <TypingIndicator person={typist} /> : null}
+      <Composer channel={channel} />
+    </section>
+  );
+}
+
+// Dictation sits next to send on every composer — a message can be spoken, not
+// just typed.
+function ComposerActions() {
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="text-muted-foreground"
+        aria-label="Dictate message"
+      >
+        <Mic />
+      </Button>
+      <Button size="sm" variant="ghost" className="text-muted-foreground" aria-label="Send message">
+        <Send />
+      </Button>
+    </>
+  );
+}
+
+// The composer lives in the chat panel. A collaborative channel composes its
+// message as a live, co-written draft — presence cursors and all — because
+// composing is a chat activity, not something that belongs in the preview.
+function Composer({ channel }: { channel: Channel }) {
+  if (channel.compose === 'collab') {
+    return (
       <div className="shrink-0 px-5 pb-5">
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 shadow-sm">
-          <Plus className="size-4 text-muted-foreground" />
-          <span className="flex-1 text-muted-foreground text-sm">Message #{channel.slug}…</span>
-          <Button size="sm" variant="ghost" className="text-muted-foreground">
-            <Send />
-          </Button>
+        <div className="rounded-lg border border-border bg-background shadow-sm">
+          <div className="px-3 pt-3">
+            <CollabPrompt />
+          </div>
+          <div className="flex items-center gap-2 border-border border-t px-3 py-2">
+            <Plus className="size-4 text-muted-foreground" />
+            <span className="flex-1 text-muted-foreground text-xs">
+              Co-writing with your team — anyone can edit
+            </span>
+            <ComposerActions />
+          </div>
         </div>
       </div>
-    </section>
+    );
+  }
+  return (
+    <div className="shrink-0 px-5 pb-5">
+      <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 shadow-sm">
+        <Plus className="size-4 text-muted-foreground" />
+        <span className="flex-1 text-muted-foreground text-sm">Message #{channel.slug}…</span>
+        <ComposerActions />
+      </div>
+    </div>
   );
 }
 
@@ -649,15 +705,11 @@ function PreviewPane({ channel, active }: { channel: Channel; active: boolean })
         active ? 'hidden xl:flex' : 'hidden',
       )}
     >
-      <div className="flex h-14 shrink-0 items-center justify-between border-border border-b px-5">
+      <div className="flex h-14 shrink-0 items-center border-border border-b px-5">
         <div className="flex items-center gap-2 font-medium text-sm">
           <Eye className="size-4 text-muted-foreground" />
           Preview
         </div>
-        <span className="flex items-center gap-1.5 text-chart-2 text-xs">
-          <span className="size-1.5 animate-pulse rounded-full bg-chart-2" />
-          Live
-        </span>
       </div>
       <div className="flex-1 overflow-y-auto p-4">
         <PreviewSurface kind={channel.preview} />
@@ -709,14 +761,6 @@ function PreviewSurface({ kind }: { kind: PreviewKind }) {
     );
   }
 
-  if (kind === 'chat') {
-    return (
-      <PreviewFrame title="presence.prompt">
-        <CollabPrompt />
-      </PreviewFrame>
-    );
-  }
-
   if (kind === 'pricing') {
     return (
       <div className="space-y-3">
@@ -727,24 +771,28 @@ function PreviewSurface({ kind }: { kind: PreviewKind }) {
     );
   }
 
+  // The running product: the presence feature the team just built, live. Real
+  // cursors (the shared `CursorField`) drift over the doc and the online facepile
+  // includes the agent — so the preview *is* the artifact, not a mock of one.
   return (
-    <PreviewFrame title="kordeon · realtime-chat">
-      <div className="flex items-center justify-between">
-        <div className="h-3 w-20 rounded-full bg-foreground/20" />
-        <Facepile ids={['maya', 'theo', 'you']} />
-      </div>
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        <div className="h-12 rounded-md bg-card ring-1 ring-border" />
-        <div className="h-12 rounded-md bg-card ring-1 ring-border" />
-        <div className="h-12 rounded-md bg-card ring-1 ring-border" />
-      </div>
-      <div className="mt-2 space-y-2 rounded-md bg-card p-3 ring-1 ring-border">
-        <div className="h-2 w-2/3 rounded-full bg-foreground/15" />
-        <div className="h-2 w-1/2 rounded-full bg-foreground/10" />
-        <div className="mt-2 flex gap-2">
-          <div className="h-6 w-16 rounded-md bg-primary" />
-          <div className="h-6 w-16 rounded-md bg-secondary ring-1 ring-border" />
+    <PreviewFrame title="kordeon · editor">
+      <div className="relative min-h-[15rem]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs">
+            <FileText className="size-3.5" />
+            Realtime presence
+          </div>
+          <Facepile ids={['maya', 'theo', 'ada', 'korde']} online />
         </div>
+        <div className="mt-4 space-y-2.5">
+          <div className="h-2.5 w-1/2 rounded-full bg-foreground/20" />
+          <div className="h-2 w-full rounded-full bg-foreground/10" />
+          <div className="h-2 w-5/6 rounded-full bg-foreground/10" />
+          <div className="h-2 w-2/3 rounded-full bg-foreground/10" />
+          <div className="h-2 w-4/5 rounded-full bg-foreground/10" />
+          <div className="h-2 w-3/5 rounded-full bg-foreground/10" />
+        </div>
+        <CursorField />
       </div>
     </PreviewFrame>
   );
