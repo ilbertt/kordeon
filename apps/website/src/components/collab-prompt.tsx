@@ -1,12 +1,14 @@
 // biome-ignore-all lint/style/noMagicNumbers: motion + layout tuning constants
-import { CollabDoc, type CollabPresence, type DocBlock } from '@repo/ui/custom/collab-doc';
-import { useEffect, useState } from 'react';
+import { CollabDoc, type DocBlock } from '@repo/ui/custom/collab-doc';
+import { Cursor } from '@repo/ui/custom/cursor';
+import { cn } from '@repo/ui/lib/utils';
+import { useEffect, useRef, useState } from 'react';
 
 // The collaborate composer: the team co-writes the prompt handed to the agent,
-// rendered with the product's own CollabDoc primitive — the same component the
-// product drives from its realtime layer. The viewer can really select and edit
-// the text (nothing is saved), while Maya's and Theo's presence moves over it on
-// a looping timeline.
+// rendered with the product's editable CollabDoc primitive. Maya's and Theo's
+// cursors float over it, and on hover the viewer's own pointer becomes a
+// labelled "You" cursor — one of the collaborators. Nothing is saved; the box
+// starts tall and can be dragged higher.
 
 const PROMPT_DOC: DocBlock[] = [
   { kind: 'h1', id: 'title', text: 'Realtime presence in the editor' },
@@ -53,53 +55,154 @@ const PROMPT_DOC: DocBlock[] = [
   },
 ];
 
-const MAYA = { id: 'maya', name: 'Maya', color: 'var(--chart-3)', kind: 'human' as const };
-const THEO = { id: 'theo', name: 'Theo', color: 'var(--chart-4)', kind: 'human' as const };
+type Mate = { id: string; name: string; color: string; start: { x: number; y: number } };
 
-// A looping presence timeline — cursors hop between real anchors, sometimes
-// highlighting a line as a selection, so the draft reads as a live co-edit.
-const STEPS: CollabPresence[][] = [
-  [
-    { ...MAYA, anchor: 'r-cursors', selection: ['r-cursors'] },
-    { ...THEO, anchor: 'intro' },
-  ],
-  [
-    { ...MAYA, anchor: 'r-sel' },
-    { ...THEO, anchor: 'c-latency', selection: ['c-latency'] },
-  ],
-  [
-    { ...MAYA, anchor: 'title' },
-    { ...THEO, anchor: 'd-browsers', selection: ['d-browsers'] },
-  ],
-  [
-    { ...MAYA, anchor: 'r-crdt', selection: ['r-crdt'] },
-    { ...THEO, anchor: 'con' },
-  ],
+const MATES: Mate[] = [
+  { id: 'maya', name: 'Maya', color: 'var(--chart-3)', start: { x: 0.16, y: 0.24 } },
+  { id: 'theo', name: 'Theo', color: 'var(--chart-4)', start: { x: 0.62, y: 0.5 } },
 ];
 
-const STEP_MS = 2200;
+const YOU_COLOR = 'var(--chart-2)';
+
+// Anchors spread across the draft in both axes, so the cursors float around it
+// rather than sliding straight up and down.
+const ANCHORS = [
+  { x: 0.16, y: 0.24 },
+  { x: 0.62, y: 0.3 },
+  { x: 0.34, y: 0.48 },
+  { x: 0.72, y: 0.6 },
+  { x: 0.22, y: 0.72 },
+  { x: 0.52, y: 0.84 },
+];
+
+const EASE = 0.06;
+const ARRIVE_PX = 4;
+const REST_MIN = 400;
+const REST_MAX = 1500;
+
+function rand({ min, max }: { min: number; max: number }) {
+  return min + Math.random() * (max - min);
+}
+
+function pickTarget() {
+  const anchor = ANCHORS[Math.floor(Math.random() * ANCHORS.length)] ?? ANCHORS[0]!;
+  return { x: anchor.x + (Math.random() - 0.5) * 0.08, y: anchor.y + (Math.random() - 0.5) * 0.05 };
+}
+
+type Drift = { x: number; y: number; tx: number; ty: number; restUntil: number };
 
 export function CollabPrompt() {
-  const [step, setStep] = useState(0);
+  const areaRef = useRef<HTMLDivElement>(null);
+  const mateRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const youRef = useRef<HTMLDivElement>(null);
+  const [joined, setJoined] = useState(false);
 
   useEffect(() => {
-    const id = setInterval(() => setStep((prev) => (prev + 1) % STEPS.length), STEP_MS);
-    return () => clearInterval(id);
+    const area = areaRef.current;
+    if (!area) {
+      return;
+    }
+    let width = area.clientWidth;
+    let height = area.clientHeight;
+    const ro = new ResizeObserver(() => {
+      width = area.clientWidth;
+      height = area.clientHeight;
+    });
+    ro.observe(area);
+
+    const drifts: Record<string, Drift> = {};
+    for (const mate of MATES) {
+      drifts[mate.id] = {
+        x: mate.start.x,
+        y: mate.start.y,
+        tx: mate.start.x,
+        ty: mate.start.y,
+        restUntil: 0,
+      };
+    }
+
+    let raf = 0;
+    const frame = (now: number) => {
+      for (const mate of MATES) {
+        const drift = drifts[mate.id]!;
+        const dx = drift.tx - drift.x;
+        const dy = drift.ty - drift.y;
+        if (Math.hypot(dx * width, dy * height) < ARRIVE_PX) {
+          if (drift.restUntil === 0) {
+            drift.restUntil = now + rand({ min: REST_MIN, max: REST_MAX });
+          } else if (now >= drift.restUntil) {
+            const target = pickTarget();
+            drift.tx = target.x;
+            drift.ty = target.y;
+            drift.restUntil = 0;
+          }
+        } else {
+          drift.x += dx * EASE;
+          drift.y += dy * EASE;
+        }
+        const node = mateRefs.current[mate.id];
+        if (node) {
+          node.style.left = `${drift.x * width}px`;
+          node.style.top = `${drift.y * height}px`;
+        }
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
   }, []);
+
+  const place = ({ x, y }: { x: number; y: number }) => {
+    const area = areaRef.current;
+    const node = youRef.current;
+    if (!(area && node)) {
+      return;
+    }
+    const rect = area.getBoundingClientRect();
+    node.style.left = `${x - rect.left}px`;
+    node.style.top = `${y - rect.top}px`;
+  };
 
   return (
     <div>
       <div className="mb-1 font-medium text-[0.7rem] text-muted-foreground uppercase tracking-wide">
         New prompt
       </div>
-      <div className="h-[15rem] overflow-y-auto">
-        <CollabDoc
-          contentClassName="max-w-none px-1 py-1"
-          doc={PROMPT_DOC}
-          editable
-          presence={STEPS[step] ?? []}
-          size="sm"
-        />
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: presence demo, pointer-only affordance */}
+      <div
+        ref={areaRef}
+        className={cn('relative', joined && 'cursor-none')}
+        onMouseEnter={(event) => {
+          place({ x: event.clientX, y: event.clientY });
+          setJoined(true);
+        }}
+        onMouseLeave={() => setJoined(false)}
+        onMouseMove={(event) => place({ x: event.clientX, y: event.clientY })}
+      >
+        <div className="h-[20rem] max-h-[40rem] min-h-[12rem] resize-y overflow-auto">
+          <CollabDoc contentClassName="max-w-none px-1 py-1" doc={PROMPT_DOC} editable size="sm" />
+        </div>
+
+        {MATES.map((mate) => (
+          <div
+            key={mate.id}
+            ref={(node) => {
+              mateRefs.current[mate.id] = node;
+            }}
+            className="pointer-events-none absolute z-10"
+            style={{ left: `${mate.start.x * 100}%`, top: `${mate.start.y * 100}%` }}
+          >
+            <Cursor color={mate.color} name={mate.name} />
+          </div>
+        ))}
+
+        <div ref={youRef} className={cn('pointer-events-none absolute z-20', !joined && 'hidden')}>
+          <Cursor color={YOU_COLOR} name="You" />
+        </div>
       </div>
     </div>
   );
