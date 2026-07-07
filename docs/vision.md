@@ -19,6 +19,11 @@ result renders live in the **preview**. The agent isn't a guest in the thread �
 it spans the panels: pulling context on the left, building the artifact on the
 right.
 
+The agent is a teammate, not a tool. It has a name and a face in the roster,
+gets @-mentioned, reacts, and picks up work like anyone else — same presence,
+same avatar, no separate "bot" treatment. You don't summon an assistant; you
+work alongside a colleague who happens to be an agent.
+
 The loop, in one surface: **chat** to shape an idea → **refine a plan** together
 → **hand it off** to the agent → **preview** the result. Nothing tabs away.
 

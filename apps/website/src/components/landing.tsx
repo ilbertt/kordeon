@@ -54,9 +54,6 @@ const PEOPLE = {
 
 type PersonId = keyof typeof PEOPLE;
 
-// Cartoon avatars — DiceBear "notionists" for people, "bottts" for the agent —
-// as static SVGs, so there's no runtime library and nothing blocks page load.
-// notionists © Zoish (CC BY 4.0); bottts © Pablo Stanley (Free).
 const AVATARS: Record<string, string> = {
   maya: mayaAvatar,
   theo: theoAvatar,
