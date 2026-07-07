@@ -31,6 +31,7 @@ import youAvatar from '#assets/avatars/you.svg';
 import { CollabPrompt } from '#components/collab-prompt';
 import { ScrollStage } from '#components/scroll-stage';
 import { ThemeToggle } from '#components/theme-toggle';
+import { useTokenCount } from '#lib/use-token-count';
 
 // The cast that populates every feature thread — a small product team plus the
 // agent. Colors come from the shared chart tokens (agent in teal `primary`), so
@@ -578,6 +579,10 @@ function MessageBar({ channel, onSend }: { channel: Channel; onSend: (text: stri
 // below it still messages the people in the channel (and is where dictation
 // lives — the prompt hands off to the agent instead).
 function Composer({ channel, onSend }: { channel: Channel; onSend: (text: string) => void }) {
+  // Live token count of the co-written prompt, mirroring what the agent would be
+  // billed to build it. Counted with the model tokenizer (see useTokenCount).
+  const [promptText, setPromptText] = useState('');
+  const tokens = useTokenCount(promptText);
   // The typing indicator belongs with the message bar (someone drafting a chat
   // message); in the prompt editor, the live cursors convey presence already.
   const typist = channel.typing ? PEOPLE[channel.typing] : null;
@@ -585,14 +590,14 @@ function Composer({ channel, onSend }: { channel: Channel; onSend: (text: string
     return (
       <div className="shrink-0 space-y-2 px-5 pb-5">
         <div className="overflow-hidden rounded-lg border border-border bg-background shadow-lg">
-          <CollabPrompt />
+          <CollabPrompt onText={setPromptText} />
           <div className="flex items-center gap-2 border-border border-t px-3 py-2">
-            <span className="flex-1 text-muted-foreground text-xs">
-              Co-writing with your team — anyone can edit
+            <span className="flex-1 text-muted-foreground text-xs tabular-nums">
+              {tokens.toLocaleString()} tokens
             </span>
             <Button size="sm">
               <Play />
-              Hand off to agent
+              Build
             </Button>
           </div>
         </div>

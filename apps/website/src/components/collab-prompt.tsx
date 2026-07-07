@@ -52,7 +52,7 @@ function pickTarget() {
 
 type Drift = { x: number; y: number; tx: number; ty: number; restUntil: number };
 
-export function CollabPrompt() {
+export function CollabPrompt({ onText }: { onText?: (text: string) => void }) {
   const areaRef = useRef<HTMLDivElement>(null);
   const mateRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const youRef = useRef<HTMLDivElement>(null);
@@ -176,7 +176,7 @@ export function CollabPrompt() {
           onMouseMove={(event) => place({ x: event.clientX, y: event.clientY })}
         >
           <div className="overflow-auto" style={{ height }}>
-            <PromptEditor />
+            <PromptEditor onText={onText} />
           </div>
 
           {MATES.map((mate) => (

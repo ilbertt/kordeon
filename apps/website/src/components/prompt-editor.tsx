@@ -3,6 +3,7 @@ import { TaskItem } from '@tiptap/extension-task-item';
 import { TaskList } from '@tiptap/extension-task-list';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
+import { useRef } from 'react';
 
 // A real WYSIWYG for the prompt draft — Notion-like: type `# ` for a heading,
 // `- ` for a bullet, and tick the checkboxes directly. No toolbar; markdown
@@ -50,7 +51,12 @@ const EDITOR_CLASS = cn(
   '[&_.task-item_input]:size-3.5 [&_.task-item_input]:accent-primary',
 );
 
-export function PromptEditor() {
+export function PromptEditor({ onText }: { onText?: (text: string) => void }) {
+  // Ref so the editor's create/update callbacks always see the latest handler
+  // without re-creating the editor (useEditor is instantiated once).
+  const onTextRef = useRef(onText);
+  onTextRef.current = onText;
+
   const editor = useEditor({
     // Don't render on the server — TanStack Start prerenders this page, and the
     // editor is client-only (avoids a hydration mismatch).
@@ -62,6 +68,8 @@ export function PromptEditor() {
       TaskItem.configure({ nested: true, HTMLAttributes: { class: 'task-item' } }),
     ],
     content: INITIAL_CONTENT,
+    onCreate: ({ editor: instance }) => onTextRef.current?.(instance.getText()),
+    onUpdate: ({ editor: instance }) => onTextRef.current?.(instance.getText()),
   });
 
   return <EditorContent className={EDITOR_CLASS} editor={editor} />;
