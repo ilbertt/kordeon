@@ -1,12 +1,11 @@
 // biome-ignore-all lint/style/noMagicNumbers: scroll-scrub interpolation constants
 import { useEffect, useRef } from 'react';
-import { CursorField } from '#components/cursor-field';
 
 /**
  * The product renders at full layout and scales like a screenshot: it starts
  * small — peeking from the bottom (the cue to scroll) — and zooms to full-bleed
- * as the user scrolls, so text and spacing scale together. Behind it, a field of
- * collaborative cursors drifts across a faint canvas grid.
+ * as the user scrolls, so text and spacing scale together. Behind it sits a
+ * faint, static canvas grid.
  */
 export function ScrollStage({
   children,
@@ -92,7 +91,6 @@ export function ScrollStage({
             backgroundSize: '22px 22px',
           }}
         />
-        <CursorField className="z-0" />
         <div
           ref={introRef}
           className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center px-4 text-center"
