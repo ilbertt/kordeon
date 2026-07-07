@@ -26,7 +26,6 @@ import { useRef, useState, useSyncExternalStore } from 'react';
 import adaAvatar from '#assets/avatars/ada.svg';
 import kordeAvatar from '#assets/avatars/korde.svg';
 import mayaAvatar from '#assets/avatars/maya.svg';
-import samAvatar from '#assets/avatars/sam.svg';
 import theoAvatar from '#assets/avatars/theo.svg';
 import youAvatar from '#assets/avatars/you.svg';
 import { CollabPrompt } from '#components/collab-prompt';
@@ -49,7 +48,6 @@ const PEOPLE = {
   maya: { id: 'maya', name: 'Maya', initials: 'MR', color: 'var(--chart-3)', kind: 'human' },
   theo: { id: 'theo', name: 'Theo', initials: 'TK', color: 'var(--chart-4)', kind: 'human' },
   ada: { id: 'ada', name: 'Ada', initials: 'AL', color: 'var(--chart-5)', kind: 'human' },
-  sam: { id: 'sam', name: 'Sam', initials: 'SI', color: 'var(--chart-2)', kind: 'human' },
   you: { id: 'you', name: 'You', initials: 'YO', color: 'var(--chart-2)', kind: 'human' },
   korde: { id: 'korde', name: 'Korde', initials: 'KO', color: 'var(--primary)', kind: 'agent' },
 } satisfies Record<string, Person>;
@@ -63,7 +61,6 @@ const AVATARS: Record<string, string> = {
   maya: mayaAvatar,
   theo: theoAvatar,
   ada: adaAvatar,
-  sam: samAvatar,
   you: youAvatar,
   korde: kordeAvatar,
 };
@@ -277,16 +274,8 @@ const channels: Channel[] = [
 ];
 
 // Everyone gets a cartoon avatar; the coloured initials remain a graceful
-// fallback if the SVG hasn't loaded. `iconClassName` is accepted for call-site
-// compatibility (the old agent icon is gone).
-function Avatar({
-  person,
-  className,
-}: {
-  person: Person;
-  className?: string;
-  iconClassName?: string;
-}) {
+// fallback if the SVG hasn't loaded.
+function Avatar({ person, className }: { person: Person; className?: string }) {
   const src = AVATARS[person.id];
   if (src) {
     return (
@@ -321,7 +310,6 @@ function Facepile({ ids, online }: { ids: PersonId[]; online?: boolean }) {
             key={person.id}
             person={person}
             className="size-6 text-[0.6rem] ring-2 ring-card"
-            iconClassName="size-3.5"
           />
         ))}
       </div>
@@ -629,7 +617,7 @@ const TYPING_DELAYS = ['0ms', '150ms', '300ms'];
 function TypingIndicator({ person }: { person: Person }) {
   return (
     <div className="flex flex-1 items-center gap-2 text-muted-foreground text-xs">
-      <Avatar person={person} className="size-5 text-[0.5rem]" iconClassName="size-3" />
+      <Avatar person={person} className="size-5 text-[0.5rem]" />
       <span>{person.name} is typing</span>
       <span className="flex items-center gap-0.5">
         {TYPING_DELAYS.map((delay) => (
@@ -659,7 +647,7 @@ function ChatMessage({ message }: { message: Message }) {
   const isAgent = person.kind === 'agent';
   return (
     <div className="flex gap-3">
-      <Avatar person={person} className="size-8 text-xs" iconClassName="size-4.5" />
+      <Avatar person={person} className="size-8 text-xs" />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
           <span className="font-medium text-sm">{person.name}</span>
@@ -773,7 +761,6 @@ function Replies({ ids }: { ids: PersonId[] }) {
             key={person.id}
             person={person}
             className="size-5 text-[0.5rem] ring-2 ring-card"
-            iconClassName="size-3"
           />
         ))}
       </div>
