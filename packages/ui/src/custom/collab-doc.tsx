@@ -1,6 +1,6 @@
 import { Cursor } from '@repo/ui/custom/cursor';
 import { cn } from '@repo/ui/lib/utils';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
@@ -127,12 +127,15 @@ export function CollabDoc({
   doc,
   presence = [],
   size = 'md',
+  editable = false,
   className,
   contentClassName,
 }: {
   doc: DocBlock[];
   presence?: CollabPresence[];
   size?: DocSize;
+  /** Let the viewer really select and type in the text layer (not persisted). */
+  editable?: boolean;
   className?: string;
   /** Applied to the text layer only — overlays stay at full strength. */
   contentClassName?: string;
@@ -142,16 +145,17 @@ export function CollabDoc({
   const anchors = useRef<Map<string, HTMLElement>>(new Map());
   const [rects, setRects] = useState<Record<string, Rect>>({});
 
-  function setAnchor(id: string) {
-    return (node: HTMLElement | null) => {
+  const setAnchor = useCallback(
+    (id: string) => (node: HTMLElement | null) => {
       const map = anchors.current;
       if (node) {
         map.set(id, node);
       } else {
         map.delete(id);
       }
-    };
-  }
+    },
+    [],
+  );
 
   const measureRef = useRef<() => void>(() => {});
   measureRef.current = () => {
@@ -221,13 +225,13 @@ export function CollabDoc({
         )}
       </div>
 
-      <div
-        className={cn('relative z-10 mx-auto w-full px-6', s.col, s.gap, s.pad, contentClassName)}
-      >
-        {doc.map((block) => (
-          <Block key={block.id} block={block} setAnchor={setAnchor} s={s} />
-        ))}
-      </div>
+      <DocContent
+        contentClassName={contentClassName}
+        doc={doc}
+        editable={editable}
+        s={s}
+        setAnchor={setAnchor}
+      />
 
       <div className="pointer-events-none absolute inset-0 z-20">
         {presence.map((actor) => {
@@ -257,6 +261,44 @@ export function CollabDoc({
 }
 
 type SizeTokens = (typeof SIZES)[DocSize];
+
+// The text layer is memoized on the doc alone, so presence ticks — which
+// re-render the overlays — never reconcile the content. That's what lets the
+// viewer's edits survive when `editable`; the overlays still measure the real
+// (possibly edited) DOM, so cursors and highlights stay glued to the text.
+const DocContent = memo(function DocContent({
+  doc,
+  s,
+  setAnchor,
+  editable,
+  contentClassName,
+}: {
+  doc: DocBlock[];
+  s: SizeTokens;
+  setAnchor: (id: string) => (node: HTMLElement | null) => void;
+  editable: boolean;
+  contentClassName?: string;
+}) {
+  return (
+    <div
+      contentEditable={editable || undefined}
+      spellCheck={editable ? false : undefined}
+      suppressContentEditableWarning={editable || undefined}
+      className={cn(
+        'relative z-10 mx-auto w-full px-6',
+        s.col,
+        s.gap,
+        s.pad,
+        editable && 'cursor-text outline-none',
+        contentClassName,
+      )}
+    >
+      {doc.map((block) => (
+        <Block key={block.id} block={block} setAnchor={setAnchor} s={s} />
+      ))}
+    </div>
+  );
+});
 
 function Block({
   block,

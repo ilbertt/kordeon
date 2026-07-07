@@ -51,7 +51,7 @@ type PersonId = keyof typeof PEOPLE;
 
 const TEAM: PersonId[] = ['maya', 'theo', 'ada', 'you', 'korde'];
 
-type PreviewKind = 'app' | 'plan' | 'code' | 'pricing';
+type PreviewKind = 'app' | 'code' | 'pricing';
 
 type PlanItem = { id: string; label: string; done: boolean };
 
@@ -92,7 +92,6 @@ function StatusIcon({ status, className }: { status: ChannelStatus; className?: 
 enum ChannelSlug {
   Welcome = 'welcome',
   Collaborate = 'collaborate',
-  RefineThePlan = 'refine-the-plan',
   HandOff = 'hand-off',
   LivePreview = 'live-preview',
   Pricing = 'pricing',
@@ -136,7 +135,7 @@ const channels: Channel[] = [
   {
     slug: ChannelSlug.Collaborate,
     status: 'draft',
-    topic: 'Humans and agents in one thread',
+    topic: 'Shape the ask and the plan, together',
     members: ['maya', 'theo', 'ada', 'you', 'korde'],
     typing: 'ada',
     preview: 'app',
@@ -165,23 +164,7 @@ const channels: Channel[] = [
         id: 'c4',
         kind: 'msg',
         from: 'korde',
-        text: 'Got it — presence + cursor sync, Ada on the backend. Everyone’s in one thread, including me. Want me to draft a plan?',
-        replies: ['maya', 'theo', 'you'],
-      },
-    ],
-  },
-  {
-    slug: ChannelSlug.RefineThePlan,
-    status: 'draft',
-    topic: 'Shape the spec together before any code is written',
-    members: ['maya', 'theo', 'you', 'korde'],
-    preview: 'plan',
-    messages: [
-      {
-        id: 'p1',
-        kind: 'msg',
-        from: 'korde',
-        text: 'Here’s the plan. Edit any step, reorder, or add your own before we start.',
+        text: 'Got it — presence + cursor sync, Ada on the backend. Here’s a plan — edit any step, reorder, or add your own before we start.',
         plan: [
           { id: 'm', label: 'Add workspace + membership models', done: true },
           { id: 'r', label: 'Realtime channel with presence', done: true },
@@ -190,14 +173,14 @@ const channels: Channel[] = [
         ],
       },
       {
-        id: 'p2',
+        id: 'c5',
         kind: 'msg',
         from: 'maya',
         text: 'Looks great. Drop the invite step for now — we’ll do that next sprint.',
         reactions: [{ emoji: '✅', by: ['you', 'theo'] }],
       },
       {
-        id: 'p3',
+        id: 'c6',
         kind: 'msg',
         from: 'theo',
         text: 'Moving cursor sync above the invite flow so it lands first.',
@@ -719,28 +702,6 @@ function PreviewPane({ channel, active }: { channel: Channel; active: boolean })
 }
 
 function PreviewSurface({ kind }: { kind: PreviewKind }) {
-  if (kind === 'plan') {
-    return (
-      <PreviewFrame title="spec.md">
-        <div className="space-y-3">
-          <div className="h-3 w-1/2 rounded-full bg-foreground/20" />
-          <div className="space-y-1.5">
-            <div className="h-2 w-full rounded-full bg-foreground/10" />
-            <div className="h-2 w-5/6 rounded-full bg-foreground/10" />
-            <div className="h-2 w-2/3 rounded-full bg-foreground/10" />
-          </div>
-          <div className="rounded-md bg-muted/60 p-3 ring-1 ring-border">
-            <div className="mb-2 h-2 w-1/3 rounded-full bg-foreground/15" />
-            <div className="space-y-1.5">
-              <div className="h-2 w-full rounded-full bg-foreground/10" />
-              <div className="h-2 w-4/5 rounded-full bg-foreground/10" />
-            </div>
-          </div>
-        </div>
-      </PreviewFrame>
-    );
-  }
-
   if (kind === 'code') {
     return (
       <PreviewFrame title="PR #128 · workspace models">
