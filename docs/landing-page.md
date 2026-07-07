@@ -7,6 +7,14 @@ components rather than throwaway markup: each is a candidate to graduate into `@
 and power the actual product, so shared behaviour lives in the component, not at the
 call site.
 
-Its organising metaphor: **each channel is a feature — a branch/PR**, a unit of work
-handed between humans and agents. That's what the git status on every channel is for,
-and why the sidebar reads like a stacked-PR list.
+What it has to teach is the **three-panel shape** (see [`vision.md`](./vision.md)):
+explorer on the left, chat in the middle, preview on the right. The layout already *is*
+those three panels — so the *copy* has to sell the two that set kordeon apart from an
+agent-in-a-chat-tool: the explorer (structured work) and the preview (the live
+artifact). Lead with the middle panel alone and the page reads like a Slack bot; the
+opening (the `welcome` channel) exists to name all three and show the agent spanning
+them.
+
+The explorer's organising metaphor: **each channel is a feature — a branch/PR**, a unit
+of work handed between humans and agents. That's what the git status on every channel is
+for, and why the sidebar reads like a stacked-PR list.

@@ -109,20 +109,20 @@ const channels: Channel[] = [
   {
     slug: ChannelSlug.Welcome,
     status: 'main',
-    topic: 'Where humans collaborate and agents execute',
+    topic: 'One surface — chat, the work, and the live preview',
     members: ['you', 'maya', 'theo', 'ada', 'korde'],
     preview: 'app',
     messages: [
       {
         id: 'w1',
         kind: 'system',
-        text: 'This is kordeon — a workspace where your team and AI agents build software together.',
+        text: 'This is kordeon — one workspace, three panels: your features on the left, the conversation here, the live product on the right.',
       },
       {
         id: 'w2',
         kind: 'msg',
         from: 'korde',
-        text: 'Browse the features on the left to see how it works — or start a thread and tell me what you want to build.',
+        text: 'Your team and I work across all three — talk it through here, I pull the context and build it, and it renders in the preview. No tabbing away. Browse the features on the left, or start a thread and tell me what to build.',
         reactions: [{ emoji: '👋', by: ['maya', 'theo', 'ada'] }],
       },
     ],
