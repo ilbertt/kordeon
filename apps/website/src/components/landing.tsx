@@ -578,32 +578,34 @@ function MessageBar({ channel, onSend }: { channel: Channel; onSend: (text: stri
 // below it still messages the people in the channel (and is where dictation
 // lives — the prompt hands off to the agent instead).
 function Composer({ channel, onSend }: { channel: Channel; onSend: (text: string) => void }) {
+  // The typing indicator belongs with the message bar (someone drafting a chat
+  // message); in the prompt editor, the live cursors convey presence already.
+  const typist = channel.typing ? PEOPLE[channel.typing] : null;
   if (channel.compose === 'collab') {
-    const typist = channel.typing ? PEOPLE[channel.typing] : null;
     return (
       <div className="shrink-0 space-y-2 px-5 pb-5">
         <div className="overflow-hidden rounded-lg border border-border bg-background shadow-lg">
           <CollabPrompt />
           <div className="flex items-center gap-2 border-border border-t px-3 py-2">
-            {typist ? (
-              <TypingIndicator person={typist} />
-            ) : (
-              <span className="flex-1 text-muted-foreground text-xs">
-                Co-writing with your team — anyone can edit
-              </span>
-            )}
+            <span className="flex-1 text-muted-foreground text-xs">
+              Co-writing with your team — anyone can edit
+            </span>
             <Button size="sm">
               <Play />
               Hand off to agent
             </Button>
           </div>
         </div>
-        <MessageBar channel={channel} onSend={onSend} />
+        <div className="space-y-1">
+          {typist ? <TypingIndicator person={typist} /> : null}
+          <MessageBar channel={channel} onSend={onSend} />
+        </div>
       </div>
     );
   }
   return (
-    <div className="shrink-0 px-5 pb-5">
+    <div className="shrink-0 space-y-1 px-5 pb-5">
+      {typist ? <TypingIndicator person={typist} /> : null}
       <MessageBar channel={channel} onSend={onSend} />
     </div>
   );
@@ -613,7 +615,7 @@ const TYPING_DELAYS = ['0ms', '150ms', '300ms'];
 
 function TypingIndicator({ person }: { person: Person }) {
   return (
-    <div className="flex flex-1 items-center gap-2 text-muted-foreground text-xs">
+    <div className="flex items-center gap-2 px-1 text-muted-foreground text-xs">
       <Avatar person={person} className="size-5 text-[0.5rem]" />
       <span>{person.name} is typing</span>
       <span className="flex items-center gap-0.5">
