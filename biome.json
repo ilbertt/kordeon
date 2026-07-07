@@ -13,6 +13,7 @@
       "!**/dist",
       "!**/bun.lock",
       "!**/*.lock",
+      "!**/*.svg",
       "!**/routeTree.gen.ts"
     ]
   },

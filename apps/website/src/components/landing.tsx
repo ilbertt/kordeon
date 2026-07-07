@@ -3,8 +3,8 @@ import { Button, buttonVariants } from '@repo/ui/components/button';
 import { cn } from '@repo/ui/lib/utils';
 import {
   ArrowRight,
-  Bot,
   Check,
+  Clock,
   Eye,
   FileText,
   GitMerge,
@@ -22,7 +22,13 @@ import {
   Workflow,
   Zap,
 } from 'lucide-react';
-import { useState, useSyncExternalStore } from 'react';
+import { useRef, useState, useSyncExternalStore } from 'react';
+import adaAvatar from '#assets/avatars/ada.svg';
+import kordeAvatar from '#assets/avatars/korde.svg';
+import mayaAvatar from '#assets/avatars/maya.svg';
+import samAvatar from '#assets/avatars/sam.svg';
+import theoAvatar from '#assets/avatars/theo.svg';
+import youAvatar from '#assets/avatars/you.svg';
 import { CollabPrompt } from '#components/collab-prompt';
 import { ScrollStage } from '#components/scroll-stage';
 import { ThemeToggle } from '#components/theme-toggle';
@@ -50,9 +56,17 @@ const PEOPLE = {
 
 type PersonId = keyof typeof PEOPLE;
 
-const TEAM: PersonId[] = ['maya', 'theo', 'ada', 'you', 'korde'];
-
-type PreviewKind = 'app' | 'code' | 'pricing';
+// Cartoon avatars — DiceBear "notionists" for people, "bottts" for the agent —
+// as static SVGs, so there's no runtime library and nothing blocks page load.
+// notionists © Zoish (CC BY 4.0); bottts © Pablo Stanley (Free).
+const AVATARS: Record<string, string> = {
+  maya: mayaAvatar,
+  theo: theoAvatar,
+  ada: adaAvatar,
+  sam: samAvatar,
+  you: youAvatar,
+  korde: kordeAvatar,
+};
 
 type PlanItem = { id: string; label: string; done: boolean };
 
@@ -104,7 +118,6 @@ type Channel = {
   topic: string;
   members: PersonId[];
   typing?: PersonId;
-  preview: PreviewKind;
   // When set, the composer in the chat panel hosts a live, co-written draft
   // instead of a plain input — collaborative composing is a chat activity.
   compose?: 'collab';
@@ -117,7 +130,6 @@ const channels: Channel[] = [
     status: 'main',
     topic: 'One surface — chat, the work, and the live preview',
     members: ['you', 'maya', 'theo', 'ada', 'korde'],
-    preview: 'app',
     messages: [
       {
         id: 'w1',
@@ -139,7 +151,6 @@ const channels: Channel[] = [
     topic: 'Shape the ask and the plan, together',
     members: ['maya', 'theo', 'ada', 'you', 'korde'],
     typing: 'ada',
-    preview: 'app',
     compose: 'collab',
     messages: [
       {
@@ -193,7 +204,6 @@ const channels: Channel[] = [
     status: 'open',
     topic: 'Approve the plan, the agent implements it',
     members: ['maya', 'theo', 'you', 'korde'],
-    preview: 'code',
     messages: [
       {
         id: 'h1',
@@ -212,7 +222,7 @@ const channels: Channel[] = [
         id: 'h3',
         kind: 'msg',
         from: 'korde',
-        text: 'Opened PR #128 with the models + presence channel. Review it in the preview →',
+        text: 'Opened PR #128 with the models + presence channel — the preview goes live once it ships.',
       },
     ],
   },
@@ -221,7 +231,6 @@ const channels: Channel[] = [
     status: 'merged',
     topic: 'Watch it render as the agent ships each step',
     members: ['maya', 'theo', 'ada', 'you', 'korde'],
-    preview: 'app',
     messages: [
       {
         id: 'v1',
@@ -249,7 +258,6 @@ const channels: Channel[] = [
     status: 'open',
     topic: 'Simple, usage-based pricing',
     members: ['you', 'korde'],
-    preview: 'pricing',
     messages: [
       {
         id: 'pr1',
@@ -268,25 +276,26 @@ const channels: Channel[] = [
   },
 ];
 
+// Everyone gets a cartoon avatar; the coloured initials remain a graceful
+// fallback if the SVG hasn't loaded. `iconClassName` is accepted for call-site
+// compatibility (the old agent icon is gone).
 function Avatar({
   person,
   className,
-  iconClassName,
 }: {
   person: Person;
   className?: string;
   iconClassName?: string;
 }) {
-  if (person.kind === 'agent') {
+  const src = AVATARS[person.id];
+  if (src) {
     return (
-      <span
-        className={cn(
-          'flex shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground',
-          className,
-        )}
-      >
-        <Bot className={cn('size-4', iconClassName)} />
-      </span>
+      <img
+        src={src}
+        alt={person.name}
+        className={cn('shrink-0 rounded-full object-cover', className)}
+        style={{ backgroundColor: person.color }}
+      />
     );
   }
   return (
@@ -461,15 +470,39 @@ function Sidebar({ activeSlug }: { activeSlug: ChannelSlug }) {
           );
         })}
       </nav>
-      <div className="hidden items-center gap-2 border-border border-t px-3 py-3 md:flex">
-        <Facepile ids={TEAM} />
-        <span className="text-muted-foreground text-sm">Your team</span>
+      <div className="hidden items-center gap-2.5 border-border border-t px-3 py-3 md:flex">
+        <Avatar person={PEOPLE.you} className="size-8" />
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-medium text-sm">You</div>
+          <div className="flex items-center gap-1 text-muted-foreground text-xs">
+            <span className="size-1.5 rounded-full bg-chart-2" />
+            Active
+          </div>
+        </div>
       </div>
     </aside>
   );
 }
 
 function Thread({ channel, active }: { channel: Channel; active: boolean }) {
+  // Messages the visitor sends are kept locally, just for feel — nothing is
+  // persisted, so they reset on reload.
+  const [sent, setSent] = useState<Message[]>([]);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const send = (text: string) => {
+    setSent((prev) => [
+      ...prev,
+      { id: `${channel.slug}-sent-${prev.length}`, kind: 'msg', from: 'you', text },
+    ]);
+    requestAnimationFrame(() => {
+      const el = listRef.current;
+      if (el) {
+        el.scrollTop = el.scrollHeight;
+      }
+    });
+  };
+
   return (
     <section className={cn('min-w-0 flex-1 flex-col', active ? 'flex' : 'hidden')}>
       <div className="flex h-14 shrink-0 items-center gap-2 border-border border-b px-5">
@@ -483,12 +516,12 @@ function Thread({ channel, active }: { channel: Channel; active: boolean }) {
           <Facepile ids={channel.members} online />
         </div>
       </div>
-      <div className="flex-1 space-y-5 overflow-y-auto px-5 py-6">
-        {channel.messages.map((message) => (
+      <div ref={listRef} className="flex-1 space-y-5 overflow-y-auto px-5 py-6">
+        {[...channel.messages, ...sent].map((message) => (
           <ChatMessage key={message.id} message={message} />
         ))}
       </div>
-      <Composer channel={channel} />
+      <Composer channel={channel} onSend={send} />
     </section>
   );
 }
@@ -507,25 +540,63 @@ function MicButton() {
   );
 }
 
-function ComposerActions() {
+// The chat panel's message bar — type and send a message to the people in the
+// channel. Sent messages are local and unsaved, just for feel; the mic is a
+// non-functional placeholder for now.
+function MessageBar({ channel, onSend }: { channel: Channel; onSend: (text: string) => void }) {
+  const [text, setText] = useState('');
+
+  const submit = () => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      return;
+    }
+    onSend(trimmed);
+    setText('');
+  };
+
   return (
-    <>
+    <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 shadow-sm">
+      <Plus className="size-4 shrink-0 text-muted-foreground" />
+      <input
+        type="text"
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            submit();
+          }
+        }}
+        aria-label={`Message #${channel.slug}`}
+        placeholder={`Message #${channel.slug}…`}
+        className="flex-1 bg-transparent text-foreground text-sm outline-none placeholder:text-muted-foreground"
+      />
       <MicButton />
-      <Button size="sm" variant="ghost" className="text-muted-foreground" aria-label="Send message">
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        className="text-muted-foreground"
+        aria-label="Send message"
+        onClick={submit}
+      >
         <Send />
       </Button>
-    </>
+    </div>
   );
 }
 
-// The composer lives in the chat panel. A collaborative channel composes its
-// message as a live, co-written draft — presence cursors and all — because
-// composing is a chat activity, not something that belongs in the preview.
-function Composer({ channel }: { channel: Channel }) {
+// The composer lives in the chat panel. A collaborative channel adds a live,
+// co-written prompt above the message bar — composing the agent's brief is a
+// chat activity, not something that belongs in the preview. The message bar
+// below it still messages the people in the channel (and is where dictation
+// lives — the prompt hands off to the agent instead).
+function Composer({ channel, onSend }: { channel: Channel; onSend: (text: string) => void }) {
   if (channel.compose === 'collab') {
     const typist = channel.typing ? PEOPLE[channel.typing] : null;
     return (
-      <div className="shrink-0 px-5 pb-5">
+      <div className="shrink-0 space-y-2 px-5 pb-5">
         <div className="overflow-hidden rounded-lg border border-border bg-background shadow-lg">
           <CollabPrompt />
           <div className="flex items-center gap-2 border-border border-t px-3 py-2">
@@ -536,23 +607,19 @@ function Composer({ channel }: { channel: Channel }) {
                 Co-writing with your team — anyone can edit
               </span>
             )}
-            <MicButton />
             <Button size="sm">
               <Play />
               Hand off to agent
             </Button>
           </div>
         </div>
+        <MessageBar channel={channel} onSend={onSend} />
       </div>
     );
   }
   return (
     <div className="shrink-0 px-5 pb-5">
-      <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 shadow-sm">
-        <Plus className="size-4 text-muted-foreground" />
-        <span className="flex-1 text-muted-foreground text-sm">Message #{channel.slug}…</span>
-        <ComposerActions />
-      </div>
+      <MessageBar channel={channel} onSend={onSend} />
     </div>
   );
 }
@@ -667,13 +734,13 @@ function Reactions({ items }: { items: Reaction[] }) {
       })}
 
       {picking ? (
-        <div className="flex items-center gap-0.5 rounded-full border border-border bg-card px-1 py-0.5 shadow-sm">
+        <div className="flex items-center gap-0.5 rounded-full border border-border bg-card px-1 py-1 shadow-sm">
           {QUICK_EMOJIS.map((emoji) => (
             <button
               key={emoji}
               type="button"
               onClick={() => add(emoji)}
-              className="rounded px-1 text-sm leading-none hover:bg-muted"
+              className="flex size-6 items-center justify-center rounded-full text-sm leading-none hover:bg-muted"
             >
               {emoji}
             </button>
@@ -762,46 +829,17 @@ function PreviewPane({ channel, active }: { channel: Channel; active: boolean })
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-4">
-        <PreviewSurface kind={channel.preview} />
+        {channel.slug === ChannelSlug.LivePreview ? <AppPreview /> : <PreviewPlaceholder />}
       </div>
     </aside>
   );
 }
 
-function PreviewSurface({ kind }: { kind: PreviewKind }) {
-  if (kind === 'code') {
-    return (
-      <PreviewFrame title="PR #128 · workspace models">
-        <div className="flex items-center gap-2 text-chart-2 text-xs">
-          <GitPullRequest className="size-3.5" />
-          Open · 6 files changed
-        </div>
-        <div className="mt-3 space-y-1 font-mono text-[0.7rem] leading-relaxed">
-          <div className="rounded-sm bg-chart-2/10 px-2 text-chart-2">+ model Workspace {'{'}</div>
-          <div className="px-2 text-muted-foreground">&nbsp;&nbsp;id String @id</div>
-          <div className="rounded-sm bg-chart-2/10 px-2 text-chart-2">+ members Member[]</div>
-          <div className="px-2 text-muted-foreground">{'}'}</div>
-          <div className="rounded-sm bg-destructive/10 px-2 text-destructive">
-            {'- // todo: presence'}
-          </div>
-        </div>
-      </PreviewFrame>
-    );
-  }
-
-  if (kind === 'pricing') {
-    return (
-      <div className="space-y-3">
-        <PriceTier name="Starter" price="$0" note="for small teams" highlight={false} />
-        <PriceTier name="Pro" price="$20" note="per agent / month" highlight />
-        <PriceTier name="Scale" price="Custom" note="usage-based" highlight={false} />
-      </div>
-    );
-  }
-
-  // The running product — a snapshot of what the agent shipped, the way a website
-  // preview renders it. Presence surfaces as the online facepile (the built
-  // feature); live editing cursors belong in the chat, not in the preview.
+// The preview channel is the one place with completed agent work to show — the
+// running product, the way a website preview renders it. Presence surfaces as
+// the online facepile (the built feature); live editing cursors belong in the
+// chat, not in the preview.
+function AppPreview() {
   return (
     <PreviewFrame title="kordeon · editor">
       <div className="min-h-[15rem]">
@@ -825,6 +863,20 @@ function PreviewSurface({ kind }: { kind: PreviewKind }) {
   );
 }
 
+// Every other channel is mid-flight — nothing to render until the agent ships.
+function PreviewPlaceholder() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+      <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <Clock className="size-5" />
+      </span>
+      <p className="text-balance text-muted-foreground text-sm">
+        Previews are available after the agent completes the work.
+      </p>
+    </div>
+  );
+}
+
 function PreviewFrame({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
@@ -835,41 +887,6 @@ function PreviewFrame({ title, children }: { title: string; children: React.Reac
         <span className="ml-2 truncate text-muted-foreground text-[0.7rem]">{title}</span>
       </div>
       <div className="p-3.5">{children}</div>
-    </div>
-  );
-}
-
-function PriceTier({
-  name,
-  price,
-  note,
-  highlight,
-}: {
-  name: string;
-  price: string;
-  note: string;
-  highlight: boolean;
-}) {
-  return (
-    <div
-      className={
-        highlight
-          ? 'rounded-lg border border-primary/40 bg-card p-4 ring-1 ring-primary/20'
-          : 'rounded-lg border border-border bg-card p-4'
-      }
-    >
-      <div className="flex items-center justify-between">
-        <span className="font-medium text-sm">{name}</span>
-        {highlight ? (
-          <Badge variant="secondary" className="text-[0.625rem]">
-            Popular
-          </Badge>
-        ) : null}
-      </div>
-      <div className="mt-1 flex items-baseline gap-1">
-        <span className="font-semibold text-xl tracking-tight">{price}</span>
-        <span className="text-muted-foreground text-xs">{note}</span>
-      </div>
     </div>
   );
 }

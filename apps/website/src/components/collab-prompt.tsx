@@ -1,59 +1,14 @@
 // biome-ignore-all lint/style/noMagicNumbers: motion + layout tuning constants
-import { CollabDoc, type DocBlock } from '@repo/ui/custom/collab-doc';
 import { Cursor } from '@repo/ui/custom/cursor';
 import { cn } from '@repo/ui/lib/utils';
 import { useEffect, useRef, useState } from 'react';
+import { PromptEditor } from '#components/prompt-editor';
 
-// The collaborate composer: the team co-writes the prompt handed to the agent,
-// rendered with the product's editable CollabDoc primitive. Maya's and Theo's
-// cursors float over it, and on hover the viewer's own pointer becomes a
-// labelled "You" cursor — one of the collaborators. Nothing is saved. The box
-// starts tall and grows when you drag the handle at its top.
-
-const PROMPT_DOC: DocBlock[] = [
-  { kind: 'h1', id: 'title', text: 'Realtime presence in the editor' },
-  {
-    kind: 'p',
-    id: 'intro',
-    runs: [
-      {
-        t: 'text',
-        v: 'Let a team edit the same document together and see each other live — presence, cursors, and selections, synced on every keystroke.',
-      },
-    ],
-  },
-  { kind: 'h2', id: 'req', text: 'Requirements' },
-  {
-    kind: 'list',
-    id: 'req-list',
-    items: [
-      { id: 'r-online', text: 'Show who’s online, with avatars and a per-person color' },
-      { id: 'r-cursors', text: 'Live cursors with name labels, updated as they move' },
-      { id: 'r-sel', text: 'Shared text selections, highlighted per collaborator' },
-      { id: 'r-crdt', text: 'Broadcast edits on every keystroke; merge with a CRDT' },
-      { id: 'r-reconnect', text: 'Reconnect and resync cleanly after a dropped connection' },
-    ],
-  },
-  { kind: 'h2', id: 'con', text: 'Constraints' },
-  {
-    kind: 'list',
-    id: 'con-list',
-    items: [
-      { id: 'c-latency', text: 'p95 cursor latency under 80ms on the presence channel' },
-      { id: 'c-degrade', text: 'Degrade to a plain “N online” count if a client can’t sync' },
-      { id: 'c-deps', text: 'Reuse the existing realtime layer — no new dependencies' },
-    ],
-  },
-  { kind: 'h2', id: 'done', text: 'Done when' },
-  {
-    kind: 'list',
-    id: 'done-list',
-    items: [
-      { id: 'd-browsers', text: 'Two browsers show each other’s cursors and selections' },
-      { id: 'd-clears', text: 'Presence clears within 2s of a tab closing' },
-    ],
-  },
-];
+// The collaborate composer: the team co-writes the prompt handed to the agent
+// in a real WYSIWYG editor (see PromptEditor). Maya's and Theo's cursors float
+// over it, and on hover the viewer's own pointer becomes a labelled "You"
+// cursor — one of the collaborators. Nothing is saved. The box starts tall and
+// grows when you drag the handle at its top.
 
 type Mate = { id: string; name: string; color: string; start: { x: number; y: number } };
 
@@ -221,14 +176,7 @@ export function CollabPrompt() {
           onMouseMove={(event) => place({ x: event.clientX, y: event.clientY })}
         >
           <div className="overflow-auto" style={{ height }}>
-            {/* cursor-none hides the native I-beam so only the custom "You"
-                cursor shows over the text, editing or not. */}
-            <CollabDoc
-              contentClassName="max-w-none cursor-none px-1 py-1"
-              doc={PROMPT_DOC}
-              editable
-              size="sm"
-            />
+            <PromptEditor />
           </div>
 
           {MATES.map((mate) => (
