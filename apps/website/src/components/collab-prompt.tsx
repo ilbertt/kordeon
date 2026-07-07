@@ -221,8 +221,10 @@ export function CollabPrompt() {
           onMouseMove={(event) => place({ x: event.clientX, y: event.clientY })}
         >
           <div className="overflow-auto" style={{ height }}>
+            {/* cursor-none hides the native I-beam so only the custom "You"
+                cursor shows over the text, editing or not. */}
             <CollabDoc
-              contentClassName="max-w-none px-1 py-1"
+              contentClassName="max-w-none cursor-none px-1 py-1"
               doc={PROMPT_DOC}
               editable
               size="sm"

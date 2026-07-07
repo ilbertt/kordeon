@@ -7,20 +7,22 @@ import {
   Check,
   Eye,
   FileText,
-  GitBranch,
   GitMerge,
   GitPullRequest,
   GitPullRequestDraft,
+  Home,
   type LucideIcon,
   Mic,
+  Play,
   Plus,
   Search,
   Send,
+  SmilePlus,
   Users,
   Workflow,
   Zap,
 } from 'lucide-react';
-import { useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { CollabPrompt } from '#components/collab-prompt';
 import { ScrollStage } from '#components/scroll-stage';
 import { ThemeToggle } from '#components/theme-toggle';
@@ -74,7 +76,7 @@ type Message =
 type ChannelStatus = 'main' | 'draft' | 'open' | 'merged';
 
 const STATUS: Record<ChannelStatus, { icon: LucideIcon; className: string }> = {
-  main: { icon: GitBranch, className: 'text-muted-foreground' },
+  main: { icon: Home, className: 'text-muted-foreground' },
   draft: { icon: GitPullRequestDraft, className: 'text-muted-foreground' },
   open: { icon: GitPullRequest, className: 'text-chart-2' },
   merged: { icon: GitMerge, className: 'text-primary' },
@@ -491,19 +493,24 @@ function Thread({ channel, active }: { channel: Channel; active: boolean }) {
   );
 }
 
-// Dictation sits next to send on every composer — a message can be spoken, not
-// just typed.
+// Dictation — a message (or prompt) can be spoken, not just typed.
+function MicButton() {
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="text-muted-foreground"
+      aria-label="Dictate message"
+    >
+      <Mic />
+    </Button>
+  );
+}
+
 function ComposerActions() {
   return (
     <>
-      <Button
-        size="sm"
-        variant="ghost"
-        className="text-muted-foreground"
-        aria-label="Dictate message"
-      >
-        <Mic />
-      </Button>
+      <MicButton />
       <Button size="sm" variant="ghost" className="text-muted-foreground" aria-label="Send message">
         <Send />
       </Button>
@@ -529,7 +536,11 @@ function Composer({ channel }: { channel: Channel }) {
                 Co-writing with your team — anyone can edit
               </span>
             )}
-            <ComposerActions />
+            <MicButton />
+            <Button size="sm">
+              <Play />
+              Hand off to agent
+            </Button>
           </div>
         </div>
       </div>
@@ -609,18 +620,75 @@ function ChatMessage({ message }: { message: Message }) {
   );
 }
 
+const QUICK_EMOJIS = ['👍', '❤️', '🎉', '🚀', '👀', '😄'];
+
+// Visitors can react for fun — nothing is persisted. Base counts come from the
+// seeded `items`; the viewer's own reactions live in local state and add +1.
 function Reactions({ items }: { items: Reaction[] }) {
+  const [mine, setMine] = useState<Record<string, boolean>>({});
+  const [picking, setPicking] = useState(false);
+
+  const base = new Map(items.map((reaction) => [reaction.emoji, reaction.by.length]));
+  const toggle = (emoji: string) => setMine((prev) => ({ ...prev, [emoji]: !prev[emoji] }));
+  const add = (emoji: string) => {
+    setMine((prev) => ({ ...prev, [emoji]: true }));
+    setPicking(false);
+  };
+
+  const emojis = [
+    ...base.keys(),
+    ...Object.keys(mine).filter((emoji) => mine[emoji] && !base.has(emoji)),
+  ];
+
   return (
-    <div className="mt-2 flex flex-wrap gap-1.5">
-      {items.map((reaction) => (
-        <span
-          key={reaction.emoji}
-          className="flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-0.5 text-xs"
+    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      {emojis.map((emoji) => {
+        const count = (base.get(emoji) ?? 0) + (mine[emoji] ? 1 : 0);
+        if (count === 0) {
+          return null;
+        }
+        const reacted = Boolean(mine[emoji]);
+        return (
+          <button
+            key={emoji}
+            type="button"
+            onClick={() => toggle(emoji)}
+            className={cn(
+              'flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors',
+              reacted
+                ? 'border-primary/40 bg-primary/10 text-primary'
+                : 'border-border bg-muted/40 hover:bg-muted',
+            )}
+          >
+            <span>{emoji}</span>
+            <span className={reacted ? 'text-primary' : 'text-muted-foreground'}>{count}</span>
+          </button>
+        );
+      })}
+
+      {picking ? (
+        <div className="flex items-center gap-0.5 rounded-full border border-border bg-card px-1 py-0.5 shadow-sm">
+          {QUICK_EMOJIS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => add(emoji)}
+              className="rounded px-1 text-sm leading-none hover:bg-muted"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <button
+          type="button"
+          aria-label="Add reaction"
+          onClick={() => setPicking(true)}
+          className="flex items-center rounded-full border border-border bg-muted/40 px-1.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
-          <span>{reaction.emoji}</span>
-          <span className="text-muted-foreground">{reaction.by.length}</span>
-        </span>
-      ))}
+          <SmilePlus className="size-3.5" />
+        </button>
+      )}
     </div>
   );
 }
