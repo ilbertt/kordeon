@@ -3,25 +3,35 @@ import { Button, buttonVariants } from '@repo/ui/components/button';
 import { cn } from '@repo/ui/lib/utils';
 import {
   ArrowRight,
-  Bot,
   Check,
+  Clock,
   Eye,
-  GitBranch,
+  FileText,
   GitMerge,
   GitPullRequest,
   GitPullRequestDraft,
+  Home,
   type LucideIcon,
+  Mic,
+  Play,
   Plus,
   Search,
   Send,
+  SmilePlus,
   Users,
   Workflow,
   Zap,
 } from 'lucide-react';
-import { useSyncExternalStore } from 'react';
+import { useRef, useState, useSyncExternalStore } from 'react';
+import adaAvatar from '#assets/avatars/ada.svg';
+import kordeAvatar from '#assets/avatars/korde.svg';
+import mayaAvatar from '#assets/avatars/maya.svg';
+import theoAvatar from '#assets/avatars/theo.svg';
+import youAvatar from '#assets/avatars/you.svg';
 import { CollabPrompt } from '#components/collab-prompt';
 import { ScrollStage } from '#components/scroll-stage';
 import { ThemeToggle } from '#components/theme-toggle';
+import { useTokenCount } from '#lib/use-token-count';
 
 // The cast that populates every feature thread — a small product team plus the
 // agent. Colors come from the shared chart tokens (agent in teal `primary`), so
@@ -39,16 +49,19 @@ const PEOPLE = {
   maya: { id: 'maya', name: 'Maya', initials: 'MR', color: 'var(--chart-3)', kind: 'human' },
   theo: { id: 'theo', name: 'Theo', initials: 'TK', color: 'var(--chart-4)', kind: 'human' },
   ada: { id: 'ada', name: 'Ada', initials: 'AL', color: 'var(--chart-5)', kind: 'human' },
-  sam: { id: 'sam', name: 'Sam', initials: 'SI', color: 'var(--chart-2)', kind: 'human' },
   you: { id: 'you', name: 'You', initials: 'YO', color: 'var(--chart-2)', kind: 'human' },
   korde: { id: 'korde', name: 'Korde', initials: 'KO', color: 'var(--primary)', kind: 'agent' },
 } satisfies Record<string, Person>;
 
 type PersonId = keyof typeof PEOPLE;
 
-const TEAM: PersonId[] = ['maya', 'theo', 'ada', 'you', 'korde'];
-
-type PreviewKind = 'app' | 'chat' | 'plan' | 'code' | 'pricing';
+const AVATARS: Record<string, string> = {
+  maya: mayaAvatar,
+  theo: theoAvatar,
+  ada: adaAvatar,
+  you: youAvatar,
+  korde: kordeAvatar,
+};
 
 type PlanItem = { id: string; label: string; done: boolean };
 
@@ -72,7 +85,7 @@ type Message =
 type ChannelStatus = 'main' | 'draft' | 'open' | 'merged';
 
 const STATUS: Record<ChannelStatus, { icon: LucideIcon; className: string }> = {
-  main: { icon: GitBranch, className: 'text-muted-foreground' },
+  main: { icon: Home, className: 'text-muted-foreground' },
   draft: { icon: GitPullRequestDraft, className: 'text-muted-foreground' },
   open: { icon: GitPullRequest, className: 'text-chart-2' },
   merged: { icon: GitMerge, className: 'text-primary' },
@@ -89,7 +102,6 @@ function StatusIcon({ status, className }: { status: ChannelStatus; className?: 
 enum ChannelSlug {
   Welcome = 'welcome',
   Collaborate = 'collaborate',
-  RefineThePlan = 'refine-the-plan',
   HandOff = 'hand-off',
   LivePreview = 'live-preview',
   Pricing = 'pricing',
@@ -101,7 +113,9 @@ type Channel = {
   topic: string;
   members: PersonId[];
   typing?: PersonId;
-  preview: PreviewKind;
+  // When set, the composer in the chat panel hosts a live, co-written draft
+  // instead of a plain input — collaborative composing is a chat activity.
+  compose?: 'collab';
   messages: Message[];
 };
 
@@ -109,20 +123,19 @@ const channels: Channel[] = [
   {
     slug: ChannelSlug.Welcome,
     status: 'main',
-    topic: 'Where humans collaborate and agents execute',
+    topic: 'One surface — chat, the work, and the live preview',
     members: ['you', 'maya', 'theo', 'ada', 'korde'],
-    preview: 'app',
     messages: [
       {
         id: 'w1',
         kind: 'system',
-        text: 'This is kordeon — a workspace where your team and AI agents build software together.',
+        text: 'This is kordeon — one workspace, three panels: your features on the left, the conversation here, the live product on the right.',
       },
       {
         id: 'w2',
         kind: 'msg',
         from: 'korde',
-        text: 'Browse the features on the left to see how it works — or start a thread and tell me what you want to build.',
+        text: 'Your team and I work across all three — talk it through here, I pull the context and build it, and it renders in the preview. No tabbing away. Browse the features on the left, or start a thread and tell me what to build.',
         reactions: [{ emoji: '👋', by: ['maya', 'theo', 'ada'] }],
       },
     ],
@@ -130,10 +143,10 @@ const channels: Channel[] = [
   {
     slug: ChannelSlug.Collaborate,
     status: 'draft',
-    topic: 'Humans and agents in one thread',
+    topic: 'Shape the ask and the plan, together',
     members: ['maya', 'theo', 'ada', 'you', 'korde'],
     typing: 'ada',
-    preview: 'chat',
+    compose: 'collab',
     messages: [
       {
         id: 'c1',
@@ -158,23 +171,7 @@ const channels: Channel[] = [
         id: 'c4',
         kind: 'msg',
         from: 'korde',
-        text: 'Got it — presence + cursor sync, Ada on the backend. Everyone’s in one thread, including me. Want me to draft a plan?',
-        replies: ['maya', 'theo', 'you'],
-      },
-    ],
-  },
-  {
-    slug: ChannelSlug.RefineThePlan,
-    status: 'draft',
-    topic: 'Shape the spec together before any code is written',
-    members: ['maya', 'theo', 'you', 'korde'],
-    preview: 'plan',
-    messages: [
-      {
-        id: 'p1',
-        kind: 'msg',
-        from: 'korde',
-        text: 'Here’s the plan. Edit any step, reorder, or add your own before we start.',
+        text: 'Got it — presence + cursor sync, Ada on the backend. Here’s a plan — edit any step, reorder, or add your own before we start.',
         plan: [
           { id: 'm', label: 'Add workspace + membership models', done: true },
           { id: 'r', label: 'Realtime channel with presence', done: true },
@@ -183,14 +180,14 @@ const channels: Channel[] = [
         ],
       },
       {
-        id: 'p2',
+        id: 'c5',
         kind: 'msg',
         from: 'maya',
         text: 'Looks great. Drop the invite step for now — we’ll do that next sprint.',
         reactions: [{ emoji: '✅', by: ['you', 'theo'] }],
       },
       {
-        id: 'p3',
+        id: 'c6',
         kind: 'msg',
         from: 'theo',
         text: 'Moving cursor sync above the invite flow so it lands first.',
@@ -202,7 +199,6 @@ const channels: Channel[] = [
     status: 'open',
     topic: 'Approve the plan, the agent implements it',
     members: ['maya', 'theo', 'you', 'korde'],
-    preview: 'code',
     messages: [
       {
         id: 'h1',
@@ -221,7 +217,7 @@ const channels: Channel[] = [
         id: 'h3',
         kind: 'msg',
         from: 'korde',
-        text: 'Opened PR #128 with the models + presence channel. Review it in the preview →',
+        text: 'Opened PR #128 with the models + presence channel — the preview goes live once it ships.',
       },
     ],
   },
@@ -230,7 +226,6 @@ const channels: Channel[] = [
     status: 'merged',
     topic: 'Watch it render as the agent ships each step',
     members: ['maya', 'theo', 'ada', 'you', 'korde'],
-    preview: 'app',
     messages: [
       {
         id: 'v1',
@@ -258,7 +253,6 @@ const channels: Channel[] = [
     status: 'open',
     topic: 'Simple, usage-based pricing',
     members: ['you', 'korde'],
-    preview: 'pricing',
     messages: [
       {
         id: 'pr1',
@@ -277,25 +271,18 @@ const channels: Channel[] = [
   },
 ];
 
-function Avatar({
-  person,
-  className,
-  iconClassName,
-}: {
-  person: Person;
-  className?: string;
-  iconClassName?: string;
-}) {
-  if (person.kind === 'agent') {
+// Everyone gets a cartoon avatar; the coloured initials remain a graceful
+// fallback if the SVG hasn't loaded.
+function Avatar({ person, className }: { person: Person; className?: string }) {
+  const src = AVATARS[person.id];
+  if (src) {
     return (
-      <span
-        className={cn(
-          'flex shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground',
-          className,
-        )}
-      >
-        <Bot className={cn('size-4', iconClassName)} />
-      </span>
+      <img
+        src={src}
+        alt={person.name}
+        className={cn('shrink-0 rounded-full object-cover', className)}
+        style={{ backgroundColor: person.color }}
+      />
     );
   }
   return (
@@ -321,7 +308,6 @@ function Facepile({ ids, online }: { ids: PersonId[]; online?: boolean }) {
             key={person.id}
             person={person}
             className="size-6 text-[0.6rem] ring-2 ring-card"
-            iconClassName="size-3.5"
           />
         ))}
       </div>
@@ -343,6 +329,14 @@ const DEFAULT_SLUG = ChannelSlug.Welcome;
 
 function channelBySlug(slug: string): Channel | undefined {
   return channels.find((channel) => channel.slug === slug);
+}
+
+// On load, a URL that deep-links to a real section (e.g. `#refine-the-plan`)
+// should present the product already full at that section, skipping the
+// scroll-in intro. A missing or unknown hash keeps the intro. Module-scope so
+// its identity is stable — ScrollStage runs it once on mount.
+function hasSectionHash(): boolean {
+  return channelBySlug(window.location.hash.slice(1)) !== undefined;
 }
 
 function subscribeToHash(onChange: () => void) {
@@ -367,7 +361,7 @@ export function Landing() {
   const activeSlug = useActiveSlug();
 
   return (
-    <ScrollStage>
+    <ScrollStage openFullOnLoad={hasSectionHash}>
       <AppShell activeSlug={activeSlug} />
     </ScrollStage>
   );
@@ -409,10 +403,6 @@ function TopBar() {
           <Workflow className="size-4" />
         </span>
         <span className="font-semibold tracking-tight">kordeon</span>
-        <Badge variant="secondary" className="ml-1 hidden gap-1 sm:inline-flex">
-          <span className="size-1.5 rounded-full bg-chart-2" />
-          Private beta
-        </Badge>
       </div>
       <div className="flex items-center gap-3">
         <a
@@ -466,16 +456,39 @@ function Sidebar({ activeSlug }: { activeSlug: ChannelSlug }) {
           );
         })}
       </nav>
-      <div className="hidden items-center gap-2 border-border border-t px-3 py-3 md:flex">
-        <Facepile ids={TEAM} />
-        <span className="text-muted-foreground text-sm">Your team</span>
+      <div className="hidden items-center gap-2.5 border-border border-t px-3 py-3 md:flex">
+        <Avatar person={PEOPLE.you} className="size-8" />
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-medium text-sm">You</div>
+          <div className="flex items-center gap-1 text-muted-foreground text-xs">
+            <span className="size-1.5 rounded-full bg-chart-2" />
+            Active
+          </div>
+        </div>
       </div>
     </aside>
   );
 }
 
 function Thread({ channel, active }: { channel: Channel; active: boolean }) {
-  const typist = channel.typing ? PEOPLE[channel.typing] : null;
+  // Messages the visitor sends are kept locally, just for feel — nothing is
+  // persisted, so they reset on reload.
+  const [sent, setSent] = useState<Message[]>([]);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const send = (text: string) => {
+    setSent((prev) => [
+      ...prev,
+      { id: `${channel.slug}-sent-${prev.length}`, kind: 'msg', from: 'you', text },
+    ]);
+    requestAnimationFrame(() => {
+      const el = listRef.current;
+      if (el) {
+        el.scrollTop = el.scrollHeight;
+      }
+    });
+  };
+
   return (
     <section className={cn('min-w-0 flex-1 flex-col', active ? 'flex' : 'hidden')}>
       <div className="flex h-14 shrink-0 items-center gap-2 border-border border-b px-5">
@@ -489,22 +502,117 @@ function Thread({ channel, active }: { channel: Channel; active: boolean }) {
           <Facepile ids={channel.members} online />
         </div>
       </div>
-      <div className="flex-1 space-y-5 overflow-y-auto px-5 py-6">
-        {channel.messages.map((message) => (
+      <div ref={listRef} className="flex-1 space-y-5 overflow-y-auto px-5 py-6">
+        {[...channel.messages, ...sent].map((message) => (
           <ChatMessage key={message.id} message={message} />
         ))}
       </div>
-      {typist ? <TypingIndicator person={typist} /> : null}
-      <div className="shrink-0 px-5 pb-5">
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 shadow-sm">
-          <Plus className="size-4 text-muted-foreground" />
-          <span className="flex-1 text-muted-foreground text-sm">Message #{channel.slug}…</span>
-          <Button size="sm" variant="ghost" className="text-muted-foreground">
-            <Send />
-          </Button>
+      <Composer channel={channel} onSend={send} />
+    </section>
+  );
+}
+
+// Dictation — a message (or prompt) can be spoken, not just typed.
+function MicButton() {
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="text-muted-foreground"
+      aria-label="Dictate message"
+    >
+      <Mic />
+    </Button>
+  );
+}
+
+// The chat panel's message bar — type and send a message to the people in the
+// channel. Sent messages are local and unsaved, just for feel; the mic is a
+// non-functional placeholder for now.
+function MessageBar({ channel, onSend }: { channel: Channel; onSend: (text: string) => void }) {
+  const [text, setText] = useState('');
+
+  const submit = () => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      return;
+    }
+    onSend(trimmed);
+    setText('');
+  };
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 shadow-sm">
+      <Plus className="size-4 shrink-0 text-muted-foreground" />
+      <input
+        type="text"
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            submit();
+          }
+        }}
+        aria-label={`Message #${channel.slug}`}
+        placeholder={`Message #${channel.slug}…`}
+        className="flex-1 bg-transparent text-foreground text-sm outline-none placeholder:text-muted-foreground"
+      />
+      <MicButton />
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        className="text-muted-foreground"
+        aria-label="Send message"
+        onClick={submit}
+      >
+        <Send />
+      </Button>
+    </div>
+  );
+}
+
+// The composer lives in the chat panel. A collaborative channel adds a live,
+// co-written prompt above the message bar — composing the agent's brief is a
+// chat activity, not something that belongs in the preview. The message bar
+// below it still messages the people in the channel (and is where dictation
+// lives — the prompt hands off to the agent instead).
+function Composer({ channel, onSend }: { channel: Channel; onSend: (text: string) => void }) {
+  // Live token count of the co-written prompt, mirroring what the agent would be
+  // billed to build it. Counted with the model tokenizer (see useTokenCount).
+  const [promptText, setPromptText] = useState('');
+  const tokens = useTokenCount(promptText);
+  // The typing indicator belongs with the message bar (someone drafting a chat
+  // message); in the prompt editor, the live cursors convey presence already.
+  const typist = channel.typing ? PEOPLE[channel.typing] : null;
+  if (channel.compose === 'collab') {
+    return (
+      <div className="shrink-0 space-y-2 px-5 pb-5">
+        <div className="overflow-hidden rounded-lg border border-border bg-background shadow-lg">
+          <CollabPrompt onText={setPromptText} />
+          <div className="flex items-center gap-2 border-border border-t px-3 py-2">
+            <span className="flex-1 text-muted-foreground text-xs tabular-nums">
+              {tokens.toLocaleString()} tokens
+            </span>
+            <Button size="sm">
+              <Play />
+              Build
+            </Button>
+          </div>
+        </div>
+        <div className="space-y-1">
+          {typist ? <TypingIndicator person={typist} /> : null}
+          <MessageBar channel={channel} onSend={onSend} />
         </div>
       </div>
-    </section>
+    );
+  }
+  return (
+    <div className="shrink-0 space-y-1 px-5 pb-5">
+      {typist ? <TypingIndicator person={typist} /> : null}
+      <MessageBar channel={channel} onSend={onSend} />
+    </div>
   );
 }
 
@@ -512,8 +620,8 @@ const TYPING_DELAYS = ['0ms', '150ms', '300ms'];
 
 function TypingIndicator({ person }: { person: Person }) {
   return (
-    <div className="flex shrink-0 items-center gap-2 px-5 pb-1 text-muted-foreground text-xs">
-      <Avatar person={person} className="size-5 text-[0.5rem]" iconClassName="size-3" />
+    <div className="flex items-center gap-2 px-1 text-muted-foreground text-xs">
+      <Avatar person={person} className="size-5 text-[0.5rem]" />
       <span>{person.name} is typing</span>
       <span className="flex items-center gap-0.5">
         {TYPING_DELAYS.map((delay) => (
@@ -543,7 +651,7 @@ function ChatMessage({ message }: { message: Message }) {
   const isAgent = person.kind === 'agent';
   return (
     <div className="flex gap-3">
-      <Avatar person={person} className="size-8 text-xs" iconClassName="size-4.5" />
+      <Avatar person={person} className="size-8 text-xs" />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
           <span className="font-medium text-sm">{person.name}</span>
@@ -571,18 +679,75 @@ function ChatMessage({ message }: { message: Message }) {
   );
 }
 
+const QUICK_EMOJIS = ['👍', '❤️', '🎉', '🚀', '👀', '😄'];
+
+// Visitors can react for fun — nothing is persisted. Base counts come from the
+// seeded `items`; the viewer's own reactions live in local state and add +1.
 function Reactions({ items }: { items: Reaction[] }) {
+  const [mine, setMine] = useState<Record<string, boolean>>({});
+  const [picking, setPicking] = useState(false);
+
+  const base = new Map(items.map((reaction) => [reaction.emoji, reaction.by.length]));
+  const toggle = (emoji: string) => setMine((prev) => ({ ...prev, [emoji]: !prev[emoji] }));
+  const add = (emoji: string) => {
+    setMine((prev) => ({ ...prev, [emoji]: true }));
+    setPicking(false);
+  };
+
+  const emojis = [
+    ...base.keys(),
+    ...Object.keys(mine).filter((emoji) => mine[emoji] && !base.has(emoji)),
+  ];
+
   return (
-    <div className="mt-2 flex flex-wrap gap-1.5">
-      {items.map((reaction) => (
-        <span
-          key={reaction.emoji}
-          className="flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-0.5 text-xs"
+    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      {emojis.map((emoji) => {
+        const count = (base.get(emoji) ?? 0) + (mine[emoji] ? 1 : 0);
+        if (count === 0) {
+          return null;
+        }
+        const reacted = Boolean(mine[emoji]);
+        return (
+          <button
+            key={emoji}
+            type="button"
+            onClick={() => toggle(emoji)}
+            className={cn(
+              'flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors',
+              reacted
+                ? 'border-primary/40 bg-primary/10 text-primary'
+                : 'border-border bg-muted/40 hover:bg-muted',
+            )}
+          >
+            <span>{emoji}</span>
+            <span className={reacted ? 'text-primary' : 'text-muted-foreground'}>{count}</span>
+          </button>
+        );
+      })}
+
+      {picking ? (
+        <div className="flex items-center gap-0.5 rounded-full border border-border bg-card px-1 py-1 shadow-sm">
+          {QUICK_EMOJIS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => add(emoji)}
+              className="flex size-6 items-center justify-center rounded-full text-sm leading-none hover:bg-muted"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <button
+          type="button"
+          aria-label="Add reaction"
+          onClick={() => setPicking(true)}
+          className="flex items-center rounded-full border border-border bg-muted/40 px-1.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
-          <span>{reaction.emoji}</span>
-          <span className="text-muted-foreground">{reaction.by.length}</span>
-        </span>
-      ))}
+          <SmilePlus className="size-3.5" />
+        </button>
+      )}
     </div>
   );
 }
@@ -600,7 +765,6 @@ function Replies({ ids }: { ids: PersonId[] }) {
             key={person.id}
             person={person}
             className="size-5 text-[0.5rem] ring-2 ring-card"
-            iconClassName="size-3"
           />
         ))}
       </div>
@@ -649,104 +813,58 @@ function PreviewPane({ channel, active }: { channel: Channel; active: boolean })
         active ? 'hidden xl:flex' : 'hidden',
       )}
     >
-      <div className="flex h-14 shrink-0 items-center justify-between border-border border-b px-5">
+      <div className="flex h-14 shrink-0 items-center border-border border-b px-5">
         <div className="flex items-center gap-2 font-medium text-sm">
           <Eye className="size-4 text-muted-foreground" />
           Preview
         </div>
-        <span className="flex items-center gap-1.5 text-chart-2 text-xs">
-          <span className="size-1.5 animate-pulse rounded-full bg-chart-2" />
-          Live
-        </span>
       </div>
       <div className="flex-1 overflow-y-auto p-4">
-        <PreviewSurface kind={channel.preview} />
+        {channel.slug === ChannelSlug.LivePreview ? <AppPreview /> : <PreviewPlaceholder />}
       </div>
     </aside>
   );
 }
 
-function PreviewSurface({ kind }: { kind: PreviewKind }) {
-  if (kind === 'plan') {
-    return (
-      <PreviewFrame title="spec.md">
-        <div className="space-y-3">
-          <div className="h-3 w-1/2 rounded-full bg-foreground/20" />
-          <div className="space-y-1.5">
-            <div className="h-2 w-full rounded-full bg-foreground/10" />
-            <div className="h-2 w-5/6 rounded-full bg-foreground/10" />
-            <div className="h-2 w-2/3 rounded-full bg-foreground/10" />
-          </div>
-          <div className="rounded-md bg-muted/60 p-3 ring-1 ring-border">
-            <div className="mb-2 h-2 w-1/3 rounded-full bg-foreground/15" />
-            <div className="space-y-1.5">
-              <div className="h-2 w-full rounded-full bg-foreground/10" />
-              <div className="h-2 w-4/5 rounded-full bg-foreground/10" />
-            </div>
-          </div>
-        </div>
-      </PreviewFrame>
-    );
-  }
-
-  if (kind === 'code') {
-    return (
-      <PreviewFrame title="PR #128 · workspace models">
-        <div className="flex items-center gap-2 text-chart-2 text-xs">
-          <GitPullRequest className="size-3.5" />
-          Open · 6 files changed
-        </div>
-        <div className="mt-3 space-y-1 font-mono text-[0.7rem] leading-relaxed">
-          <div className="rounded-sm bg-chart-2/10 px-2 text-chart-2">+ model Workspace {'{'}</div>
-          <div className="px-2 text-muted-foreground">&nbsp;&nbsp;id String @id</div>
-          <div className="rounded-sm bg-chart-2/10 px-2 text-chart-2">+ members Member[]</div>
-          <div className="px-2 text-muted-foreground">{'}'}</div>
-          <div className="rounded-sm bg-destructive/10 px-2 text-destructive">
-            {'- // todo: presence'}
-          </div>
-        </div>
-      </PreviewFrame>
-    );
-  }
-
-  if (kind === 'chat') {
-    return (
-      <PreviewFrame title="presence.prompt">
-        <CollabPrompt />
-      </PreviewFrame>
-    );
-  }
-
-  if (kind === 'pricing') {
-    return (
-      <div className="space-y-3">
-        <PriceTier name="Starter" price="$0" note="for small teams" highlight={false} />
-        <PriceTier name="Pro" price="$20" note="per agent / month" highlight />
-        <PriceTier name="Scale" price="Custom" note="usage-based" highlight={false} />
-      </div>
-    );
-  }
-
+// The preview channel is the one place with completed agent work to show — the
+// running product, the way a website preview renders it. Presence surfaces as
+// the online facepile (the built feature); live editing cursors belong in the
+// chat, not in the preview.
+function AppPreview() {
   return (
-    <PreviewFrame title="kordeon · realtime-chat">
-      <div className="flex items-center justify-between">
-        <div className="h-3 w-20 rounded-full bg-foreground/20" />
-        <Facepile ids={['maya', 'theo', 'you']} />
-      </div>
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        <div className="h-12 rounded-md bg-card ring-1 ring-border" />
-        <div className="h-12 rounded-md bg-card ring-1 ring-border" />
-        <div className="h-12 rounded-md bg-card ring-1 ring-border" />
-      </div>
-      <div className="mt-2 space-y-2 rounded-md bg-card p-3 ring-1 ring-border">
-        <div className="h-2 w-2/3 rounded-full bg-foreground/15" />
-        <div className="h-2 w-1/2 rounded-full bg-foreground/10" />
-        <div className="mt-2 flex gap-2">
-          <div className="h-6 w-16 rounded-md bg-primary" />
-          <div className="h-6 w-16 rounded-md bg-secondary ring-1 ring-border" />
+    <PreviewFrame title="kordeon · editor">
+      <div className="min-h-[15rem]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs">
+            <FileText className="size-3.5" />
+            Realtime presence
+          </div>
+          <Facepile ids={['maya', 'theo', 'ada', 'korde']} online />
+        </div>
+        <div className="mt-4 space-y-2.5">
+          <div className="h-2.5 w-1/2 rounded-full bg-foreground/20" />
+          <div className="h-2 w-full rounded-full bg-foreground/10" />
+          <div className="h-2 w-5/6 rounded-full bg-foreground/10" />
+          <div className="h-2 w-2/3 rounded-full bg-foreground/10" />
+          <div className="h-2 w-4/5 rounded-full bg-foreground/10" />
+          <div className="h-2 w-3/5 rounded-full bg-foreground/10" />
         </div>
       </div>
     </PreviewFrame>
+  );
+}
+
+// Every other channel is mid-flight — nothing to render until the agent ships.
+function PreviewPlaceholder() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+      <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <Clock className="size-5" />
+      </span>
+      <p className="text-balance text-muted-foreground text-sm">
+        Previews are available after the agent completes the work.
+      </p>
+    </div>
   );
 }
 
@@ -760,41 +878,6 @@ function PreviewFrame({ title, children }: { title: string; children: React.Reac
         <span className="ml-2 truncate text-muted-foreground text-[0.7rem]">{title}</span>
       </div>
       <div className="p-3.5">{children}</div>
-    </div>
-  );
-}
-
-function PriceTier({
-  name,
-  price,
-  note,
-  highlight,
-}: {
-  name: string;
-  price: string;
-  note: string;
-  highlight: boolean;
-}) {
-  return (
-    <div
-      className={
-        highlight
-          ? 'rounded-lg border border-primary/40 bg-card p-4 ring-1 ring-primary/20'
-          : 'rounded-lg border border-border bg-card p-4'
-      }
-    >
-      <div className="flex items-center justify-between">
-        <span className="font-medium text-sm">{name}</span>
-        {highlight ? (
-          <Badge variant="secondary" className="text-[0.625rem]">
-            Popular
-          </Badge>
-        ) : null}
-      </div>
-      <div className="mt-1 flex items-baseline gap-1">
-        <span className="font-semibold text-xl tracking-tight">{price}</span>
-        <span className="text-muted-foreground text-xs">{note}</span>
-      </div>
     </div>
   );
 }

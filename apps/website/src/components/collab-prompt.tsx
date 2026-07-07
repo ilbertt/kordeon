@@ -2,33 +2,44 @@
 import { Cursor } from '@repo/ui/custom/cursor';
 import { cn } from '@repo/ui/lib/utils';
 import { useEffect, useRef, useState } from 'react';
+import { PromptEditor } from '#components/prompt-editor';
 
-// The collaborate preview: the team co-writes a prompt (the instruction handed
-// to the agent) while their cursors drift over it. On hover, the viewer's own
-// pointer becomes a labelled "You" cursor — they become one of the collaborators.
+// The collaborate composer: the team co-writes the prompt handed to the agent
+// in a real WYSIWYG editor (see PromptEditor). Maya's and Theo's cursors float
+// over it, and on hover the viewer's own pointer becomes a labelled "You"
+// cursor — one of the collaborators. Nothing is saved. The box starts tall and
+// grows when you drag the handle at its top.
 
 type Mate = { id: string; name: string; color: string; start: { x: number; y: number } };
 
 const MATES: Mate[] = [
-  { id: 'maya', name: 'Maya', color: 'var(--chart-3)', start: { x: 0.14, y: 0.36 } },
-  { id: 'theo', name: 'Theo', color: 'var(--chart-4)', start: { x: 0.32, y: 0.52 } },
+  { id: 'maya', name: 'Maya', color: 'var(--chart-3)', start: { x: 0.16, y: 0.24 } },
+  { id: 'theo', name: 'Theo', color: 'var(--chart-4)', start: { x: 0.62, y: 0.5 } },
 ];
 
 const YOU_COLOR = 'var(--chart-2)';
 
-// Fractional anchors near the prompt's lines — cursors hop between them, so they
-// read as teammates editing the text rather than drifting at random.
+// Anchors spread across the draft in both axes, so the cursors float around it
+// rather than sliding straight up and down.
 const ANCHORS = [
-  { x: 0.14, y: 0.36 },
-  { x: 0.32, y: 0.52 },
-  { x: 0.26, y: 0.64 },
-  { x: 0.2, y: 0.76 },
+  { x: 0.16, y: 0.24 },
+  { x: 0.62, y: 0.3 },
+  { x: 0.34, y: 0.48 },
+  { x: 0.72, y: 0.6 },
+  { x: 0.22, y: 0.72 },
+  { x: 0.52, y: 0.84 },
 ];
 
-const EASE = 0.07;
+const EASE = 0.06;
 const ARRIVE_PX = 4;
-const REST_MIN = 500;
-const REST_MAX = 1600;
+const REST_MIN = 400;
+const REST_MAX = 1500;
+
+// Drag-to-resize bounds (px): the box starts tall and grows as the top handle is
+// dragged upward.
+const MIN_H = 176;
+const MAX_H = 640;
+const DEFAULT_H = 320;
 
 function rand({ min, max }: { min: number; max: number }) {
   return min + Math.random() * (max - min);
@@ -36,16 +47,19 @@ function rand({ min, max }: { min: number; max: number }) {
 
 function pickTarget() {
   const anchor = ANCHORS[Math.floor(Math.random() * ANCHORS.length)] ?? ANCHORS[0]!;
-  return { x: anchor.x + (Math.random() - 0.5) * 0.06, y: anchor.y + (Math.random() - 0.5) * 0.04 };
+  return { x: anchor.x + (Math.random() - 0.5) * 0.08, y: anchor.y + (Math.random() - 0.5) * 0.05 };
 }
 
 type Drift = { x: number; y: number; tx: number; ty: number; restUntil: number };
 
-export function CollabPrompt() {
+export function CollabPrompt({ onText }: { onText?: (text: string) => void }) {
   const areaRef = useRef<HTMLDivElement>(null);
   const mateRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const youRef = useRef<HTMLDivElement>(null);
   const [joined, setJoined] = useState(false);
+  const [height, setHeight] = useState(DEFAULT_H);
+  const [dragging, setDragging] = useState(false);
+  const dragRef = useRef({ startY: 0, startH: DEFAULT_H });
 
   useEffect(() => {
     const area = areaRef.current;
@@ -53,10 +67,10 @@ export function CollabPrompt() {
       return;
     }
     let width = area.clientWidth;
-    let height = area.clientHeight;
+    let height2 = area.clientHeight;
     const ro = new ResizeObserver(() => {
       width = area.clientWidth;
-      height = area.clientHeight;
+      height2 = area.clientHeight;
     });
     ro.observe(area);
 
@@ -77,7 +91,7 @@ export function CollabPrompt() {
         const drift = drifts[mate.id]!;
         const dx = drift.tx - drift.x;
         const dy = drift.ty - drift.y;
-        if (Math.hypot(dx * width, dy * height) < ARRIVE_PX) {
+        if (Math.hypot(dx * width, dy * height2) < ARRIVE_PX) {
           if (drift.restUntil === 0) {
             drift.restUntil = now + rand({ min: REST_MIN, max: REST_MAX });
           } else if (now >= drift.restUntil) {
@@ -93,7 +107,7 @@ export function CollabPrompt() {
         const node = mateRefs.current[mate.id];
         if (node) {
           node.style.left = `${drift.x * width}px`;
-          node.style.top = `${drift.y * height}px`;
+          node.style.top = `${drift.y * height2}px`;
         }
       }
       raf = requestAnimationFrame(frame);
@@ -105,6 +119,23 @@ export function CollabPrompt() {
       ro.disconnect();
     };
   }, []);
+
+  useEffect(() => {
+    if (!dragging) {
+      return;
+    }
+    const onMove = (event: PointerEvent) => {
+      const { startY, startH } = dragRef.current;
+      setHeight(Math.min(MAX_H, Math.max(MIN_H, startH + (startY - event.clientY))));
+    };
+    const onUp = () => setDragging(false);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+  }, [dragging]);
 
   const place = ({ x, y }: { x: number; y: number }) => {
     const area = areaRef.current;
@@ -118,72 +149,57 @@ export function CollabPrompt() {
   };
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: presence demo, pointer-only affordance
-    <div
-      ref={areaRef}
-      className={cn('relative min-h-[13rem] select-none', joined && 'cursor-none')}
-      onMouseEnter={(event) => {
-        place({ x: event.clientX, y: event.clientY });
-        setJoined(true);
-      }}
-      onMouseMove={(event) => place({ x: event.clientX, y: event.clientY })}
-      onMouseLeave={() => setJoined(false)}
-    >
-      <div className="flex items-center gap-2 text-[0.65rem] text-muted-foreground">
-        <span className="flex items-center gap-1">
-          {MATES.map((mate) => (
-            <span
-              key={mate.id}
-              className="size-2 rounded-full ring-1 ring-card"
-              style={{ backgroundColor: mate.color }}
-            />
-          ))}
-          <span
-            className={cn('size-2 rounded-full ring-1 ring-card transition-opacity', {
-              'opacity-0': !joined,
-            })}
-            style={{ backgroundColor: YOU_COLOR }}
-          />
-        </span>
-        {joined ? 'You, Maya, Theo editing' : 'Maya, Theo editing'}
+    <div className={cn(dragging && 'select-none')}>
+      <div
+        className="flex h-5 cursor-ns-resize touch-none items-center justify-center"
+        onPointerDown={(event) => {
+          dragRef.current = { startY: event.clientY, startH: height };
+          setDragging(true);
+        }}
+      >
+        <div className="h-1 w-8 rounded-full bg-border" />
       </div>
 
-      <div className="mt-3 font-medium text-[0.7rem] text-muted-foreground uppercase tracking-wide">
-        New prompt
-      </div>
-      <div className="mt-1 font-semibold text-sm">Realtime presence</div>
-      <div className="mt-2 space-y-1 text-foreground/80 text-xs leading-relaxed">
-        <p>Add presence to the editor:</p>
-        <p>• show who’s online</p>
-        <p>• live cursors + selections</p>
-        <p className="flex items-center">
-          • sync on every keystroke
-          <span className="ml-0.5 inline-block h-3.5 w-px animate-pulse bg-foreground" />
-        </p>
-      </div>
-
-      {MATES.map((mate) => (
+      <div className="px-3 pb-1">
+        <div className="mb-1 font-medium text-[0.7rem] text-muted-foreground uppercase tracking-wide">
+          New prompt
+        </div>
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: presence demo, pointer-only affordance */}
         <div
-          key={mate.id}
-          ref={(node) => {
-            mateRefs.current[mate.id] = node;
+          ref={areaRef}
+          className={cn('relative', joined && 'cursor-none')}
+          onMouseEnter={(event) => {
+            place({ x: event.clientX, y: event.clientY });
+            setJoined(true);
           }}
-          className="pointer-events-none absolute z-10"
-          style={{ left: `${mate.start.x * 100}%`, top: `${mate.start.y * 100}%` }}
+          onMouseLeave={() => setJoined(false)}
+          onMouseMove={(event) => place({ x: event.clientX, y: event.clientY })}
         >
-          <Cursor name={mate.name} color={mate.color} />
-        </div>
-      ))}
+          <div className="overflow-auto" style={{ height }}>
+            <PromptEditor onText={onText} />
+          </div>
 
-      <div ref={youRef} className={cn('pointer-events-none absolute z-20', !joined && 'hidden')}>
-        <Cursor name="You" color={YOU_COLOR} />
+          {MATES.map((mate) => (
+            <div
+              key={mate.id}
+              ref={(node) => {
+                mateRefs.current[mate.id] = node;
+              }}
+              className="pointer-events-none absolute z-10"
+              style={{ left: `${mate.start.x * 100}%`, top: `${mate.start.y * 100}%` }}
+            >
+              <Cursor color={mate.color} name={mate.name} />
+            </div>
+          ))}
+
+          <div
+            ref={youRef}
+            className={cn('pointer-events-none absolute z-20', !joined && 'hidden')}
+          >
+            <Cursor color={YOU_COLOR} name="You" />
+          </div>
+        </div>
       </div>
-
-      {joined ? null : (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center pb-1 text-[0.65rem] text-muted-foreground">
-          Hover to join →
-        </div>
-      )}
     </div>
   );
 }

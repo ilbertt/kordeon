@@ -35,6 +35,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 .turbo
 
+# claude-flow / ruflo agent tooling artifacts
+.claude-flow
+
 # bun
 *.bun-build
 
