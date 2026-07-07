@@ -7,8 +7,8 @@ import { useEffect, useRef, useState } from 'react';
 // The collaborate composer: the team co-writes the prompt handed to the agent,
 // rendered with the product's editable CollabDoc primitive. Maya's and Theo's
 // cursors float over it, and on hover the viewer's own pointer becomes a
-// labelled "You" cursor — one of the collaborators. Nothing is saved; the box
-// starts tall and can be dragged higher.
+// labelled "You" cursor — one of the collaborators. Nothing is saved. The box
+// starts tall and grows when you drag the handle at its top.
 
 const PROMPT_DOC: DocBlock[] = [
   { kind: 'h1', id: 'title', text: 'Realtime presence in the editor' },
@@ -80,6 +80,12 @@ const ARRIVE_PX = 4;
 const REST_MIN = 400;
 const REST_MAX = 1500;
 
+// Drag-to-resize bounds (px): the box starts tall and grows as the top handle is
+// dragged upward.
+const MIN_H = 176;
+const MAX_H = 640;
+const DEFAULT_H = 320;
+
 function rand({ min, max }: { min: number; max: number }) {
   return min + Math.random() * (max - min);
 }
@@ -96,6 +102,9 @@ export function CollabPrompt() {
   const mateRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const youRef = useRef<HTMLDivElement>(null);
   const [joined, setJoined] = useState(false);
+  const [height, setHeight] = useState(DEFAULT_H);
+  const [dragging, setDragging] = useState(false);
+  const dragRef = useRef({ startY: 0, startH: DEFAULT_H });
 
   useEffect(() => {
     const area = areaRef.current;
@@ -103,10 +112,10 @@ export function CollabPrompt() {
       return;
     }
     let width = area.clientWidth;
-    let height = area.clientHeight;
+    let height2 = area.clientHeight;
     const ro = new ResizeObserver(() => {
       width = area.clientWidth;
-      height = area.clientHeight;
+      height2 = area.clientHeight;
     });
     ro.observe(area);
 
@@ -127,7 +136,7 @@ export function CollabPrompt() {
         const drift = drifts[mate.id]!;
         const dx = drift.tx - drift.x;
         const dy = drift.ty - drift.y;
-        if (Math.hypot(dx * width, dy * height) < ARRIVE_PX) {
+        if (Math.hypot(dx * width, dy * height2) < ARRIVE_PX) {
           if (drift.restUntil === 0) {
             drift.restUntil = now + rand({ min: REST_MIN, max: REST_MAX });
           } else if (now >= drift.restUntil) {
@@ -143,7 +152,7 @@ export function CollabPrompt() {
         const node = mateRefs.current[mate.id];
         if (node) {
           node.style.left = `${drift.x * width}px`;
-          node.style.top = `${drift.y * height}px`;
+          node.style.top = `${drift.y * height2}px`;
         }
       }
       raf = requestAnimationFrame(frame);
@@ -155,6 +164,23 @@ export function CollabPrompt() {
       ro.disconnect();
     };
   }, []);
+
+  useEffect(() => {
+    if (!dragging) {
+      return;
+    }
+    const onMove = (event: PointerEvent) => {
+      const { startY, startH } = dragRef.current;
+      setHeight(Math.min(MAX_H, Math.max(MIN_H, startH + (startY - event.clientY))));
+    };
+    const onUp = () => setDragging(false);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+  }, [dragging]);
 
   const place = ({ x, y }: { x: number; y: number }) => {
     const area = areaRef.current;
@@ -168,40 +194,60 @@ export function CollabPrompt() {
   };
 
   return (
-    <div>
-      <div className="mb-1 font-medium text-[0.7rem] text-muted-foreground uppercase tracking-wide">
-        New prompt
-      </div>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: presence demo, pointer-only affordance */}
+    <div className={cn(dragging && 'select-none')}>
       <div
-        ref={areaRef}
-        className={cn('relative', joined && 'cursor-none')}
-        onMouseEnter={(event) => {
-          place({ x: event.clientX, y: event.clientY });
-          setJoined(true);
+        className="flex h-5 cursor-ns-resize touch-none items-center justify-center"
+        onPointerDown={(event) => {
+          dragRef.current = { startY: event.clientY, startH: height };
+          setDragging(true);
         }}
-        onMouseLeave={() => setJoined(false)}
-        onMouseMove={(event) => place({ x: event.clientX, y: event.clientY })}
       >
-        <div className="h-[20rem] max-h-[40rem] min-h-[12rem] resize-y overflow-auto">
-          <CollabDoc contentClassName="max-w-none px-1 py-1" doc={PROMPT_DOC} editable size="sm" />
+        <div className="h-1 w-8 rounded-full bg-border" />
+      </div>
+
+      <div className="px-3 pb-1">
+        <div className="mb-1 font-medium text-[0.7rem] text-muted-foreground uppercase tracking-wide">
+          New prompt
         </div>
-
-        {MATES.map((mate) => (
-          <div
-            key={mate.id}
-            ref={(node) => {
-              mateRefs.current[mate.id] = node;
-            }}
-            className="pointer-events-none absolute z-10"
-            style={{ left: `${mate.start.x * 100}%`, top: `${mate.start.y * 100}%` }}
-          >
-            <Cursor color={mate.color} name={mate.name} />
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: presence demo, pointer-only affordance */}
+        <div
+          ref={areaRef}
+          className={cn('relative', joined && 'cursor-none')}
+          onMouseEnter={(event) => {
+            place({ x: event.clientX, y: event.clientY });
+            setJoined(true);
+          }}
+          onMouseLeave={() => setJoined(false)}
+          onMouseMove={(event) => place({ x: event.clientX, y: event.clientY })}
+        >
+          <div className="overflow-auto" style={{ height }}>
+            <CollabDoc
+              contentClassName="max-w-none px-1 py-1"
+              doc={PROMPT_DOC}
+              editable
+              size="sm"
+            />
           </div>
-        ))}
 
-        <div ref={youRef} className={cn('pointer-events-none absolute z-20', !joined && 'hidden')}>
-          <Cursor color={YOU_COLOR} name="You" />
+          {MATES.map((mate) => (
+            <div
+              key={mate.id}
+              ref={(node) => {
+                mateRefs.current[mate.id] = node;
+              }}
+              className="pointer-events-none absolute z-10"
+              style={{ left: `${mate.start.x * 100}%`, top: `${mate.start.y * 100}%` }}
+            >
+              <Cursor color={mate.color} name={mate.name} />
+            </div>
+          ))}
+
+          <div
+            ref={youRef}
+            className={cn('pointer-events-none absolute z-20', !joined && 'hidden')}
+          >
+            <Cursor color={YOU_COLOR} name="You" />
+          </div>
         </div>
       </div>
     </div>
