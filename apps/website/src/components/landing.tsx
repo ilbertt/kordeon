@@ -22,7 +22,6 @@ import {
 } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
 import { CollabPrompt } from '#components/collab-prompt';
-import { CursorField } from '#components/cursor-field';
 import { ScrollStage } from '#components/scroll-stage';
 import { ThemeToggle } from '#components/theme-toggle';
 
@@ -732,12 +731,12 @@ function PreviewSurface({ kind }: { kind: PreviewKind }) {
     );
   }
 
-  // The running product: the presence feature the team just built, live. Real
-  // cursors (the shared `CursorField`) drift over the doc and the online facepile
-  // includes the agent — so the preview *is* the artifact, not a mock of one.
+  // The running product — a snapshot of what the agent shipped, the way a website
+  // preview renders it. Presence surfaces as the online facepile (the built
+  // feature); live editing cursors belong in the chat, not in the preview.
   return (
     <PreviewFrame title="kordeon · editor">
-      <div className="relative min-h-[15rem]">
+      <div className="min-h-[15rem]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs">
             <FileText className="size-3.5" />
@@ -753,7 +752,6 @@ function PreviewSurface({ kind }: { kind: PreviewKind }) {
           <div className="h-2 w-4/5 rounded-full bg-foreground/10" />
           <div className="h-2 w-3/5 rounded-full bg-foreground/10" />
         </div>
-        <CursorField />
       </div>
     </PreviewFrame>
   );
