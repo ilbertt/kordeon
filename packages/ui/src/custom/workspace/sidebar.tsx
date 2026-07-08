@@ -37,12 +37,14 @@ export function Sidebar({
         <span className="font-medium text-sm">Features</span>
         <Plus className="size-4 text-muted-foreground" />
       </div>
-      <InputGroup className="mx-2 mt-2 hidden h-8 bg-background md:flex">
-        <InputGroupAddon>
-          <Search />
-        </InputGroupAddon>
-        <InputGroupInput placeholder="Search" readOnly />
-      </InputGroup>
+      <div className="mt-2 hidden px-2 md:block">
+        <InputGroup className="h-8 bg-background">
+          <InputGroupAddon>
+            <Search />
+          </InputGroupAddon>
+          <InputGroupInput placeholder="Search" readOnly />
+        </InputGroup>
+      </div>
       <ScrollArea className="mt-2 flex-1">
         <nav className="flex flex-col gap-0.5 px-2 py-2">
           {channels.map((channel) => {
