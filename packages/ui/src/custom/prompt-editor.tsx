@@ -9,14 +9,12 @@ import { useRef } from 'react';
 // (`# ` heading, `- ` bullet, tickable checkboxes) do the work.
 const INITIAL_CONTENT = `
 <h1>Activation dashboard</h1>
-<p>Give the team one view of how new signups are converting — signups by week and activation rate by channel, pulled live from the warehouse.</p>
+<p>One view of how new signups are converting — signups by week and activation rate by channel, pulled live from the warehouse.</p>
 <h2>Requirements</h2>
 <ul data-type="taskList">
 <li data-type="taskItem" data-checked="true">Signups by week, with the quarter-over-quarter trend</li>
 <li data-type="taskItem" data-checked="true">Activation rate broken out by acquisition channel</li>
-<li data-type="taskItem" data-checked="false">Flag any channel converting under 30%</li>
-<li data-type="taskItem" data-checked="false">Compare against last quarter as a delta</li>
-<li data-type="taskItem" data-checked="false">Refresh from the warehouse on a schedule</li>
+<li data-type="taskItem" data-checked="false">Keep it fresh from the warehouse on a schedule</li>
 </ul>
 <h2>Constraints</h2>
 <ul>
