@@ -30,7 +30,12 @@ import mayaAvatar from '#assets/avatars/maya.svg';
 import theoAvatar from '#assets/avatars/theo.svg';
 import youAvatar from '#assets/avatars/you.svg';
 import { CollabPrompt } from '#components/collab-prompt';
-import { MentionInput, type MentionSuggestion } from '#components/mention-input';
+import {
+  MentionInput,
+  type MentionSuggestion,
+  MentionTag,
+  type MessageSegment,
+} from '#components/mention-input';
 import { ScrollStage } from '#components/scroll-stage';
 import { ThemeToggle } from '#components/theme-toggle';
 import { useTokenCount } from '#lib/use-token-count';
@@ -82,6 +87,8 @@ type Message =
       cta?: boolean;
       // Renders an inline channel tag after the text — a link into another feature.
       channel?: ChannelSlug;
+      // A visitor-sent message: text interleaved with clickable tags (see MentionTag).
+      segments?: MessageSegment[];
     };
 
 // Each channel is a feature — a branch/PR — so it carries a git status that
@@ -334,7 +341,6 @@ const MENTION_SUGGESTIONS: MentionSuggestion[] = [
     kind: 'time' as const,
     label,
     token: label,
-    detail: 'Date',
   })),
 ];
 
@@ -543,10 +549,10 @@ function Thread({ channel, active }: { channel: Channel; active: boolean }) {
   const [sent, setSent] = useState<Message[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const send = (text: string) => {
+  const send = ({ text, segments }: { text: string; segments: MessageSegment[] }) => {
     setSent((prev) => [
       ...prev,
-      { id: `${channel.slug}-sent-${prev.length}`, kind: 'msg', from: 'you', text },
+      { id: `${channel.slug}-sent-${prev.length}`, kind: 'msg', from: 'you', text, segments },
     ]);
     requestAnimationFrame(() => {
       const el = listRef.current;
@@ -599,17 +605,25 @@ function MicButton() {
 // placeholder for now. The Send button starts as a disabled primary action and
 // lights up once there's something to send. `seq` bumps on send to remount the
 // (uncontrolled) input, clearing it and returning focus.
-function MessageBar({ channel, onSend }: { channel: Channel; onSend: (text: string) => void }) {
-  const [text, setText] = useState('');
+function MessageBar({
+  channel,
+  onSend,
+}: {
+  channel: Channel;
+  onSend: (value: { text: string; segments: MessageSegment[] }) => void;
+}) {
+  const [value, setValue] = useState<{ text: string; segments: MessageSegment[] }>({
+    text: '',
+    segments: [],
+  });
   const [seq, setSeq] = useState(0);
 
   const submit = () => {
-    const trimmed = text.trim();
-    if (!trimmed) {
+    if (!value.text.trim()) {
       return;
     }
-    onSend(trimmed);
-    setText('');
+    onSend(value);
+    setValue({ text: '', segments: [] });
     setSeq((n) => n + 1);
   };
 
@@ -619,10 +633,11 @@ function MessageBar({ channel, onSend }: { channel: Channel; onSend: (text: stri
       <MentionInput
         key={seq}
         autoFocus={seq > 0}
+        allowCustomDate
         suggestions={MENTION_SUGGESTIONS}
         ariaLabel={`Message #${channel.slug}`}
         placeholder={`Message #${channel.slug}…`}
-        onChange={setText}
+        onChange={setValue}
         onSubmit={submit}
       />
       <MicButton />
@@ -630,7 +645,7 @@ function MessageBar({ channel, onSend }: { channel: Channel; onSend: (text: stri
         type="button"
         size="sm"
         aria-label="Send message"
-        disabled={!text.trim()}
+        disabled={!value.text.trim()}
         onClick={submit}
       >
         <Send />
@@ -644,7 +659,13 @@ function MessageBar({ channel, onSend }: { channel: Channel; onSend: (text: stri
 // chat activity, not something that belongs in the preview. The message bar
 // below it still messages the people in the channel (and is where dictation
 // lives — the prompt hands off to the agent instead).
-function Composer({ channel, onSend }: { channel: Channel; onSend: (text: string) => void }) {
+function Composer({
+  channel,
+  onSend,
+}: {
+  channel: Channel;
+  onSend: (value: { text: string; segments: MessageSegment[] }) => void;
+}) {
   // Live token count of the co-written prompt, mirroring what the agent would be
   // billed to build it. Counted with the model tokenizer (see useTokenCount).
   const [promptText, setPromptText] = useState('');
@@ -744,13 +765,7 @@ function ChatMessage({ message }: { message: Message }) {
           ) : null}
         </div>
         <p className="mt-0.5 text-pretty text-foreground/90 text-sm leading-relaxed">
-          {message.text}
-          {message.channel ? (
-            <>
-              {' '}
-              <ChannelLink slug={message.channel} />
-            </>
-          ) : null}
+          <MessageBody message={message} />
         </p>
         {message.plan ? <PlanCard items={message.plan} /> : null}
         {message.reactions ? <Reactions items={message.reactions} /> : null}
@@ -766,16 +781,33 @@ function ChatMessage({ message }: { message: Message }) {
   );
 }
 
-// An inline channel tag that links to another feature — the rendered-message
-// counterpart of the composer's channel mentions, styled to match.
-function ChannelLink({ slug }: { slug: ChannelSlug }) {
+// A sent message's body. Visitor messages carry structured segments so their
+// tags stay clickable (see MentionTag); seeded messages are plain text, plus an
+// optional trailing channel tag.
+function MessageBody({ message }: { message: Extract<Message, { kind: 'msg' }> }) {
+  if (message.segments) {
+    const nodes: React.ReactNode[] = [];
+    let index = 0;
+    for (const segment of message.segments) {
+      index += 1;
+      if (segment.type === 'text') {
+        nodes.push(segment.text);
+      } else {
+        nodes.push(<MentionTag key={`${segment.tag.token}-${index}`} tag={segment.tag} />);
+      }
+    }
+    return <>{nodes}</>;
+  }
   return (
-    <a
-      href={`#${slug}`}
-      className="inline-flex items-center rounded-md bg-chart-2/10 px-1.5 py-0.5 align-baseline font-medium text-chart-2 text-xs transition-colors hover:bg-chart-2/20"
-    >
-      #{slug}
-    </a>
+    <>
+      {message.text}
+      {message.channel ? (
+        <>
+          {' '}
+          <MentionTag tag={{ kind: 'channel', token: `#${message.channel}` }} />
+        </>
+      ) : null}
+    </>
   );
 }
 
