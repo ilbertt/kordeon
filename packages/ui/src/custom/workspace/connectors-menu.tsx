@@ -1,12 +1,21 @@
-// Owner: chat panel — see product-window ownership. The composer's `+` opens
-// this; it pitches kordeon's connectors so the agent can pull context from the
-// tools a team already uses. The live connectors toggle Connect ⇄ Connected
-// (local-only, just for feel like the rest of the demo); the rest render as the
-// same row, greyed and disabled, to say "many more coming". `open` + `connected`
-// live here so the popover is a drop-in for the message bar's old static `+`.
+'use client';
+
+// The composer's `+` opens this; it pitches kordeon's connectors so the agent
+// can pull context from the tools a team already uses. The live connectors
+// toggle Connect ⇄ Connected (local-only, just for feel like the rest of the
+// demo); the rest render as the same row, greyed and disabled, to say "many
+// more coming". Connected state lives here so it survives closing the popover.
+import {
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from '@repo/ui/components/popover';
 import { cn } from '@repo/ui/lib/utils';
 import { Check, Plus } from 'lucide-react';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
 type Connector = {
   id: string;
@@ -28,92 +37,54 @@ const COMING_SOON: Pick<Connector, 'id' | 'name' | 'icon'>[] = [
 ];
 
 export function ConnectorsButton() {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const [open, setOpen] = useState(false);
   const [connected, setConnected] = useState<Record<string, boolean>>({});
-
-  // Dismiss on outside click or Escape — the popover has no backdrop so the rest
-  // of the composer stays live behind it.
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-    const onPointerDown = (event: PointerEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [open]);
 
   const toggle = (id: string) => setConnected((prev) => ({ ...prev, [id]: !prev[id] }));
 
   return (
-    <div ref={wrapRef} className="relative shrink-0">
-      <button
-        type="button"
+    <Popover>
+      <PopoverTrigger
         aria-label="Connect a tool"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
         className={cn(
-          'flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
-          open && 'bg-muted text-foreground',
+          'flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
+          'data-[popup-open]:bg-muted data-[popup-open]:text-foreground',
         )}
       >
         <Plus className="size-4" />
-      </button>
-      {open ? <ConnectorsMenu connected={connected} onToggle={toggle} /> : null}
-    </div>
-  );
-}
-
-function ConnectorsMenu({
-  connected,
-  onToggle,
-}: {
-  connected: Record<string, boolean>;
-  onToggle: (id: string) => void;
-}) {
-  return (
-    <div
-      role="dialog"
-      aria-label="Connect your tools"
-      className="absolute bottom-full left-0 z-30 mb-2 w-80 max-w-[calc(100vw-3rem)] rounded-lg border border-border bg-card p-2.5 shadow-lg"
-    >
-      <div className="px-1 font-medium text-sm">Connect your tools</div>
-      <p className="mt-0.5 px-1 text-muted-foreground text-xs">
-        Give Korde context from your team's tools.
-      </p>
-      <div className="mt-2 space-y-0.5">
-        {LIVE.map((connector) => (
-          <LiveRow
-            key={connector.id}
-            connector={connector}
-            connected={Boolean(connected[connector.id])}
-            onToggle={() => onToggle(connector.id)}
-          />
-        ))}
-      </div>
-      <div className="mt-2 border-border border-t pt-2">
-        <div className="px-1 pb-1 font-medium text-[0.7rem] text-muted-foreground">Coming soon</div>
-        <div className="space-y-0.5">
-          {COMING_SOON.map((connector) => (
-            <SoonRow key={connector.id} name={connector.name} icon={connector.icon} />
+      </PopoverTrigger>
+      <PopoverContent
+        side="top"
+        align="start"
+        sideOffset={8}
+        aria-label="Connect your tools"
+        className="w-80 max-w-[calc(100vw-3rem)] gap-0"
+      >
+        <PopoverHeader className="gap-0.5 px-1">
+          <PopoverTitle>Connect your tools</PopoverTitle>
+          <PopoverDescription>Give Korde context from your team's tools.</PopoverDescription>
+        </PopoverHeader>
+        <div className="mt-2 space-y-0.5">
+          {LIVE.map((connector) => (
+            <LiveRow
+              key={connector.id}
+              connector={connector}
+              connected={Boolean(connected[connector.id])}
+              onToggle={() => toggle(connector.id)}
+            />
           ))}
         </div>
-      </div>
-    </div>
+        <div className="mt-2 border-border border-t pt-2">
+          <div className="px-1 pb-1 font-medium text-[0.7rem] text-muted-foreground">
+            Coming soon
+          </div>
+          <div className="space-y-0.5">
+            {COMING_SOON.map((connector) => (
+              <SoonRow key={connector.id} name={connector.name} icon={connector.icon} />
+            ))}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 

@@ -1,34 +1,18 @@
-// Owner: preview panel — see product-window ownership. Shared state is read-only from ./data.
-import { cn } from '@repo/ui/lib/utils';
-import { Clock, Database, Eye, LoaderCircle, TrendingUp } from 'lucide-react';
-import { type Channel, ChannelSlug, PEOPLE } from './data';
-import { Avatar } from './presence';
+import type { Channel } from '@repo/domain/workspace';
+import { PersonAvatar } from '@repo/ui/custom/workspace/person-avatar';
+import { Clock, Database, LoaderCircle, TrendingUp } from 'lucide-react';
+import { ChannelSlug, PEOPLE } from './data';
 
-export function PreviewPane({ channel, active }: { channel: Channel; active: boolean }) {
-  return (
-    <aside
-      className={cn(
-        'w-[22rem] shrink-0 flex-col border-border border-l bg-muted/20',
-        active ? 'hidden xl:flex' : 'hidden',
-      )}
-    >
-      <div className="flex h-14 shrink-0 items-center border-border border-b px-5">
-        <div className="flex items-center gap-2 font-medium text-sm">
-          <Eye className="size-4 text-muted-foreground" />
-          Preview
-        </div>
-      </div>
-      <div className="flex-1 overflow-y-auto p-4">
-        {channel.slug === ChannelSlug.LivePreview ? (
-          <DashboardPreview />
-        ) : channel.slug === ChannelSlug.Build ? (
-          <BuildingPreview />
-        ) : (
-          <PreviewPlaceholder />
-        )}
-      </div>
-    </aside>
-  );
+// The landing's static preview content, selected by channel. The reusable
+// <PreviewPane> supplies the frame; this fills it.
+export function PreviewContent({ channel }: { channel: Channel }) {
+  if (channel.slug === ChannelSlug.LivePreview) {
+    return <DashboardPreview />;
+  }
+  if (channel.slug === ChannelSlug.Build) {
+    return <BuildingPreview />;
+  }
+  return <PreviewPlaceholder />;
 }
 
 // Kept as data (not inline literals) to steer clear of the no-magic-numbers rule.
@@ -134,7 +118,7 @@ function BuildingPreview() {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
       <div className="relative">
-        <Avatar person={PEOPLE.korde} className="size-12 text-sm" />
+        <PersonAvatar person={PEOPLE.korde} className="size-12" />
         <span className="-right-1 -bottom-1 absolute flex size-5 items-center justify-center rounded-full bg-card ring-2 ring-card">
           <LoaderCircle className="size-4 animate-spin text-primary" />
         </span>

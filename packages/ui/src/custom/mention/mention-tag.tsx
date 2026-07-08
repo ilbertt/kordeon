@@ -1,6 +1,6 @@
+import type { MentionTagData } from '@repo/domain/workspace';
 import { cn } from '@repo/ui/lib/utils';
 import { MENTION_CHIP_CLASS } from './constants';
-import type { MentionTagData } from './types';
 
 // Rendered-message counterpart of the composer's chips (styling stays in sync via
 // MENTION_CHIP_CLASS). People/agents are clickable but inert — no profile page yet.

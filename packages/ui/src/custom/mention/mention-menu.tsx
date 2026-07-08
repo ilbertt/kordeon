@@ -1,7 +1,8 @@
+import type { MentionKind } from '@repo/domain/workspace';
 import { cn } from '@repo/ui/lib/utils';
 import { Calendar, Clock, Hash } from 'lucide-react';
 import { KIND_HEADING } from './constants';
-import type { MentionKind, MentionSuggestion } from './types';
+import type { MentionSuggestion } from './types';
 
 export function MentionMenu({
   items,

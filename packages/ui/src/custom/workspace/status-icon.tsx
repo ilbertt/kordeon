@@ -1,6 +1,6 @@
+import type { ChannelStatus } from '@repo/domain/workspace';
 import { cn } from '@repo/ui/lib/utils';
 import { GitMerge, GitPullRequest, GitPullRequestDraft, Home, type LucideIcon } from 'lucide-react';
-import type { ChannelStatus } from './data';
 
 const STATUS: Record<ChannelStatus, { icon: LucideIcon; className: string }> = {
   main: { icon: Home, className: 'text-muted-foreground' },
