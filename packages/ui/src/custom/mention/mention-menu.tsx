@@ -1,4 +1,5 @@
 import type { MentionKind } from '@repo/domain/workspace';
+import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from '@repo/ui/components/item';
 import { cn } from '@repo/ui/lib/utils';
 import { Calendar, Clock, Hash } from 'lucide-react';
 import { KIND_HEADING } from './constants';
@@ -28,39 +29,52 @@ export function MentionMenu({
                 {heading}
               </div>
             ) : null}
-            <button
-              type="button"
+            <Item
+              size="xs"
               // Keep focus (and the caret) in the field so insertion targets it.
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => onPick(item)}
-              className={cn(
-                'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm',
-                item.id === activeId ? 'bg-primary/10 text-primary' : 'hover:bg-muted',
-              )}
+              render={
+                <button
+                  type="button"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => onPick(item)}
+                />
+              }
+              className={cn(item.id === activeId ? 'bg-primary/10 text-primary' : 'hover:bg-muted')}
             >
-              <MentionGlyph item={item} />
-              <span className="min-w-0 flex-1 truncate">{item.label}</span>
+              <ItemMedia variant="icon">
+                <MentionGlyph item={item} />
+              </ItemMedia>
+              <ItemContent>
+                <ItemTitle className="truncate font-normal">{item.label}</ItemTitle>
+              </ItemContent>
               {item.detail ? (
-                <span className="ml-2 max-w-32 shrink-0 truncate text-muted-foreground text-xs">
+                <ItemActions className="max-w-32 truncate text-muted-foreground text-xs">
                   {item.detail}
-                </span>
+                </ItemActions>
               ) : null}
-            </button>
+            </Item>
           </div>
         );
       })}
       {onPickDate ? (
-        <button
-          type="button"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={onPickDate}
-          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-muted-foreground text-sm hover:bg-muted"
+        <Item
+          size="xs"
+          render={
+            <button
+              type="button"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={onPickDate}
+            />
+          }
+          className="text-muted-foreground hover:bg-muted"
         >
-          <span className="flex size-4 shrink-0 items-center justify-center">
+          <ItemMedia variant="icon">
             <Calendar className="size-3.5" />
-          </span>
-          Pick a date…
-        </button>
+          </ItemMedia>
+          <ItemContent>
+            <ItemTitle className="font-normal">Pick a date…</ItemTitle>
+          </ItemContent>
+        </Item>
       ) : null}
     </div>
   );

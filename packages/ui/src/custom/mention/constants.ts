@@ -21,8 +21,5 @@ export const MENTION_CHIP_CLASS: Record<MentionKind, string> = {
   time: 'mx-0.5 inline-flex items-center rounded-md bg-chart-4/15 px-1.5 py-0.5 align-baseline font-medium text-chart-4 text-xs',
 };
 
-export const FIELD_CLASS =
-  'w-full rounded-md border border-border bg-background px-2 py-1 text-foreground text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30';
-
 // The trigger + query run immediately before a collapsed caret, e.g. `@ma`.
 export const TRIGGER_RE = /(?:^|\s)([@#])([\w-]*)$/;
