@@ -52,7 +52,17 @@ function pickTarget() {
 
 type Drift = { x: number; y: number; tx: number; ty: number; restUntil: number };
 
-export function CollabPrompt({ onText }: { onText?: (text: string) => void }) {
+export function CollabPrompt({
+  onText,
+  editable = true,
+  label = 'New prompt',
+}: {
+  onText?: (text: string) => void;
+  // Read-only renders the same prompt as a locked, handed-off brief (no live
+  // cursors), while keeping the drag-to-resize handle.
+  editable?: boolean;
+  label?: string;
+}) {
   const areaRef = useRef<HTMLDivElement>(null);
   const mateRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const youRef = useRef<HTMLDivElement>(null);
@@ -62,6 +72,11 @@ export function CollabPrompt({ onText }: { onText?: (text: string) => void }) {
   const dragRef = useRef({ startY: 0, startH: DEFAULT_H });
 
   useEffect(() => {
+    // A handed-off (read-only) prompt has no live collaborators — skip the
+    // drifting cursors entirely.
+    if (!editable) {
+      return;
+    }
     const area = areaRef.current;
     if (!area) {
       return;
@@ -118,7 +133,7 @@ export function CollabPrompt({ onText }: { onText?: (text: string) => void }) {
       cancelAnimationFrame(raf);
       ro.disconnect();
     };
-  }, []);
+  }, [editable]);
 
   useEffect(() => {
     if (!dragging) {
@@ -162,42 +177,53 @@ export function CollabPrompt({ onText }: { onText?: (text: string) => void }) {
 
       <div className="px-3 pb-1">
         <div className="mb-1 font-medium text-[0.7rem] text-muted-foreground uppercase tracking-wide">
-          New prompt
+          {label}
         </div>
         {/* biome-ignore lint/a11y/noStaticElementInteractions: presence demo, pointer-only affordance */}
         <div
           ref={areaRef}
-          className={cn('relative', joined && 'cursor-none')}
+          className={cn('relative', editable && joined && 'cursor-none')}
           onMouseEnter={(event) => {
+            if (!editable) {
+              return;
+            }
             place({ x: event.clientX, y: event.clientY });
             setJoined(true);
           }}
           onMouseLeave={() => setJoined(false)}
-          onMouseMove={(event) => place({ x: event.clientX, y: event.clientY })}
+          onMouseMove={(event) => {
+            if (editable) {
+              place({ x: event.clientX, y: event.clientY });
+            }
+          }}
         >
           <div className="overflow-auto" style={{ height }}>
-            <PromptEditor onText={onText} />
+            <PromptEditor onText={onText} editable={editable} />
           </div>
 
-          {MATES.map((mate) => (
+          {editable
+            ? MATES.map((mate) => (
+                <div
+                  key={mate.id}
+                  ref={(node) => {
+                    mateRefs.current[mate.id] = node;
+                  }}
+                  className="pointer-events-none absolute z-10"
+                  style={{ left: `${mate.start.x * 100}%`, top: `${mate.start.y * 100}%` }}
+                >
+                  <Cursor color={mate.color} name={mate.name} />
+                </div>
+              ))
+            : null}
+
+          {editable ? (
             <div
-              key={mate.id}
-              ref={(node) => {
-                mateRefs.current[mate.id] = node;
-              }}
-              className="pointer-events-none absolute z-10"
-              style={{ left: `${mate.start.x * 100}%`, top: `${mate.start.y * 100}%` }}
+              ref={youRef}
+              className={cn('pointer-events-none absolute z-20', !joined && 'hidden')}
             >
-              <Cursor color={mate.color} name={mate.name} />
+              <Cursor color={YOU_COLOR} name="You" />
             </div>
-          ))}
-
-          <div
-            ref={youRef}
-            className={cn('pointer-events-none absolute z-20', !joined && 'hidden')}
-          >
-            <Cursor color={YOU_COLOR} name="You" />
-          </div>
+          ) : null}
         </div>
       </div>
     </div>
