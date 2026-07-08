@@ -14,7 +14,8 @@ A team and an agent talk through the work in the chat, refine a plan together, h
 it off, and watch it render in the preview. Nothing tabs away.
 
 This is the plain-Markdown edition of the kordeon landing page, served for AI agents
-and other tools. kordeon is open source: <https://github.com/ilbertt/kordeon>
+and other tools. kordeon is open source — the code is on
+[GitHub](https://github.com/ilbertt/kordeon).
 
 ## The problem it solves
 
@@ -80,4 +81,4 @@ runs as you scale.
 
 ## Links
 
-- Source (open source): <https://github.com/ilbertt/kordeon>
+- [Source on GitHub](https://github.com/ilbertt/kordeon) — open source

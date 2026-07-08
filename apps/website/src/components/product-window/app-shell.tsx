@@ -5,7 +5,7 @@ import { PreviewPane } from '@repo/ui/custom/workspace/preview-pane';
 import { Sidebar } from '@repo/ui/custom/workspace/sidebar';
 import { Thread } from '@repo/ui/custom/workspace/thread';
 import { WorkspaceLayout } from '@repo/ui/custom/workspace/workspace-layout';
-import { ArrowRight, Workflow } from 'lucide-react';
+import { ArrowRight, Sparkles, Workflow } from 'lucide-react';
 import { CollabPrompt } from '#components/collab-prompt';
 import { type ChannelSlug, channels, MENTION_SUGGESTIONS, PEOPLE } from './data';
 import { PreviewContent } from './preview-content';
@@ -68,6 +68,18 @@ function TopBar() {
         <span className="font-semibold tracking-tight">kordeon</span>
       </div>
       <div className="flex items-center gap-3">
+        {/* A nod to the readers we can't see: agents get a plain-Markdown edition of this
+            page (served by content negotiation too — see src/worker.ts). */}
+        <a
+          href="/index.md"
+          target="_blank"
+          rel="noreferrer"
+          title="Read this page as Markdown — written for your AI agent"
+          className="hidden items-center gap-1.5 rounded-full border border-border py-1 pr-2.5 pl-2 font-medium text-muted-foreground text-xs transition-colors hover:bg-muted hover:text-foreground lg:inline-flex"
+        >
+          <Sparkles className="size-3.5 text-primary" />
+          For your AI agent
+        </a>
         <a
           href={REPO_URL}
           target="_blank"

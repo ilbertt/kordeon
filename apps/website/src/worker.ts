@@ -3,9 +3,12 @@
 // — Claude Code, Cursor, OpenCode, … — get that Markdown at the canonical URL; browsers
 // get the app. This Worker runs only for `/` and `/index.md` (`run_worker_first` in
 // wrangler.jsonc); every other asset is served straight from the edge, untouched.
+//
+// Typed against @cloudflare/workers-types via tsconfig.worker.json, so `Request`,
+// `Response`, `Fetcher` and `ExportedHandler` are the Workers runtime globals.
 
 interface Env {
-  ASSETS: { fetch: (input: Request | URL) => Promise<Response> };
+  ASSETS: Fetcher;
 }
 
 const MARKDOWN_MIRROR = '/index.md';
@@ -28,8 +31,8 @@ async function markdownResponse({ env, base }: { env: Env; base: URL }) {
 }
 
 export default {
-  // biome-ignore lint/complexity/useMaxParams: the Cloudflare Worker fetch handler signature is (request, env)
-  async fetch(request: Request, env: Env) {
+  // biome-ignore lint/complexity/useMaxParams: Cloudflare's fetch handler signature is (request, env, ctx)
+  async fetch(request, env) {
     const base = new URL(request.url);
 
     if (base.pathname === MARKDOWN_MIRROR || (base.pathname === '/' && wantsMarkdown(request))) {
@@ -48,4 +51,4 @@ export default {
 
     return env.ASSETS.fetch(request);
   },
-};
+} satisfies ExportedHandler<Env>;
