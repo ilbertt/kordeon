@@ -32,11 +32,12 @@ const INITIAL_CONTENT = `
 </ul>
 `;
 
-// Bare-node styling (Tiptap ships headless). `cursor-none` keeps the single
-// custom "You" cursor the surrounding prompt shows.
+// Bare-node styling (Tiptap ships headless). The `cursor-none` that hides the
+// native caret in favour of the collab prompt's custom "You" cursor is applied
+// per-instance below, only when the editor is editable.
 const EDITOR_CLASS = cn(
   'h-full text-foreground',
-  '[&_.tiptap]:min-h-full [&_.tiptap]:cursor-none [&_.tiptap]:p-1 [&_.tiptap]:outline-none',
+  '[&_.tiptap]:min-h-full [&_.tiptap]:p-1 [&_.tiptap]:outline-none',
   '[&_.tiptap>*+*]:mt-2',
   '[&_h1]:font-semibold [&_h1]:text-sm',
   '[&_h2]:mt-3 [&_h2]:font-medium [&_h2]:text-[0.7rem] [&_h2]:text-muted-foreground [&_h2]:uppercase [&_h2]:tracking-wide',
@@ -51,7 +52,15 @@ const EDITOR_CLASS = cn(
   '[&_.task-item_input]:size-3.5 [&_.task-item_input]:accent-primary',
 );
 
-export function PromptEditor({ onText }: { onText?: (text: string) => void }) {
+// `editable` off renders the same brief as a locked, read-only prompt — what the
+// build channel shows once the plan is handed off to the agent.
+export function PromptEditor({
+  onText,
+  editable = true,
+}: {
+  onText?: (text: string) => void;
+  editable?: boolean;
+}) {
   // Ref so the editor's create/update callbacks always see the latest handler
   // without re-creating the editor (useEditor is instantiated once).
   const onTextRef = useRef(onText);
@@ -61,7 +70,7 @@ export function PromptEditor({ onText }: { onText?: (text: string) => void }) {
     // Don't render on the server — TanStack Start prerenders this page, and the
     // editor is client-only (avoids a hydration mismatch).
     immediatelyRender: false,
-    editable: true,
+    editable,
     extensions: [
       StarterKit,
       TaskList.configure({ HTMLAttributes: { class: 'task-list' } }),
@@ -72,5 +81,10 @@ export function PromptEditor({ onText }: { onText?: (text: string) => void }) {
     onUpdate: ({ editor: instance }) => onTextRef.current?.(instance.getText()),
   });
 
-  return <EditorContent className={EDITOR_CLASS} editor={editor} />;
+  return (
+    <EditorContent
+      className={cn(EDITOR_CLASS, editable && '[&_.tiptap]:cursor-none')}
+      editor={editor}
+    />
+  );
 }

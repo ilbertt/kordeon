@@ -11,6 +11,7 @@ import {
   GitPullRequest,
   GitPullRequestDraft,
   Home,
+  LoaderCircle,
   type LucideIcon,
   Mic,
   Play,
@@ -29,6 +30,7 @@ import mayaAvatar from '#assets/avatars/maya.svg';
 import theoAvatar from '#assets/avatars/theo.svg';
 import youAvatar from '#assets/avatars/you.svg';
 import { CollabPrompt } from '#components/collab-prompt';
+import { MentionInput, type MentionSuggestion } from '#components/mention-input';
 import { ScrollStage } from '#components/scroll-stage';
 import { ThemeToggle } from '#components/theme-toggle';
 import { useTokenCount } from '#lib/use-token-count';
@@ -78,6 +80,8 @@ type Message =
       reactions?: Reaction[];
       replies?: PersonId[];
       cta?: boolean;
+      // Renders an inline channel tag after the text — a link into another feature.
+      channel?: ChannelSlug;
     };
 
 // Each channel is a feature — a branch/PR — so it carries a git status that
@@ -102,7 +106,7 @@ function StatusIcon({ status, className }: { status: ChannelStatus; className?: 
 enum ChannelSlug {
   Welcome = 'welcome',
   Collaborate = 'collaborate',
-  HandOff = 'hand-off',
+  Build = 'build',
   LivePreview = 'live-preview',
   Pricing = 'pricing',
 }
@@ -113,9 +117,10 @@ type Channel = {
   topic: string;
   members: PersonId[];
   typing?: PersonId;
-  // When set, the composer in the chat panel hosts a live, co-written draft
-  // instead of a plain input — collaborative composing is a chat activity.
-  compose?: 'collab';
+  // When set, the composer in the chat panel hosts a prompt above the message
+  // bar: `collab` is a live, co-written draft; `build` is that same prompt
+  // locked read-only once it's been handed off to the agent.
+  compose?: 'collab' | 'build';
   messages: Message[];
 };
 
@@ -137,6 +142,32 @@ const channels: Channel[] = [
         from: 'korde',
         text: 'Your team and I work across all three — talk it through here, I pull the context and build it, and it renders in the preview. No tabbing away. Browse the features on the left, or start a thread and tell me what to build.',
         reactions: [{ emoji: '👋', by: ['maya', 'theo', 'ada'] }],
+      },
+      {
+        id: 'w3',
+        kind: 'msg',
+        from: 'maya',
+        text: 'Yes — let’s shape the prompts together, that’s the fun part.',
+        reactions: [{ emoji: '💯', by: ['theo', 'you'] }],
+      },
+      {
+        id: 'w4',
+        kind: 'msg',
+        from: 'theo',
+        text: 'And it renders live in the preview as it’s built — no tab-hopping.',
+      },
+      {
+        id: 'w5',
+        kind: 'msg',
+        from: 'ada',
+        text: 'I’ll pick up the backend pieces as they land.',
+      },
+      {
+        id: 'w6',
+        kind: 'msg',
+        from: 'maya',
+        text: 'Let’s kick this off in',
+        channel: ChannelSlug.Collaborate,
       },
     ],
   },
@@ -195,10 +226,11 @@ const channels: Channel[] = [
     ],
   },
   {
-    slug: ChannelSlug.HandOff,
+    slug: ChannelSlug.Build,
     status: 'open',
-    topic: 'Approve the plan, the agent implements it',
+    topic: 'Plan approved — the agent builds it',
     members: ['maya', 'theo', 'you', 'korde'],
+    compose: 'build',
     messages: [
       {
         id: 'h1',
@@ -269,6 +301,41 @@ const channels: Channel[] = [
       },
     ],
   },
+];
+
+// Relative time tags, Notion-style. Kept as labels (not computed dates) so the
+// prerender and client agree and there's no date math to drift.
+const TIME_MENTIONS = ['Today', 'Tomorrow', 'This afternoon', 'Next Monday', 'In two weeks'];
+
+// Everything the message composer can tag: the team and agent, every feature
+// channel, and a few times — derived from the same single sources of truth so
+// the tagger never drifts from the roster or the sidebar.
+const MENTION_SUGGESTIONS: MentionSuggestion[] = [
+  ...Object.values(PEOPLE)
+    .filter((person) => person.id !== 'you')
+    .map((person) => ({
+      id: `person-${person.id}`,
+      kind: 'person' as const,
+      label: person.name,
+      token: `@${person.name}`,
+      detail: person.kind === 'agent' ? 'Agent' : 'Member',
+      color: person.color,
+      avatar: AVATARS[person.id],
+    })),
+  ...channels.map((channel) => ({
+    id: `channel-${channel.slug}`,
+    kind: 'channel' as const,
+    label: channel.slug,
+    token: `#${channel.slug}`,
+    detail: channel.topic,
+  })),
+  ...TIME_MENTIONS.map((label) => ({
+    id: `time-${label}`,
+    kind: 'time' as const,
+    label,
+    token: label,
+    detail: 'Date',
+  })),
 ];
 
 // Everyone gets a cartoon avatar; the coloured initials remain a graceful
@@ -527,10 +594,14 @@ function MicButton() {
 }
 
 // The chat panel's message bar — type and send a message to the people in the
-// channel. Sent messages are local and unsaved, just for feel; the mic is a
-// non-functional placeholder for now.
+// channel. It supports Notion-style `@`/`#` tags (see MentionInput). Sent
+// messages are local and unsaved, just for feel; the mic is a non-functional
+// placeholder for now. The Send button starts as a disabled primary action and
+// lights up once there's something to send. `seq` bumps on send to remount the
+// (uncontrolled) input, clearing it and returning focus.
 function MessageBar({ channel, onSend }: { channel: Channel; onSend: (text: string) => void }) {
   const [text, setText] = useState('');
+  const [seq, setSeq] = useState(0);
 
   const submit = () => {
     const trimmed = text.trim();
@@ -539,32 +610,27 @@ function MessageBar({ channel, onSend }: { channel: Channel; onSend: (text: stri
     }
     onSend(trimmed);
     setText('');
+    setSeq((n) => n + 1);
   };
 
   return (
     <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 shadow-sm">
       <Plus className="size-4 shrink-0 text-muted-foreground" />
-      <input
-        type="text"
-        value={text}
-        onChange={(event) => setText(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') {
-            event.preventDefault();
-            submit();
-          }
-        }}
-        aria-label={`Message #${channel.slug}`}
+      <MentionInput
+        key={seq}
+        autoFocus={seq > 0}
+        suggestions={MENTION_SUGGESTIONS}
+        ariaLabel={`Message #${channel.slug}`}
         placeholder={`Message #${channel.slug}…`}
-        className="flex-1 bg-transparent text-foreground text-sm outline-none placeholder:text-muted-foreground"
+        onChange={setText}
+        onSubmit={submit}
       />
       <MicButton />
       <Button
         type="button"
         size="sm"
-        variant="ghost"
-        className="text-muted-foreground"
         aria-label="Send message"
+        disabled={!text.trim()}
         onClick={submit}
       >
         <Send />
@@ -586,19 +652,34 @@ function Composer({ channel, onSend }: { channel: Channel; onSend: (text: string
   // The typing indicator belongs with the message bar (someone drafting a chat
   // message); in the prompt editor, the live cursors convey presence already.
   const typist = channel.typing ? PEOPLE[channel.typing] : null;
-  if (channel.compose === 'collab') {
+  // Collaborate and build share one composer — same prompt component, token
+  // count, and footer. Build just renders it read-only (the plan is handed off)
+  // with a spinning, disabled "Building" action where "Build" would be.
+  if (channel.compose === 'collab' || channel.compose === 'build') {
+    const building = channel.compose === 'build';
     return (
       <div className="shrink-0 space-y-2 px-5 pb-5">
         <div className="overflow-hidden rounded-lg border border-border bg-background shadow-lg">
-          <CollabPrompt onText={setPromptText} />
+          <CollabPrompt
+            onText={setPromptText}
+            editable={!building}
+            label={building ? 'Prompt' : undefined}
+          />
           <div className="flex items-center gap-2 border-border border-t px-3 py-2">
             <span className="flex-1 text-muted-foreground text-xs tabular-nums">
               {tokens.toLocaleString()} tokens
             </span>
-            <Button size="sm">
-              <Play />
-              Build
-            </Button>
+            {building ? (
+              <Button size="sm" disabled>
+                <LoaderCircle className="animate-spin" />
+                Building
+              </Button>
+            ) : (
+              <Button size="sm">
+                <Play />
+                Build
+              </Button>
+            )}
           </div>
         </div>
         <div className="space-y-1">
@@ -664,6 +745,12 @@ function ChatMessage({ message }: { message: Message }) {
         </div>
         <p className="mt-0.5 text-pretty text-foreground/90 text-sm leading-relaxed">
           {message.text}
+          {message.channel ? (
+            <>
+              {' '}
+              <ChannelLink slug={message.channel} />
+            </>
+          ) : null}
         </p>
         {message.plan ? <PlanCard items={message.plan} /> : null}
         {message.reactions ? <Reactions items={message.reactions} /> : null}
@@ -676,6 +763,19 @@ function ChatMessage({ message }: { message: Message }) {
         ) : null}
       </div>
     </div>
+  );
+}
+
+// An inline channel tag that links to another feature — the rendered-message
+// counterpart of the composer's channel mentions, styled to match.
+function ChannelLink({ slug }: { slug: ChannelSlug }) {
+  return (
+    <a
+      href={`#${slug}`}
+      className="inline-flex items-center rounded-md bg-chart-2/10 px-1.5 py-0.5 align-baseline font-medium text-chart-2 text-xs transition-colors hover:bg-chart-2/20"
+    >
+      #{slug}
+    </a>
   );
 }
 
@@ -820,37 +920,120 @@ function PreviewPane({ channel, active }: { channel: Channel; active: boolean })
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-4">
-        {channel.slug === ChannelSlug.LivePreview ? <AppPreview /> : <PreviewPlaceholder />}
+        {channel.slug === ChannelSlug.LivePreview ? (
+          <AppPreview />
+        ) : channel.slug === ChannelSlug.Build ? (
+          <BuildingPreview />
+        ) : (
+          <PreviewPlaceholder />
+        )}
       </div>
     </aside>
   );
 }
 
-// The preview channel is the one place with completed agent work to show — the
-// running product, the way a website preview renders it. Presence surfaces as
-// the online facepile (the built feature); live editing cursors belong in the
-// chat, not in the preview.
+// Sample content for the preview app — a real-looking doc so the preview reads
+// as a running product, not a skeleton.
+const DOC_TASKS = [
+  { label: 'Draft launch messaging with Maya', done: true },
+  { label: 'Instrument activation events', done: true },
+  { label: 'Design review with Theo', done: false },
+  { label: 'Roll out to 10% of new signups', done: false },
+];
+
+// The preview channel is the one place with finished agent work to show: the
+// running product, rendered the way a website preview would. It's a real (if
+// small) editor app — the artifact the prompt asked for — with the built
+// "realtime presence" feature visible as the who's-online facepile and an
+// editing status line, not a live cursor demo.
 function AppPreview() {
   return (
     <PreviewFrame title="kordeon · editor">
-      <div className="min-h-[15rem]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs">
-            <FileText className="size-3.5" />
-            Realtime presence
+      <div className="flex min-h-[15rem] flex-col">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <FileText className="size-3.5 shrink-0 text-muted-foreground" />
+            <span className="truncate font-medium text-sm">Q3 launch plan</span>
           </div>
           <Facepile ids={['maya', 'theo', 'ada', 'korde']} online />
         </div>
-        <div className="mt-4 space-y-2.5">
-          <div className="h-2.5 w-1/2 rounded-full bg-foreground/20" />
-          <div className="h-2 w-full rounded-full bg-foreground/10" />
-          <div className="h-2 w-5/6 rounded-full bg-foreground/10" />
-          <div className="h-2 w-2/3 rounded-full bg-foreground/10" />
-          <div className="h-2 w-4/5 rounded-full bg-foreground/10" />
-          <div className="h-2 w-3/5 rounded-full bg-foreground/10" />
+
+        <div className="mt-4 space-y-3">
+          <p className="text-pretty text-foreground/80 text-xs leading-relaxed">
+            Ship the new onboarding flow and instrument activation so we can see where people drop
+            off. Owners and review dates below.
+          </p>
+          <div className="space-y-1.5">
+            {DOC_TASKS.map((task) => (
+              <div key={task.label} className="flex items-center gap-2 text-xs">
+                <span
+                  className={
+                    task.done
+                      ? 'flex size-3.5 items-center justify-center rounded-[4px] bg-primary text-primary-foreground'
+                      : 'size-3.5 rounded-[4px] border border-border'
+                  }
+                >
+                  {task.done ? <Check className="size-2.5" /> : null}
+                </span>
+                <span
+                  className={
+                    task.done ? 'text-muted-foreground line-through' : 'text-foreground/80'
+                  }
+                >
+                  {task.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-auto flex items-center gap-1.5 border-border border-t pt-2.5 text-[0.7rem] text-muted-foreground">
+          <span className="relative flex size-1.5">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-chart-2/70" />
+            <span className="relative inline-flex size-1.5 rounded-full bg-chart-2" />
+          </span>
+          Maya is editing · Theo viewing
         </div>
       </div>
     </PreviewFrame>
+  );
+}
+
+// Widths + stagger for the build shimmer, kept as data (not inline literals) to
+// steer clear of the no-magic-numbers rule, matching TYPING_DELAYS above.
+const BUILD_SHIMMER = [
+  { width: '85%', delay: '0ms' },
+  { width: '70%', delay: '150ms' },
+  { width: '55%', delay: '300ms' },
+];
+
+// The build channel is mid-flight: the agent is implementing the handed-off
+// prompt, so the preview shows Korde at work rather than a finished artifact.
+function BuildingPreview() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
+      <div className="relative">
+        <Avatar person={PEOPLE.korde} className="size-12 text-sm" />
+        <span className="-right-1 -bottom-1 absolute flex size-5 items-center justify-center rounded-full bg-card ring-2 ring-card">
+          <LoaderCircle className="size-4 animate-spin text-primary" />
+        </span>
+      </div>
+      <div className="space-y-1">
+        <p className="font-medium text-sm">Korde is building…</p>
+        <p className="text-balance text-muted-foreground text-xs">
+          Implementing the handed-off prompt — the preview goes live as each step ships.
+        </p>
+      </div>
+      <div className="w-full max-w-[13rem] space-y-2">
+        {BUILD_SHIMMER.map((bar) => (
+          <div
+            key={bar.width}
+            className="h-2 animate-pulse rounded-full bg-foreground/10"
+            style={{ width: bar.width, animationDelay: bar.delay }}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
