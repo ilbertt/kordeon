@@ -205,17 +205,19 @@ function Replies({ ids }: { ids: string[] }) {
   );
 }
 
-// A SaaS pricing table rendered inline in the agent's reply — a compact column
-// per tier, the recommended one lifted with the brand ring. CTAs are inert here,
+// A SaaS pricing table rendered inline in the agent's reply — one compact column
+// per tier, the recommended one lifted with the brand ring. The grid stretches
+// every card to equal height, and each card's body fills that height so the CTA
+// (`mt-auto`) sits on a shared baseline across columns. CTAs are inert here,
 // matching the rest of the demo.
 function PricingTable({ tiers }: { tiers: PricingTier[] }) {
   return (
-    <div className="mt-3 grid max-w-2xl gap-3 sm:grid-cols-3">
+    <div className="mt-3 grid max-w-2xl items-stretch gap-3 sm:grid-cols-3">
       {tiers.map((tier) => (
         <Card
           key={tier.id}
           size="sm"
-          className={cn('gap-3', tier.featured && 'ring-2 ring-primary')}
+          className={cn('gap-2.5', tier.featured && 'ring-2 ring-primary')}
         >
           <CardHeader className="px-3">
             <CardTitle className="flex items-center gap-2">
@@ -225,17 +227,17 @@ function PricingTable({ tiers }: { tiers: PricingTier[] }) {
               ) : null}
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3 px-3">
+          <CardContent className="flex flex-1 flex-col gap-2.5 px-3">
             <div className="flex items-baseline gap-1">
-              <span className="font-semibold text-foreground text-xl tabular-nums">
+              <span className="font-semibold text-foreground text-lg tabular-nums">
                 {tier.price}
               </span>
               {tier.unit ? (
                 <span className="text-muted-foreground text-xs">{tier.unit}</span>
               ) : null}
             </div>
-            <p className="text-muted-foreground text-xs leading-relaxed">{tier.tagline}</p>
-            <ul className="flex flex-col gap-1.5">
+            <p className="text-muted-foreground text-xs leading-snug">{tier.tagline}</p>
+            <ul className="flex flex-col gap-1">
               {tier.features.map((feature) => (
                 <li key={feature} className="flex items-start gap-1.5 text-xs">
                   <Check className="mt-0.5 size-3 shrink-0 text-primary" />
@@ -246,7 +248,7 @@ function PricingTable({ tiers }: { tiers: PricingTier[] }) {
             <Button
               size="sm"
               variant={tier.featured ? 'default' : 'outline'}
-              className="mt-1 w-full"
+              className="mt-auto w-full"
             >
               {tier.cta}
             </Button>

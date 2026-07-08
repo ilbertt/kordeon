@@ -8,7 +8,7 @@ export const PRICING_TIERS: PricingTier[] = [
     name: 'Free',
     price: '$0',
     unit: 'forever',
-    tagline: 'Plan and collaborate with your whole team.',
+    tagline: 'Plan together, always free.',
     features: [
       'Unlimited teammates',
       'Unlimited threads & plans',
@@ -22,7 +22,7 @@ export const PRICING_TIERS: PricingTier[] = [
     name: 'Pro',
     price: '$0.10',
     unit: 'per agent run',
-    tagline: 'Pay only for the work the agent ships.',
+    tagline: 'Pay only for what ships.',
     features: [
       'Everything in Free',
       'Unlimited agent runs',
@@ -37,7 +37,7 @@ export const PRICING_TIERS: PricingTier[] = [
     id: 'enterprise',
     name: 'Enterprise',
     price: 'Custom',
-    tagline: 'Security and scale for your org.',
+    tagline: 'For security and scale.',
     features: ['Everything in Pro', 'SSO & SAML', 'Volume discounts', 'Dedicated support & SLAs'],
     cta: 'Contact sales',
   },
