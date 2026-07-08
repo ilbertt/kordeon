@@ -78,7 +78,7 @@ function TopBar() {
           className="hidden items-center gap-1.5 rounded-full border border-border py-1 pr-2.5 pl-2 font-medium text-muted-foreground text-xs transition-colors hover:bg-muted hover:text-foreground lg:inline-flex"
         >
           <Sparkles className="size-3.5 text-primary" />
-          For your AI agent
+          Tell your AI agent
         </a>
         <a
           href={REPO_URL}
