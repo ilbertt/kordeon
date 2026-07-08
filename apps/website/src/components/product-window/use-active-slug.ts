@@ -14,6 +14,17 @@ function subscribeToHash(onChange: () => void) {
   return () => window.removeEventListener('hashchange', onChange);
 }
 
+// Dropping the fragment resets the active feature to the default. `replaceState`
+// avoids both a history entry and the scroll-to-top that assigning `location.hash`
+// would trigger; the synthetic `hashchange` is what `useActiveSlug`'s store reads.
+export function clearActiveChannel(): void {
+  if (!window.location.hash) {
+    return;
+  }
+  window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  window.dispatchEvent(new HashChangeEvent('hashchange'));
+}
+
 // The active feature is derived from `location.hash`. `useSyncExternalStore` is
 // the SSR-safe way to read it: the prerender/hydration pass uses the default and
 // the client re-reads after mount, so there's no hydration mismatch. TanStack
