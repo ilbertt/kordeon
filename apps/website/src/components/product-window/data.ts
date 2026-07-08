@@ -86,7 +86,7 @@ export const channels: LandingChannel[] = [
         id: 'w2',
         kind: 'msg',
         from: 'korde',
-        text: 'Your team and I work across all three — talk it through here, I pull the context and build it, and it renders in the preview. No tabbing away. Browse the features on the left, or start a thread and tell me what to build.',
+        text: 'Your team and I work across all three — talk it through here, I pull the context and build it, and it renders in the preview. No tabbing away. Browse the features on the left, or start a thread and tell me what to build. And kordeon itself is open source — the whole thing’s on GitHub.',
         reactions: [{ emoji: '👋', by: ['maya', 'theo', 'ada'] }],
       },
       {
