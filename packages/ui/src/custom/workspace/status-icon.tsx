@@ -5,7 +5,7 @@ import { GitMerge, GitPullRequest, GitPullRequestDraft, Home, type LucideIcon } 
 const STATUS: Record<ChannelStatus, { icon: LucideIcon; className: string }> = {
   main: { icon: Home, className: 'text-muted-foreground' },
   draft: { icon: GitPullRequestDraft, className: 'text-muted-foreground' },
-  open: { icon: GitPullRequest, className: 'text-chart-2' },
+  open: { icon: GitPullRequest, className: 'text-accent-warm' },
   merged: { icon: GitMerge, className: 'text-primary' },
 };
 

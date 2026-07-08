@@ -9,7 +9,7 @@ export function MentionTag({ tag }: { tag: MentionTagData }) {
     return (
       <a
         href={`#${tag.token.replace(/^#/, '')}`}
-        className={cn(MENTION_CHIP_CLASS.channel, 'transition-colors hover:bg-chart-2/20')}
+        className={cn(MENTION_CHIP_CLASS.channel, 'transition-colors hover:bg-primary/20')}
       >
         {tag.token}
       </a>
