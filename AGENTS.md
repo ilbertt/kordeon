@@ -37,6 +37,8 @@ When running a script, always check `package.json` scripts (root and per-app) fo
 
 ## Pull requests
 
+Unless asked otherwise, always branch off `main` — and update `main` first so the branch starts from the latest.
+
 Keep PR descriptions small and minimal. Don't list the changes — the diff already shows them. Explain only the *why* and anything the diff can't convey. Oversized descriptions are noise that ends up in the git history forever.
 
 ## Package docs
