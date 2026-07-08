@@ -2,11 +2,22 @@
 
 import type { Channel, Message, MessageSegment, Person } from '@repo/domain/workspace';
 import { Button } from '@repo/ui/components/button';
+import { Card } from '@repo/ui/components/card';
+import { InputGroup, InputGroupAddon, InputGroupButton } from '@repo/ui/components/input-group';
+import {
+  MessageScroller,
+  MessageScrollerButton,
+  MessageScrollerContent,
+  MessageScrollerItem,
+  MessageScrollerProvider,
+  MessageScrollerViewport,
+} from '@repo/ui/components/message-scroller';
+import { Spinner } from '@repo/ui/components/spinner';
 import { MentionInput } from '@repo/ui/custom/mention/mention-input';
 import { useTokenCount } from '@repo/ui/hooks/use-token-count';
 import { cn } from '@repo/ui/lib/utils';
-import { Check, LoaderCircle, Mic, Play, Send } from 'lucide-react';
-import { type ReactNode, useRef, useState } from 'react';
+import { Check, Mic, Play, Send } from 'lucide-react';
+import { type ReactNode, useState } from 'react';
 import { ConnectorsButton } from './connectors-menu';
 import { useWorkspace } from './context';
 import { ChatMessage } from './message';
@@ -39,7 +50,6 @@ export function Thread({
   // Messages the visitor sends are kept locally, just for feel — nothing is
   // persisted, so they reset on reload.
   const [sent, setSent] = useState<Message[]>([]);
-  const listRef = useRef<HTMLDivElement>(null);
 
   const send = (value: SendValue) => {
     setSent((prev) => [
@@ -53,14 +63,9 @@ export function Thread({
       },
     ]);
     onSend?.(value);
-    requestAnimationFrame(() => {
-      const el = listRef.current;
-      if (el) {
-        el.scrollTop = el.scrollHeight;
-      }
-    });
   };
 
+  const messages = [...channel.messages, ...sent];
   return (
     <section className={cn('min-w-0 flex-1 flex-col', active ? 'flex' : 'hidden')}>
       <div className="flex h-14 shrink-0 items-center gap-2 border-border border-b px-5">
@@ -74,11 +79,26 @@ export function Thread({
           <Facepile ids={channel.members} online />
         </div>
       </div>
-      <div ref={listRef} className="flex-1 space-y-5 overflow-y-auto px-5 py-6">
-        {[...channel.messages, ...sent].map((message) => (
-          <ChatMessage key={message.id} message={message} />
-        ))}
-      </div>
+      {/* autoScroll keeps the thread pinned to the newest message; a sent
+          message is a scroll anchor, so the scroller brings it into view. */}
+      <MessageScrollerProvider autoScroll defaultScrollPosition="end">
+        <MessageScroller className="flex-1">
+          <MessageScrollerViewport className="px-5 py-6">
+            <MessageScrollerContent className="gap-5">
+              {messages.map((message) => (
+                <MessageScrollerItem
+                  key={message.id}
+                  messageId={message.id}
+                  scrollAnchor={message.kind === 'msg' && message.from === currentUserId}
+                >
+                  <ChatMessage message={message} />
+                </MessageScrollerItem>
+              ))}
+            </MessageScrollerContent>
+          </MessageScrollerViewport>
+          <MessageScrollerButton direction="end" />
+        </MessageScroller>
+      </MessageScrollerProvider>
       <Composer channel={channel} onSend={send} renderComposerPrompt={renderComposerPrompt} />
     </section>
   );
@@ -86,14 +106,14 @@ export function Thread({
 
 function MicButton() {
   return (
-    <Button
-      size="sm"
+    <InputGroupButton
+      size="icon-sm"
       variant="ghost"
       className="text-muted-foreground"
       aria-label="Dictate message"
     >
       <Mic />
-    </Button>
+    </InputGroupButton>
   );
 }
 
@@ -114,8 +134,10 @@ function MessageBar({ channel, onSend }: { channel: Channel; onSend: (value: Sen
   };
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 shadow-sm">
-      <ConnectorsButton />
+    <InputGroup className="h-auto items-center rounded-lg border-border bg-background px-1 shadow-sm">
+      <InputGroupAddon align="inline-start">
+        <ConnectorsButton />
+      </InputGroupAddon>
       <MentionInput
         key={seq}
         autoFocus={seq > 0}
@@ -126,17 +148,19 @@ function MessageBar({ channel, onSend }: { channel: Channel; onSend: (value: Sen
         onChange={setValue}
         onSubmit={submit}
       />
-      <MicButton />
-      <Button
-        type="button"
-        size="sm"
-        aria-label="Send message"
-        disabled={!value.text.trim()}
-        onClick={submit}
-      >
-        <Send />
-      </Button>
-    </div>
+      <InputGroupAddon align="inline-end">
+        <MicButton />
+        <InputGroupButton
+          size="icon-sm"
+          variant="default"
+          aria-label="Send message"
+          disabled={!value.text.trim()}
+          onClick={submit}
+        >
+          <Send />
+        </InputGroupButton>
+      </InputGroupAddon>
+    </InputGroup>
   );
 }
 
@@ -164,7 +188,7 @@ function Composer({
     const editable = channel.compose === 'collab';
     return (
       <div className="shrink-0 space-y-2 px-5 pb-5">
-        <div className="overflow-hidden rounded-lg border border-border bg-background shadow-lg">
+        <Card className="gap-0 border border-border bg-background py-0 shadow-lg ring-0">
           {renderComposerPrompt({
             editable,
             onText: setPromptText,
@@ -176,7 +200,7 @@ function Composer({
             </span>
             <ComposerAction compose={channel.compose} />
           </div>
-        </div>
+        </Card>
         <div className="space-y-1">
           {typist ? <TypingIndicator person={typist} /> : null}
           <MessageBar channel={channel} onSend={onSend} />
@@ -196,7 +220,7 @@ function ComposerAction({ compose }: { compose: NonNullable<Channel['compose']> 
   if (compose === 'build') {
     return (
       <Button size="sm" disabled>
-        <LoaderCircle className="animate-spin" />
+        <Spinner />
         Building
       </Button>
     );

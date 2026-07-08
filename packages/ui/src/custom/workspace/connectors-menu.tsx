@@ -5,6 +5,15 @@
 // toggle Connect ⇄ Connected (local-only, just for feel like the rest of the
 // demo); the rest render as the same row, greyed and disabled, to say "many
 // more coming". Connected state lives here so it survives closing the popover.
+import { Badge } from '@repo/ui/components/badge';
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from '@repo/ui/components/item';
 import {
   Popover,
   PopoverContent,
@@ -98,39 +107,41 @@ function LiveRow({
   onToggle: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="flex w-full items-center gap-2.5 rounded-md p-1.5 text-left transition-colors hover:bg-muted"
-    >
-      <IconTile>{connector.icon}</IconTile>
-      <span className="min-w-0 flex-1">
-        <span className="block font-medium text-sm leading-tight">{connector.name}</span>
-        <span className="block truncate text-muted-foreground text-xs">{connector.detail}</span>
-      </span>
-      {connected ? (
-        <span className="flex shrink-0 items-center gap-1 font-medium text-primary text-xs">
-          <Check className="size-3.5" />
-          Connected
-        </span>
-      ) : (
-        <span className="shrink-0 rounded-md border border-border px-2 py-1 font-medium text-xs">
-          Connect
-        </span>
-      )}
-    </button>
+    <Item size="xs" render={<button type="button" onClick={onToggle} />} className="hover:bg-muted">
+      <ItemMedia>
+        <IconTile>{connector.icon}</IconTile>
+      </ItemMedia>
+      <ItemContent>
+        <ItemTitle className="text-sm">{connector.name}</ItemTitle>
+        <ItemDescription>{connector.detail}</ItemDescription>
+      </ItemContent>
+      <ItemActions>
+        {connected ? (
+          <Badge className="gap-1 bg-primary/10 text-primary">
+            <Check />
+            Connected
+          </Badge>
+        ) : (
+          <Badge variant="outline">Connect</Badge>
+        )}
+      </ItemActions>
+    </Item>
   );
 }
 
 function SoonRow({ name, icon }: { name: string; icon: ReactNode }) {
   return (
-    <div className="flex w-full items-center gap-2.5 rounded-md p-1.5 opacity-60">
-      <IconTile muted>{icon}</IconTile>
-      <span className="min-w-0 flex-1 font-medium text-muted-foreground text-sm">{name}</span>
-      <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[0.7rem] text-muted-foreground">
-        Soon
-      </span>
-    </div>
+    <Item size="xs" className="opacity-60">
+      <ItemMedia>
+        <IconTile muted>{icon}</IconTile>
+      </ItemMedia>
+      <ItemContent>
+        <ItemTitle className="text-muted-foreground text-sm">{name}</ItemTitle>
+      </ItemContent>
+      <ItemActions>
+        <Badge variant="secondary">Soon</Badge>
+      </ItemActions>
+    </Item>
   );
 }
 

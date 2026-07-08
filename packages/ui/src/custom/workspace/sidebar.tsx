@@ -1,8 +1,18 @@
 'use client';
 
 import type { Channel } from '@repo/domain/workspace';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@repo/ui/components/input-group';
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from '@repo/ui/components/item';
 import { ScrollArea } from '@repo/ui/components/scroll-area';
 import { Separator } from '@repo/ui/components/separator';
+import { cn } from '@repo/ui/lib/utils';
 import { Plus, Search, Users } from 'lucide-react';
 import { useCurrentUser } from './context';
 import { PersonAvatar } from './person-avatar';
@@ -27,41 +37,56 @@ export function Sidebar({
         <span className="font-medium text-sm">Features</span>
         <Plus className="size-4 text-muted-foreground" />
       </div>
-      <div className="mx-2 mt-2 hidden items-center gap-2 rounded-md border border-border bg-background px-2.5 py-1.5 text-muted-foreground text-xs md:flex">
-        <Search className="size-3.5" />
-        Search
-      </div>
+      <InputGroup className="mx-2 mt-2 hidden h-8 bg-background md:flex">
+        <InputGroupAddon>
+          <Search />
+        </InputGroupAddon>
+        <InputGroupInput placeholder="Search" readOnly />
+      </InputGroup>
       <ScrollArea className="mt-2 flex-1">
         <nav className="flex flex-col gap-0.5 px-2 py-2">
           {channels.map((channel) => {
             const isActive = channel.slug === activeSlug;
-            const className = isActive
-              ? 'flex items-center gap-2 rounded-md bg-primary/10 px-2.5 py-2 text-left font-medium text-primary text-sm'
-              : 'flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground';
             return (
-              <a key={channel.slug} href={channelHref(channel.slug)} className={className}>
-                <StatusIcon status={channel.status} />
-                <span className="hidden truncate md:inline">#{channel.slug}</span>
-                <span className="ml-auto hidden items-center gap-1 text-muted-foreground text-xs md:flex">
+              <Item
+                key={channel.slug}
+                size="xs"
+                render={<a href={channelHref(channel.slug)} />}
+                className={cn(
+                  'text-muted-foreground',
+                  isActive
+                    ? 'bg-primary/10 font-medium text-primary'
+                    : 'transition-colors hover:bg-muted hover:text-foreground',
+                )}
+              >
+                <ItemMedia variant="icon">
+                  <StatusIcon status={channel.status} />
+                </ItemMedia>
+                <ItemContent className="hidden md:flex">
+                  <ItemTitle className="truncate">#{channel.slug}</ItemTitle>
+                </ItemContent>
+                <ItemActions className="hidden text-muted-foreground text-xs md:flex">
                   <Users className="size-3" />
                   {channel.members.length}
-                </span>
-              </a>
+                </ItemActions>
+              </Item>
             );
           })}
         </nav>
       </ScrollArea>
       <Separator />
-      <div className="hidden items-center gap-2.5 px-3 py-3 md:flex">
-        <PersonAvatar person={currentUser} />
-        <div className="min-w-0 flex-1">
-          <div className="truncate font-medium text-sm">{currentUser.name}</div>
-          <div className="flex items-center gap-1 text-muted-foreground text-xs">
+      <Item size="sm" className="mx-1 hidden md:flex">
+        <ItemMedia>
+          <PersonAvatar person={currentUser} />
+        </ItemMedia>
+        <ItemContent>
+          <ItemTitle className="truncate text-sm">{currentUser.name}</ItemTitle>
+          <ItemDescription className="flex items-center gap-1">
             <span className="size-1.5 rounded-full bg-chart-2" />
             Active
-          </div>
-        </div>
-      </div>
+          </ItemDescription>
+        </ItemContent>
+      </Item>
     </aside>
   );
 }

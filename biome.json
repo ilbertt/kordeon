@@ -96,6 +96,23 @@
           }
         }
       }
+    },
+    {
+      "includes": ["packages/ui/src/components/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "useSemanticElements": "off",
+            "useKeyWithClickEvents": "off"
+          },
+          "correctness": {
+            "noUnusedImports": "off"
+          },
+          "style": {
+            "noExportedImports": "off"
+          }
+        }
+      }
     }
   ]
 }

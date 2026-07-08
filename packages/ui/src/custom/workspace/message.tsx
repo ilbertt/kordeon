@@ -1,12 +1,22 @@
 'use client';
 
 import type { Message, Person, PlanItem, Reaction } from '@repo/domain/workspace';
+import { AvatarGroup } from '@repo/ui/components/avatar';
 import { Badge } from '@repo/ui/components/badge';
 import { Button } from '@repo/ui/components/button';
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@repo/ui/components/card';
+import { Checkbox } from '@repo/ui/components/checkbox';
+import { Marker, MarkerContent } from '@repo/ui/components/marker';
+import {
+  MessageAvatar,
+  MessageContent,
+  MessageHeader,
+  Message as MessageRow,
+} from '@repo/ui/components/message';
 import { Popover, PopoverContent, PopoverTrigger } from '@repo/ui/components/popover';
 import { MentionTag } from '@repo/ui/custom/mention/mention-tag';
 import { cn } from '@repo/ui/lib/utils';
-import { ArrowRight, Check, SmilePlus, Zap } from 'lucide-react';
+import { ArrowRight, SmilePlus, Zap } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { usePerson, useWorkspace } from './context';
 import { PersonAvatar } from './person-avatar';
@@ -14,11 +24,9 @@ import { PersonAvatar } from './person-avatar';
 export function ChatMessage({ message }: { message: Message }) {
   if (message.kind === 'system') {
     return (
-      <div className="flex items-center gap-3 text-muted-foreground text-sm">
-        <span className="h-px flex-1 bg-border" />
-        <span className="max-w-md text-center text-balance">{message.text}</span>
-        <span className="h-px flex-1 bg-border" />
-      </div>
+      <Marker variant="separator" className="text-sm">
+        <MarkerContent className="max-w-md text-balance">{message.text}</MarkerContent>
+      </Marker>
     );
   }
 
@@ -29,18 +37,20 @@ function PersonMessage({ message }: { message: Extract<Message, { kind: 'msg' }>
   const person = usePerson(message.from);
   const isAgent = person.kind === 'agent';
   return (
-    <div className="flex gap-3">
-      <PersonAvatar person={person} className="size-8" />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2">
-          <span className="font-medium text-sm">{person.name}</span>
+    <MessageRow align="start" className="gap-3">
+      <MessageAvatar className="min-w-8 self-start bg-transparent">
+        <PersonAvatar person={person} className="size-8" />
+      </MessageAvatar>
+      <MessageContent className="gap-0">
+        <MessageHeader className="items-baseline gap-2 px-0 text-foreground text-sm">
+          <span className="font-medium">{person.name}</span>
           {isAgent ? (
             <Badge variant="secondary" className="gap-1 px-1.5 py-0 text-[0.625rem]">
               <Zap className="size-2.5" />
               AI
             </Badge>
           ) : null}
-        </div>
+        </MessageHeader>
         <p className="mt-0.5 text-pretty text-foreground/90 text-sm leading-relaxed">
           <MessageBody message={message} />
         </p>
@@ -53,8 +63,8 @@ function PersonMessage({ message }: { message: Extract<Message, { kind: 'msg' }>
             <ArrowRight />
           </Button>
         ) : null}
-      </div>
-    </div>
+      </MessageContent>
+    </MessageRow>
   );
 }
 
@@ -92,6 +102,8 @@ const QUICK_EMOJIS = ['👍', '❤️', '🎉', '🚀', '👀', '😄'];
 
 // Visitors can react for fun — nothing is persisted. Base counts come from the
 // seeded `items`; the viewer's own reactions live in local state and add +1.
+// Kept as bespoke pills: shadcn's Toggle bakes in a muted pressed background
+// that fights these brand-tinted chips, so it isn't a clean drop-in here.
 function Reactions({ items }: { items: Reaction[] }) {
   const [mine, setMine] = useState<Record<string, boolean>>({});
   const [picking, setPicking] = useState(false);
@@ -174,11 +186,11 @@ function Replies({ ids }: { ids: string[] }) {
       type="button"
       className="mt-2 flex items-center gap-2 rounded-md py-0.5 font-medium text-primary text-xs hover:underline"
     >
-      <div className="flex -space-x-1.5">
+      <AvatarGroup className="-space-x-1.5">
         {resolved.map((person) => (
-          <PersonAvatar key={person.id} person={person} className="size-5 ring-2 ring-card" />
+          <PersonAvatar key={person.id} person={person} className="size-5" />
         ))}
-      </div>
+      </AvatarGroup>
       {resolved.length} replies
     </button>
   );
@@ -187,31 +199,23 @@ function Replies({ ids }: { ids: string[] }) {
 function PlanCard({ items }: { items: PlanItem[] }) {
   const done = items.filter((item) => item.done).length;
   return (
-    <div className="mt-3 max-w-md rounded-lg border border-border bg-card p-3">
-      <div className="mb-2.5 flex items-center justify-between">
-        <span className="font-medium text-sm">Implementation plan</span>
-        <span className="text-muted-foreground text-xs">
+    <Card size="sm" className="mt-3 max-w-md gap-2.5">
+      <CardHeader className="px-3">
+        <CardTitle>Implementation plan</CardTitle>
+        <CardAction className="text-muted-foreground text-xs">
           {done}/{items.length}
-        </span>
-      </div>
-      <div className="space-y-2">
+        </CardAction>
+      </CardHeader>
+      <CardContent className="space-y-2 px-3">
         {items.map((item) => (
           <div key={item.id} className="flex items-center gap-2.5 text-sm">
-            <span
-              className={
-                item.done
-                  ? 'flex size-4 items-center justify-center rounded-[4px] bg-primary text-primary-foreground'
-                  : 'size-4 rounded-[4px] border border-border'
-              }
-            >
-              {item.done ? <Check className="size-3" /> : null}
-            </span>
+            <Checkbox checked={item.done} readOnly tabIndex={-1} className="pointer-events-none" />
             <span className={item.done ? 'text-muted-foreground line-through' : ''}>
               {item.label}
             </span>
           </div>
         ))}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
