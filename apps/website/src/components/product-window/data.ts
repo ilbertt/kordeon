@@ -1,9 +1,9 @@
+import type { MentionSuggestion, MessageSegment } from '@repo/ui/custom/mention/types';
 import adaAvatar from '#assets/avatars/ada.svg';
 import kordeAvatar from '#assets/avatars/korde.svg';
 import mayaAvatar from '#assets/avatars/maya.svg';
 import theoAvatar from '#assets/avatars/theo.svg';
 import youAvatar from '#assets/avatars/you.svg';
-import type { MentionSuggestion, MessageSegment } from '#components/mention/types';
 
 // The cast that populates every feature thread — a small product team plus the
 // agent. Colors come from the shared chart tokens (agent in teal `primary`), so
@@ -143,45 +143,45 @@ export const channels: Channel[] = [
         id: 'c1',
         kind: 'msg',
         from: 'maya',
-        text: 'We need realtime presence in the editor — cursors and who’s online.',
+        text: 'We need an activation dashboard — signups by week and activation rate by channel.',
       },
       {
         id: 'c2',
         kind: 'msg',
         from: 'theo',
-        text: 'Agreed. Let’s sync cursors too, not just presence.',
+        text: 'Agreed. Break activation out by channel so we can see where paid is lagging.',
         reactions: [{ emoji: '👍', by: ['maya', 'you'] }],
       },
       {
         id: 'c3',
         kind: 'msg',
         from: 'ada',
-        text: 'I’ll take the presence channel on the backend.',
+        text: 'I’ll wire up the warehouse query on the backend.',
       },
       {
         id: 'c4',
         kind: 'msg',
         from: 'korde',
-        text: 'Got it — presence + cursor sync, Ada on the backend. Here’s a plan — edit any step, reorder, or add your own before we start.',
+        text: 'Got it — signups trend + activation by channel, Ada on the query. Here’s a plan — edit any step, reorder, or add your own before we start.',
         plan: [
-          { id: 'm', label: 'Add workspace + membership models', done: true },
-          { id: 'r', label: 'Realtime channel with presence', done: true },
-          { id: 'c', label: 'Cursor sync across collaborators', done: false },
-          { id: 'i', label: 'Invite flow with magic links', done: false },
+          { id: 'w', label: 'Connect the warehouse + define the metrics', done: true },
+          { id: 't', label: 'Signups-by-week trend', done: true },
+          { id: 'a', label: 'Activation rate by channel', done: false },
+          { id: 'd', label: 'Weekly email digest of the numbers', done: false },
         ],
       },
       {
         id: 'c5',
         kind: 'msg',
         from: 'maya',
-        text: 'Looks great. Drop the invite step for now — we’ll do that next sprint.',
+        text: 'Looks great. Drop the email digest for now — we’ll do that next sprint.',
         reactions: [{ emoji: '✅', by: ['you', 'theo'] }],
       },
       {
         id: 'c6',
         kind: 'msg',
         from: 'theo',
-        text: 'Moving cursor sync above the invite flow so it lands first.',
+        text: 'Bumping activation-by-channel to the top so it ships first.',
       },
     ],
   },
@@ -203,13 +203,13 @@ export const channels: Channel[] = [
         id: 'h2',
         kind: 'msg',
         from: 'korde',
-        text: 'On it. Implementing step 1 of 3 — scaffolding the workspace models and migrations.',
+        text: 'On it. Implementing step 1 of 3 — connecting the warehouse and pulling signups by week.',
       },
       {
         id: 'h3',
         kind: 'msg',
         from: 'korde',
-        text: 'Opened PR #128 with the models + presence channel — the preview goes live once it ships.',
+        text: 'Opened PR #128 with the query + charts — the preview goes live once it ships.',
       },
     ],
   },
@@ -224,13 +224,13 @@ export const channels: Channel[] = [
         id: 'v1',
         kind: 'msg',
         from: 'korde',
-        text: 'Step 2 is live — presence is wired up. The preview on the right is running the latest build.',
+        text: 'Step 2 is live — activation by channel is wired up. The preview on the right is running the latest build.',
       },
       {
         id: 'v2',
         kind: 'msg',
         from: 'maya',
-        text: 'Cursors are buttery.',
+        text: 'Organic’s converting at 51% — worth doubling down.',
         reactions: [{ emoji: '🔥', by: ['theo', 'ada', 'you'] }],
       },
       {
@@ -268,9 +268,6 @@ export const channels: Channel[] = [
 // prerender and client agree and there's no date math to drift.
 export const TIME_MENTIONS = ['Today', 'Tomorrow', 'This afternoon', 'Next Monday', 'In two weeks'];
 
-// Everything the message composer can tag: the team and agent, every feature
-// channel, and a few times — derived from the same single sources of truth so
-// the tagger never drifts from the roster or the sidebar.
 export const MENTION_SUGGESTIONS: MentionSuggestion[] = [
   ...Object.values(PEOPLE)
     .filter((person) => person.id !== 'you')

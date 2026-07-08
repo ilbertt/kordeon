@@ -7,7 +7,10 @@
     "./postcss.config": "./postcss.config.mjs",
     "./lib/*": "./src/lib/*.ts",
     "./components/*": "./src/components/*.tsx",
-    "./custom/*": "./src/custom/*.tsx",
+    "./custom/*": [
+      "./src/custom/*.tsx",
+      "./src/custom/*.ts"
+    ],
     "./hooks/*": "./src/hooks/*.ts"
   },
   "scripts": {
@@ -16,6 +19,11 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
+    "@tiptap/extension-task-item": "^3.27.3",
+    "@tiptap/extension-task-list": "^3.27.3",
+    "@tiptap/pm": "^3.27.3",
+    "@tiptap/react": "^3.27.3",
+    "@tiptap/starter-kit": "^3.27.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.23.0",

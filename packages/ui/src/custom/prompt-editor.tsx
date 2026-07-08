@@ -5,36 +5,34 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import { useRef } from 'react';
 
-// A real WYSIWYG for the prompt draft — Notion-like: type `# ` for a heading,
-// `- ` for a bullet, and tick the checkboxes directly. No toolbar; markdown
-// input rules do the work. Nothing is persisted (there's no onUpdate).
+// A Notion-like WYSIWYG for the prompt draft: no toolbar — markdown input rules
+// (`# ` heading, `- ` bullet, tickable checkboxes) do the work.
 const INITIAL_CONTENT = `
-<h1>Realtime presence in the editor</h1>
-<p>Let a team edit the same document together and see each other live — presence, cursors, and selections, synced on every keystroke.</p>
+<h1>Activation dashboard</h1>
+<p>Give the team one view of how new signups are converting — signups by week and activation rate by channel, pulled live from the warehouse.</p>
 <h2>Requirements</h2>
 <ul data-type="taskList">
-<li data-type="taskItem" data-checked="true">Show who’s online, with avatars and a per-person color</li>
-<li data-type="taskItem" data-checked="true">Live cursors with name labels, updated as they move</li>
-<li data-type="taskItem" data-checked="false">Shared text selections, highlighted per collaborator</li>
-<li data-type="taskItem" data-checked="false">Broadcast edits on every keystroke; merge with a CRDT</li>
-<li data-type="taskItem" data-checked="false">Reconnect and resync cleanly after a dropped connection</li>
+<li data-type="taskItem" data-checked="true">Signups by week, with the quarter-over-quarter trend</li>
+<li data-type="taskItem" data-checked="true">Activation rate broken out by acquisition channel</li>
+<li data-type="taskItem" data-checked="false">Flag any channel converting under 30%</li>
+<li data-type="taskItem" data-checked="false">Compare against last quarter as a delta</li>
+<li data-type="taskItem" data-checked="false">Refresh from the warehouse on a schedule</li>
 </ul>
 <h2>Constraints</h2>
 <ul>
-<li>p95 cursor latency under 80ms on the presence channel</li>
-<li>Degrade to a plain “N online” count if a client can’t sync</li>
-<li>Reuse the existing realtime layer — no new dependencies</li>
+<li>Read from the existing warehouse connection — no new pipelines</li>
+<li>Numbers must reconcile with the finance export to the dollar</li>
+<li>Load the full dashboard in under a second</li>
 </ul>
 <h2>Done when</h2>
 <ul data-type="taskList">
-<li data-type="taskItem" data-checked="false">Two browsers show each other’s cursors and selections</li>
-<li data-type="taskItem" data-checked="false">Presence clears within 2s of a tab closing</li>
+<li data-type="taskItem" data-checked="false">The team sees weekly signups and per-channel activation at a glance</li>
+<li data-type="taskItem" data-checked="false">Every number traces back to a warehouse query</li>
 </ul>
 `;
 
-// Bare-node styling (Tiptap ships headless). The `cursor-none` that hides the
-// native caret in favour of the collab prompt's custom "You" cursor is applied
-// per-instance below, only when the editor is editable.
+// The `cursor-none` that hides the native caret in favour of the collab prompt's
+// custom "You" cursor is applied per-instance below, only when the editor is editable.
 const EDITOR_CLASS = cn(
   'h-full text-foreground',
   '[&_.tiptap]:min-h-full [&_.tiptap]:p-1 [&_.tiptap]:outline-none',
@@ -52,8 +50,6 @@ const EDITOR_CLASS = cn(
   '[&_.task-item_input]:size-3.5 [&_.task-item_input]:accent-primary',
 );
 
-// `editable` off renders the same brief as a locked, read-only prompt — what the
-// build channel shows once the plan is handed off to the agent.
 export function PromptEditor({
   onText,
   editable = true,
@@ -61,8 +57,6 @@ export function PromptEditor({
   onText?: (text: string) => void;
   editable?: boolean;
 }) {
-  // Ref so the editor's create/update callbacks always see the latest handler
-  // without re-creating the editor (useEditor is instantiated once).
   const onTextRef = useRef(onText);
   onTextRef.current = onText;
 

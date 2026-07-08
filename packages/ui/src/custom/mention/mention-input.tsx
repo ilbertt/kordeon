@@ -2,17 +2,12 @@
 
 import { cn } from '@repo/ui/lib/utils';
 import { useEffect, useRef, useState } from 'react';
-import { TRIGGER_KINDS } from '#components/mention/constants';
-import { DatePicker } from '#components/mention/date-picker';
-import { formatInZone, zonedToInstant } from '#components/mention/dates';
-import { MentionMenu } from '#components/mention/mention-menu';
-import {
-  type ActiveTrigger,
-  buildChip,
-  readActiveTrigger,
-  serialize,
-} from '#components/mention/serialize';
-import type { MentionSuggestion, MentionTagData, MessageSegment } from '#components/mention/types';
+import { TRIGGER_KINDS } from './constants';
+import { DatePicker } from './date-picker';
+import { formatInZone, zonedToInstant } from './dates';
+import { MentionMenu } from './mention-menu';
+import { type ActiveTrigger, buildChip, readActiveTrigger, serialize } from './serialize';
+import type { MentionSuggestion, MentionTagData, MessageSegment } from './types';
 
 // A message input with Notion-style inline tags: `@` mentions a person or agent
 // or picks a time, `#` links another channel. Tags render as inline, read-only

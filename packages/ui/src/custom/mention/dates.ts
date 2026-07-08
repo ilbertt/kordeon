@@ -27,7 +27,6 @@ type WallClock = {
   second: number;
 };
 
-// Numeric wall-clock fields from an Intl parts array; defaults fill any gaps.
 function wallClockFromParts(parts: Intl.DateTimeFormatPart[]): WallClock {
   const at: Partial<Record<Intl.DateTimeFormatPartTypes, number>> = {};
   for (const part of parts) {
@@ -45,7 +44,6 @@ function wallClockFromParts(parts: Intl.DateTimeFormatPart[]): WallClock {
   };
 }
 
-// The wall clock a `date`/`time` input pair (e.g. `2026-07-08`, `09:00`) describes.
 function parseWallClock({ date, time }: { date: string; time: string }): WallClock {
   const [year = 0, month = 1, day = 1] = date.split('-').map(Number);
   const [hour = 0, minute = 0] = time.split(':').map(Number);
@@ -57,7 +55,6 @@ function wallClockToUtc(clock: WallClock): number {
   return Date.UTC(clock.year, clock.month - 1, clock.day, clock.hour, clock.minute, clock.second);
 }
 
-// Offset (ms) of a zone from UTC at a given instant.
 function zoneOffset({ instant, timeZone }: { instant: Date; timeZone: string }): number {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone,
@@ -72,7 +69,6 @@ function zoneOffset({ instant, timeZone }: { instant: Date; timeZone: string }):
   return wallClockToUtc(wallClockFromParts(parts)) - instant.getTime();
 }
 
-// A wall-clock date/time in `timeZone` → the absolute instant it refers to.
 export function zonedToInstant({
   date,
   time,

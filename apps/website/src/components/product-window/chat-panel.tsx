@@ -1,13 +1,13 @@
 // Owner: chat panel — see product-window ownership. Shared state is read-only from ./data.
 import { Badge } from '@repo/ui/components/badge';
 import { Button } from '@repo/ui/components/button';
+import { MentionInput } from '@repo/ui/custom/mention/mention-input';
+import { MentionTag } from '@repo/ui/custom/mention/mention-tag';
+import type { MessageSegment } from '@repo/ui/custom/mention/types';
 import { cn } from '@repo/ui/lib/utils';
 import { ArrowRight, Check, LoaderCircle, Mic, Play, Send, SmilePlus, Zap } from 'lucide-react';
 import { type ReactNode, useRef, useState } from 'react';
 import { CollabPrompt } from '#components/collab-prompt';
-import { MentionInput } from '#components/mention/mention-input';
-import { MentionTag } from '#components/mention/mention-tag';
-import type { MessageSegment } from '#components/mention/types';
 import { useTokenCount } from '#lib/use-token-count';
 import { ConnectorsButton } from './connectors-menu';
 import {
@@ -65,7 +65,6 @@ export function Thread({ channel, active }: { channel: Channel; active: boolean 
   );
 }
 
-// Dictation — a message (or prompt) can be spoken, not just typed.
 function MicButton() {
   return (
     <Button
@@ -79,12 +78,8 @@ function MicButton() {
   );
 }
 
-// The chat panel's message bar — type and send a message to the people in the
-// channel. It supports Notion-style `@`/`#` tags (see MentionInput). Sent
-// messages are local and unsaved, just for feel; the mic is a non-functional
-// placeholder for now. The Send button starts as a disabled primary action and
-// lights up once there's something to send. `seq` bumps on send to remount the
-// (uncontrolled) input, clearing it and returning focus.
+// `seq` bumps on send to remount the (uncontrolled) MentionInput, clearing it and
+// returning focus (autoFocus once seq > 0). The mic is an inert placeholder.
 function MessageBar({
   channel,
   onSend,
@@ -134,11 +129,8 @@ function MessageBar({
   );
 }
 
-// The composer lives in the chat panel. A collaborative channel adds a live,
-// co-written prompt above the message bar — composing the agent's brief is a
-// chat activity, not something that belongs in the preview. The message bar
-// below it still messages the people in the channel (and is where dictation
-// lives — the prompt hands off to the agent instead).
+// A collaborative channel adds a live, co-written prompt above the message bar:
+// composing the agent's brief is a chat activity, not something that belongs in the preview.
 function Composer({
   channel,
   onSend,
@@ -146,16 +138,12 @@ function Composer({
   channel: Channel;
   onSend: (value: { text: string; segments: MessageSegment[] }) => void;
 }) {
-  // Live token count of the co-written prompt, mirroring what the agent would be
-  // billed to build it. Counted with the model tokenizer (see useTokenCount).
+  // Live token count of the co-written prompt, mirroring what the agent would be billed to build it.
   const [promptText, setPromptText] = useState('');
   const tokens = useTokenCount(promptText);
   // The typing indicator belongs with the message bar (someone drafting a chat
   // message); in the prompt editor, the live cursors convey presence already.
   const typist = channel.typing ? PEOPLE[channel.typing] : null;
-  // Collaborate, build and built share one composer — same prompt component,
-  // token count, and footer. Only `collab` is editable; the footer action tracks
-  // where the prompt is in its lifecycle: Build → Building → Built.
   if (channel.compose === 'collab' || channel.compose === 'build' || channel.compose === 'built') {
     const editable = channel.compose === 'collab';
     return (
@@ -188,8 +176,6 @@ function Composer({
   );
 }
 
-// The footer action reflects the prompt's lifecycle: an active Build button
-// while collaborating, then disabled Building / Built states once handed off.
 function ComposerAction({ compose }: { compose: 'collab' | 'build' | 'built' }) {
   if (compose === 'build') {
     return (

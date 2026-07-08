@@ -1,10 +1,8 @@
-import { MENTION_CHIP_CLASS, TRIGGER_KINDS, TRIGGER_RE } from '#components/mention/constants';
-import type { MentionKind, MentionTagData, MessageSegment } from '#components/mention/types';
+import { MENTION_CHIP_CLASS, TRIGGER_KINDS, TRIGGER_RE } from './constants';
+import type { MentionKind, MentionTagData, MessageSegment } from './types';
 
 export type ActiveTrigger = { char: string; query: string };
 
-// The trigger + query run immediately before a collapsed caret, or null when the
-// caret isn't sitting after a live `@`/`#` token.
 export function readActiveTrigger(root: HTMLElement): ActiveTrigger | null {
   const selection = window.getSelection();
   if (!selection?.isCollapsed || selection.rangeCount === 0) {
@@ -56,8 +54,8 @@ function tagFromChip(element: HTMLElement): MentionTagData {
   };
 }
 
-// Walk the field into plain text (for the empty/enabled check) and structured
-// segments (so tags stay tags in the sent message).
+// Plain text feeds the empty/enabled check; segments keep tags as tags in
+// the sent message.
 export function serialize(root: HTMLElement): { text: string; segments: MessageSegment[] } {
   const segments: MessageSegment[] = [];
   let text = '';

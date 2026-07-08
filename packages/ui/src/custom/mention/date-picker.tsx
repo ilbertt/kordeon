@@ -1,13 +1,7 @@
 import { Button } from '@repo/ui/components/button';
 import { useState } from 'react';
-import { FIELD_CLASS } from '#components/mention/constants';
-import {
-  formatInZone,
-  systemTimeZone,
-  TIME_ZONES,
-  todayInputValue,
-  zonedToInstant,
-} from '#components/mention/dates';
+import { FIELD_CLASS } from './constants';
+import { formatInZone, systemTimeZone, TIME_ZONES, todayInputValue, zonedToInstant } from './dates';
 
 // Pick a wall-clock time in any timezone; the preview (and the resulting tag)
 // show it in the viewer's system timezone.
