@@ -16,13 +16,14 @@ import { Spinner } from '@repo/ui/components/spinner';
 import { MentionInput } from '@repo/ui/custom/mention/mention-input';
 import { useTokenCount } from '@repo/ui/hooks/use-token-count';
 import { cn } from '@repo/ui/lib/utils';
-import { Check, Mic, Play, Send } from 'lucide-react';
+import { Check, Eye, Hash, Mic, Play, Send } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { ConnectorsButton } from './connectors-menu';
 import { useWorkspace } from './context';
 import { ChatMessage } from './message';
 import { Facepile, PersonAvatar } from './person-avatar';
 import { StatusIcon } from './status-icon';
+import { useWorkspacePanels } from './workspace-ui';
 
 type SendValue = { text: string; segments: MessageSegment[] };
 
@@ -47,6 +48,7 @@ export function Thread({
   renderComposerPrompt?: RenderComposerPrompt;
 }) {
   const { currentUserId } = useWorkspace();
+  const { open } = useWorkspacePanels();
   // Messages the visitor sends are kept locally, just for feel — nothing is
   // persisted, so they reset on reload.
   const [sent, setSent] = useState<Message[]>([]);
@@ -68,15 +70,38 @@ export function Thread({
   const messages = [...channel.messages, ...sent];
   return (
     <section className={cn('min-w-0 flex-1 flex-col', active ? 'flex' : 'hidden')}>
-      <div className="flex h-14 shrink-0 items-center gap-2 border-border border-b px-5">
+      <div className="flex h-14 shrink-0 items-center gap-2 border-border border-b px-3 sm:px-5">
+        {/* Opens the features rail as a drawer where it isn't a fixed rail (below md).
+            Rendered as the channels' own # glyph, standing in for a hamburger. */}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="text-muted-foreground md:hidden"
+          aria-label="Open features"
+          onClick={() => open('sidebar')}
+        >
+          <Hash />
+        </Button>
         <StatusIcon status={channel.status} />
         <span className="font-medium">#{channel.slug}</span>
         <span className="mx-2 hidden text-border sm:inline">|</span>
         <span className="hidden truncate text-muted-foreground text-sm lg:inline">
           {channel.topic}
         </span>
-        <div className="ml-auto hidden shrink-0 sm:block">
-          <Facepile ids={channel.members} online />
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <div className="hidden sm:block">
+            <Facepile ids={channel.members} online />
+          </div>
+          {/* Surfaces the preview where it isn't in flow (below xl). */}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground xl:hidden"
+            aria-label="Open preview"
+            onClick={() => open('preview')}
+          >
+            <Eye />
+          </Button>
         </div>
       </div>
       {/* autoScroll keeps the thread pinned to the newest message; a sent

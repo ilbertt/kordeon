@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { WorkspacePanelsProvider } from './workspace-ui';
 
 export function WorkspaceLayout({
   topBar,
@@ -10,12 +11,16 @@ export function WorkspaceLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="flex h-full flex-col bg-background text-foreground">
-      {topBar}
-      <div className="flex min-h-0 flex-1">
-        {sidebar}
-        {children}
+    <WorkspacePanelsProvider>
+      <div className="flex h-full flex-col bg-background text-foreground">
+        {topBar}
+        {/* The panel row anchors the mobile drawers: below their breakpoints the
+            sidebar and preview slide over this box instead of taking flow space. */}
+        <div className="relative flex min-h-0 flex-1">
+          {sidebar}
+          {children}
+        </div>
       </div>
-    </div>
+    </WorkspacePanelsProvider>
   );
 }
