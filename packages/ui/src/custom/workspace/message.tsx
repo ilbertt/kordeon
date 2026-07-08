@@ -1,6 +1,6 @@
 'use client';
 
-import type { Message, Person, PlanItem, Reaction } from '@repo/domain/workspace';
+import type { Message, Person, PlanItem, PricingTier, Reaction } from '@repo/domain/workspace';
 import { AvatarGroup } from '@repo/ui/components/avatar';
 import { Badge } from '@repo/ui/components/badge';
 import { Button } from '@repo/ui/components/button';
@@ -16,7 +16,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@repo/ui/components/popover';
 import { MentionTag } from '@repo/ui/custom/mention/mention-tag';
 import { cn } from '@repo/ui/lib/utils';
-import { ArrowRight, SmilePlus, Zap } from 'lucide-react';
+import { Check, SmilePlus, Zap } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { usePerson, useWorkspace } from './context';
 import { PersonAvatar } from './person-avatar';
@@ -55,14 +55,9 @@ function PersonMessage({ message }: { message: Extract<Message, { kind: 'msg' }>
           <MessageBody message={message} />
         </p>
         {message.plan ? <PlanCard items={message.plan} /> : null}
+        {message.pricing ? <PricingTable tiers={message.pricing} /> : null}
         {message.reactions ? <Reactions items={message.reactions} /> : null}
         {message.replies ? <Replies ids={message.replies} /> : null}
-        {message.cta ? (
-          <Button size="sm" className="mt-3">
-            Create your workspace
-            <ArrowRight />
-          </Button>
-        ) : null}
       </MessageContent>
     </MessageRow>
   );
@@ -207,6 +202,58 @@ function Replies({ ids }: { ids: string[] }) {
       </AvatarGroup>
       {resolved.length} replies
     </button>
+  );
+}
+
+// A SaaS pricing table rendered inline in the agent's reply — a compact column
+// per tier, the recommended one lifted with the brand ring. CTAs are inert here,
+// matching the rest of the demo.
+function PricingTable({ tiers }: { tiers: PricingTier[] }) {
+  return (
+    <div className="mt-3 grid max-w-2xl gap-3 sm:grid-cols-3">
+      {tiers.map((tier) => (
+        <Card
+          key={tier.id}
+          size="sm"
+          className={cn('gap-3', tier.featured && 'ring-2 ring-primary')}
+        >
+          <CardHeader className="px-3">
+            <CardTitle className="flex items-center gap-2">
+              {tier.name}
+              {tier.featured ? (
+                <Badge className="px-1.5 py-0 text-[0.625rem]">Popular</Badge>
+              ) : null}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 px-3">
+            <div className="flex items-baseline gap-1">
+              <span className="font-semibold text-foreground text-xl tabular-nums">
+                {tier.price}
+              </span>
+              {tier.unit ? (
+                <span className="text-muted-foreground text-xs">{tier.unit}</span>
+              ) : null}
+            </div>
+            <p className="text-muted-foreground text-xs leading-relaxed">{tier.tagline}</p>
+            <ul className="flex flex-col gap-1.5">
+              {tier.features.map((feature) => (
+                <li key={feature} className="flex items-start gap-1.5 text-xs">
+                  <Check className="mt-0.5 size-3 shrink-0 text-primary" />
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+            <Button
+              size="sm"
+              variant={tier.featured ? 'default' : 'outline'}
+              className="mt-1 w-full"
+            >
+              {tier.cta}
+            </Button>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   );
 }
 

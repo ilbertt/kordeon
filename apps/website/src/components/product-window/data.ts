@@ -5,6 +5,7 @@ import kordeAvatar from '#assets/avatars/korde.svg';
 import mayaAvatar from '#assets/avatars/maya.svg';
 import theoAvatar from '#assets/avatars/theo.svg';
 import youAvatar from '#assets/avatars/you.svg';
+import { PRICING_TIERS } from './pricing';
 
 // The cast that populates every feature thread — a small product team plus the
 // agent. Colors come from the shared chart tokens (agent in teal `primary`), so
@@ -231,14 +232,19 @@ export const channels: LandingChannel[] = [
         id: 'pr1',
         kind: 'msg',
         from: 'you',
-        text: 'How much does this cost?',
+        text: 'Hey @Korde, can you show me the pricing?',
+        segments: [
+          { type: 'text', text: 'Hey ' },
+          { type: 'tag', tag: { kind: 'person', token: '@Korde' } },
+          { type: 'text', text: ', can you show me the pricing?' },
+        ],
       },
       {
         id: 'pr2',
         kind: 'msg',
         from: 'korde',
-        text: 'Free to start — invite your team and plan as much as you like. You only pay for agent runs as you scale.',
-        cta: true,
+        text: 'Of course! Planning and collaborating is always free — you only pay for the agent runs you actually ship. Here are the plans:',
+        pricing: PRICING_TIERS,
       },
     ],
   },
