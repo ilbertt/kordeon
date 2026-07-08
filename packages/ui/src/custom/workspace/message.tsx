@@ -100,15 +100,29 @@ function MessageBody({ message }: { message: Extract<Message, { kind: 'msg' }> }
 
 const QUICK_EMOJIS = ['👍', '❤️', '🎉', '🚀', '👀', '😄'];
 
-// Visitors can react for fun — nothing is persisted. Base counts come from the
-// seeded `items`; the viewer's own reactions live in local state and add +1.
+// Visitors can react for fun — nothing is persisted. Base counts exclude the
+// viewer, whose own reactions live in local state — seeded from `by` so a
+// reaction they're already part of renders highlighted, and toggling adds/drops
+// the +1 without ever double-counting them.
 // Kept as bespoke pills: shadcn's Toggle bakes in a muted pressed background
 // that fights these brand-tinted chips, so it isn't a clean drop-in here.
 function Reactions({ items }: { items: Reaction[] }) {
-  const [mine, setMine] = useState<Record<string, boolean>>({});
+  const { currentUserId } = useWorkspace();
+  const [mine, setMine] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(
+      items
+        .filter((reaction) => reaction.by.includes(currentUserId))
+        .map((reaction) => [reaction.emoji, true]),
+    ),
+  );
   const [picking, setPicking] = useState(false);
 
-  const base = new Map(items.map((reaction) => [reaction.emoji, reaction.by.length]));
+  const base = new Map(
+    items.map((reaction) => [
+      reaction.emoji,
+      reaction.by.filter((id) => id !== currentUserId).length,
+    ]),
+  );
   const toggle = (emoji: string) => setMine((prev) => ({ ...prev, [emoji]: !prev[emoji] }));
   const add = (emoji: string) => {
     setMine((prev) => ({ ...prev, [emoji]: true }));
