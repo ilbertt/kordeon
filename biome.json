@@ -46,6 +46,13 @@
       "style": {
         "noNonNullAssertion": "off",
         "useBlockStatements": "error",
+        "noExcessiveLinesPerFile": {
+          "level": "warn",
+          "options": {
+            "maxLines": 250,
+            "skipBlankLines": true
+          }
+        },
         "noMagicNumbers": "error",
         "noExportedImports": "error",
         "useFilenamingConvention": {
