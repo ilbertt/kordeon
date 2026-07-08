@@ -1,11 +1,9 @@
 import { cn } from '@repo/ui/lib/utils';
-import { MENTION_CHIP_CLASS } from '#components/mention/constants';
-import type { MentionTagData } from '#components/mention/types';
+import { MENTION_CHIP_CLASS } from './constants';
+import type { MentionTagData } from './types';
 
-// The rendered-message counterpart of the field's chips: a tag stays a styled
-// pill and, where it points somewhere, stays clickable. Channels link to the
-// feature; people/agents are clickable (no profile page yet); time is a static
-// pill with the source time on hover.
+// Rendered-message counterpart of the composer's chips (styling stays in sync via
+// MENTION_CHIP_CLASS). People/agents are clickable but inert — no profile page yet.
 export function MentionTag({ tag }: { tag: MentionTagData }) {
   if (tag.kind === 'channel') {
     return (

@@ -1,8 +1,8 @@
 // biome-ignore-all lint/style/noMagicNumbers: motion + layout tuning constants
 import { Cursor } from '@repo/ui/custom/cursor';
+import { PromptEditor } from '@repo/ui/custom/prompt-editor';
 import { cn } from '@repo/ui/lib/utils';
 import { useEffect, useRef, useState } from 'react';
-import { PromptEditor } from '#components/prompt-editor';
 
 // The collaborate composer: the team co-writes the prompt handed to the agent
 // in a real WYSIWYG editor (see PromptEditor). Maya's and Theo's cursors float
@@ -35,8 +35,6 @@ const ARRIVE_PX = 4;
 const REST_MIN = 400;
 const REST_MAX = 1500;
 
-// Drag-to-resize bounds (px): the box starts tall and grows as the top handle is
-// dragged upward.
 const MIN_H = 176;
 const MAX_H = 640;
 const DEFAULT_H = 320;
@@ -72,8 +70,6 @@ export function CollabPrompt({
   const dragRef = useRef({ startY: 0, startH: DEFAULT_H });
 
   useEffect(() => {
-    // A handed-off (read-only) prompt has no live collaborators — skip the
-    // drifting cursors entirely.
     if (!editable) {
       return;
     }

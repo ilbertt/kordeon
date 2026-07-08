@@ -1,6 +1,6 @@
 import { Button, buttonVariants } from '@repo/ui/components/button';
+import { ThemeToggle } from '@repo/ui/custom/theme-toggle';
 import { ArrowRight, Workflow } from 'lucide-react';
-import { ThemeToggle } from '#components/theme-toggle';
 import { Thread } from './chat-panel';
 import { type ChannelSlug, channels } from './data';
 import { Sidebar } from './explorer-panel';

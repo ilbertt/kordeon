@@ -1,7 +1,5 @@
-import type { MentionKind } from '#components/mention/types';
+import type { MentionKind } from './types';
 
-// Which suggestion kinds each trigger character offers. Adding a trigger is a
-// one-line change here.
 export const TRIGGER_KINDS: Record<string, MentionKind[]> = {
   '@': ['person', 'time'],
   '#': ['channel'],

@@ -7,7 +7,6 @@ export type MentionSuggestion = {
   label: string;
   // What the pill serialises to in the field's plain text (e.g. `@Maya`).
   token: string;
-  // Secondary line in the menu row.
   detail?: string;
   // Person/agent dot colour and avatar — person kind only.
   color?: string;
