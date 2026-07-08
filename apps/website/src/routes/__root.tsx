@@ -13,10 +13,14 @@ export const Route = createRootRoute({
         content:
           'Chat and refine the plan together, hand it off to an AI agent, and watch the preview come to life. Where humans collaborate and agents execute.',
       },
+      { name: 'theme-color', media: '(prefers-color-scheme: dark)', content: '#0d0d0b' },
     ],
     links: [
       { rel: 'stylesheet', href: appCss },
       { rel: 'alternate', type: 'text/markdown', href: '/index.md' },
+      { rel: 'icon', href: '/favicon.ico', sizes: '32x32' },
+      { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+      { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
     ],
   }),
   notFoundComponent: () => (

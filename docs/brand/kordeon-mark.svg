@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- The bare mark, no tile. Colors baked for a light ground (teal-deep + orange).
+       In-app this is driven by theme tokens via the KordeonMark React component. -->
+  <rect x="3" y="8" width="4" height="8" rx="2" fill="#00786f"/>
+  <rect x="10" y="3" width="4" height="18" rx="2" fill="#00786f"/>
+  <rect x="17" y="5" width="4" height="14" rx="2" fill="#ff6900"/>
+</svg>
