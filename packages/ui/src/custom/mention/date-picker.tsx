@@ -1,6 +1,7 @@
 import { Button } from '@repo/ui/components/button';
+import { Input } from '@repo/ui/components/input';
+import { NativeSelect, NativeSelectOption } from '@repo/ui/components/native-select';
 import { useState } from 'react';
-import { FIELD_CLASS } from './constants';
 import { formatInZone, systemTimeZone, TIME_ZONES, todayInputValue, zonedToInstant } from './dates';
 
 // Pick a wall-clock time in any timezone; the preview (and the resulting tag)
@@ -24,33 +25,31 @@ export function DatePicker({
         Pick a date
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <input
+        <Input
           type="date"
           value={date}
           onChange={(event) => setDate(event.target.value)}
-          className={FIELD_CLASS}
           aria-label="Date"
         />
-        <input
+        <Input
           type="time"
           value={time}
           onChange={(event) => setTime(event.target.value)}
-          className={FIELD_CLASS}
           aria-label="Time"
         />
       </div>
-      <select
+      <NativeSelect
+        className="w-full"
         value={timeZone}
         onChange={(event) => setTimeZone(event.target.value)}
-        className={FIELD_CLASS}
         aria-label="Timezone"
       >
         {TIME_ZONES.map((zone) => (
-          <option key={zone} value={zone}>
+          <NativeSelectOption key={zone} value={zone}>
             {zone}
-          </option>
+          </NativeSelectOption>
         ))}
-      </select>
+      </NativeSelect>
       {preview ? (
         <div className="text-muted-foreground text-xs">
           In your time: <span className="font-medium text-foreground">{preview}</span>

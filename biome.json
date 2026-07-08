@@ -14,7 +14,8 @@
       "!**/bun.lock",
       "!**/*.lock",
       "!**/*.svg",
-      "!**/routeTree.gen.ts"
+      "!**/routeTree.gen.ts",
+      "!packages/ui/src/components"
     ]
   },
   "formatter": {
