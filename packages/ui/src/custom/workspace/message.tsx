@@ -208,11 +208,12 @@ function Replies({ ids }: { ids: string[] }) {
 // A SaaS pricing table rendered inline in the agent's reply — one compact column
 // per tier, the recommended one lifted with the brand ring. The grid stretches
 // every card to equal height, and each card's body fills that height so the CTA
-// (`mt-auto`) sits on a shared baseline across columns. CTAs are inert here,
-// matching the rest of the demo.
+// (`mt-auto`) sits on a shared baseline across columns. `pb-1` keeps the cards'
+// outset ring off the row's bottom edge, which `content-visibility` would
+// otherwise clip. CTAs are inert here, matching the rest of the demo.
 function PricingTable({ tiers }: { tiers: PricingTier[] }) {
   return (
-    <div className="mt-3 grid max-w-2xl items-stretch gap-3 sm:grid-cols-3">
+    <div className="mt-3 grid max-w-2xl items-stretch gap-3 pb-1 sm:grid-cols-3">
       {tiers.map((tier) => (
         <Card
           key={tier.id}
