@@ -1,5 +1,6 @@
 // biome-ignore-all lint/style/noMagicNumbers: caret math
 
+import type { MentionTagData, MessageSegment } from '@repo/domain/workspace';
 import { cn } from '@repo/ui/lib/utils';
 import { useEffect, useRef, useState } from 'react';
 import { TRIGGER_KINDS } from './constants';
@@ -7,7 +8,7 @@ import { DatePicker } from './date-picker';
 import { formatInZone, zonedToInstant } from './dates';
 import { MentionMenu } from './mention-menu';
 import { type ActiveTrigger, buildChip, readActiveTrigger, serialize } from './serialize';
-import type { MentionSuggestion, MentionTagData, MessageSegment } from './types';
+import type { MentionSuggestion } from './types';
 
 // A message input with Notion-style inline tags: `@` mentions a person or agent
 // or picks a time, `#` links another channel. Tags render as inline, read-only

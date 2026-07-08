@@ -1,4 +1,5 @@
-import type { MentionSuggestion, MessageSegment } from '@repo/ui/custom/mention/types';
+import type { Channel, Person } from '@repo/domain/workspace';
+import type { MentionSuggestion } from '@repo/ui/custom/mention/types';
 import adaAvatar from '#assets/avatars/ada.svg';
 import kordeAvatar from '#assets/avatars/korde.svg';
 import mayaAvatar from '#assets/avatars/maya.svg';
@@ -8,61 +9,55 @@ import youAvatar from '#assets/avatars/you.svg';
 // The cast that populates every feature thread — a small product team plus the
 // agent. Colors come from the shared chart tokens (agent in teal `primary`), so
 // presence reads consistently everywhere. Single source of truth: everything
-// else references people by id.
-export type Person = {
-  id: string;
-  name: string;
-  initials: string;
-  color: string;
-  kind: 'human' | 'agent';
-};
-
+// else references people by id. Each carries its avatar image (the fallback is
+// the coloured initials).
 export const PEOPLE = {
-  maya: { id: 'maya', name: 'Maya', initials: 'MR', color: 'var(--chart-3)', kind: 'human' },
-  theo: { id: 'theo', name: 'Theo', initials: 'TK', color: 'var(--chart-4)', kind: 'human' },
-  ada: { id: 'ada', name: 'Ada', initials: 'AL', color: 'var(--chart-5)', kind: 'human' },
-  you: { id: 'you', name: 'You', initials: 'YO', color: 'var(--chart-2)', kind: 'human' },
-  korde: { id: 'korde', name: 'Korde', initials: 'KO', color: 'var(--primary)', kind: 'agent' },
+  maya: {
+    id: 'maya',
+    name: 'Maya',
+    initials: 'MR',
+    color: 'var(--chart-3)',
+    kind: 'human',
+    avatarUrl: mayaAvatar,
+  },
+  theo: {
+    id: 'theo',
+    name: 'Theo',
+    initials: 'TK',
+    color: 'var(--chart-4)',
+    kind: 'human',
+    avatarUrl: theoAvatar,
+  },
+  ada: {
+    id: 'ada',
+    name: 'Ada',
+    initials: 'AL',
+    color: 'var(--chart-5)',
+    kind: 'human',
+    avatarUrl: adaAvatar,
+  },
+  you: {
+    id: 'you',
+    name: 'You',
+    initials: 'YO',
+    color: 'var(--chart-2)',
+    kind: 'human',
+    avatarUrl: youAvatar,
+  },
+  korde: {
+    id: 'korde',
+    name: 'Korde',
+    initials: 'KO',
+    color: 'var(--primary)',
+    kind: 'agent',
+    avatarUrl: kordeAvatar,
+  },
 } satisfies Record<string, Person>;
-
-export type PersonId = keyof typeof PEOPLE;
-
-export const AVATARS: Record<string, string> = {
-  maya: mayaAvatar,
-  theo: theoAvatar,
-  ada: adaAvatar,
-  you: youAvatar,
-  korde: kordeAvatar,
-};
-
-export type PlanItem = { id: string; label: string; done: boolean };
-
-export type Reaction = { emoji: string; by: PersonId[] };
-
-export type Message =
-  | { id: string; kind: 'system'; text: string }
-  | {
-      id: string;
-      kind: 'msg';
-      from: PersonId;
-      text: string;
-      plan?: PlanItem[];
-      reactions?: Reaction[];
-      replies?: PersonId[];
-      cta?: boolean;
-      // Renders an inline channel tag after the text — a link into another feature.
-      channel?: ChannelSlug;
-      // A visitor-sent message: text interleaved with clickable tags (see MentionTag).
-      segments?: MessageSegment[];
-    };
-
-// Each channel is a feature — a branch/PR — so it carries a git status that
-// drives its icon and accent, the way a stacked-PR list reads at a glance.
-export type ChannelStatus = 'main' | 'draft' | 'open' | 'merged';
 
 // A channel's slug is its single identifier: the URL fragment (`#refine-the-plan`),
 // the sidebar/thread display name, and the React key — so there's no separate id
-// to drift out of sync. Adding a channel means adding a member here first.
+// to drift out of sync. Adding a channel means adding a member here first. This
+// is a landing-only device; the domain `Channel.slug` is a plain string.
 export enum ChannelSlug {
   Welcome = 'welcome',
   Collaborate = 'collaborate',
@@ -71,20 +66,11 @@ export enum ChannelSlug {
   Pricing = 'pricing',
 }
 
-export type Channel = {
-  slug: ChannelSlug;
-  status: ChannelStatus;
-  topic: string;
-  members: PersonId[];
-  typing?: PersonId;
-  // When set, the composer in the chat panel hosts a prompt above the message
-  // bar: `collab` is a live, co-written draft; `build` is that same prompt
-  // locked read-only while the agent works; `built` is it once shipped.
-  compose?: 'collab' | 'build' | 'built';
-  messages: Message[];
-};
+// The landing pins each channel's slug to the enum, while still satisfying the
+// domain `Channel` shape (whose slug is a plain string).
+type LandingChannel = Channel & { slug: ChannelSlug };
 
-export const channels: Channel[] = [
+export const channels: LandingChannel[] = [
   {
     slug: ChannelSlug.Welcome,
     status: 'main',
@@ -278,7 +264,7 @@ export const MENTION_SUGGESTIONS: MentionSuggestion[] = [
       token: `@${person.name}`,
       detail: person.kind === 'agent' ? 'Agent' : 'Member',
       color: person.color,
-      avatar: AVATARS[person.id],
+      avatar: person.avatarUrl,
     })),
   ...channels.map((channel) => ({
     id: `channel-${channel.slug}`,
@@ -301,6 +287,6 @@ export const MENTION_SUGGESTIONS: MentionSuggestion[] = [
 // HTML and remains SEO-indexable.
 export const DEFAULT_SLUG = ChannelSlug.Welcome;
 
-export function channelBySlug(slug: string): Channel | undefined {
+export function channelBySlug(slug: string) {
   return channels.find((channel) => channel.slug === slug);
 }

@@ -1,5 +1,5 @@
+import type { MentionKind, MentionTagData, MessageSegment } from '@repo/domain/workspace';
 import { MENTION_CHIP_CLASS, TRIGGER_KINDS, TRIGGER_RE } from './constants';
-import type { MentionKind, MentionTagData, MessageSegment } from './types';
 
 export type ActiveTrigger = { char: string; query: string };
 

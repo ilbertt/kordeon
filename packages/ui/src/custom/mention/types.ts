@@ -1,4 +1,4 @@
-export type MentionKind = 'person' | 'channel' | 'time';
+import type { MentionKind } from '@repo/domain/workspace';
 
 export type MentionSuggestion = {
   id: string;
@@ -12,18 +12,3 @@ export type MentionSuggestion = {
   color?: string;
   avatar?: string;
 };
-
-// The minimal data a tag needs to render as a pill, both inside the field (as a
-// contentEditable chip) and in a sent message (as MentionTag).
-export type MentionTagData = {
-  kind: MentionKind;
-  token: string;
-  color?: string;
-  avatar?: string;
-  // Time tags: the source time + zone, shown on hover ("… in your time").
-  tooltip?: string;
-};
-
-// A sent message is a list of plain-text runs and tags, so the tags survive as
-// interactive pills instead of collapsing to text.
-export type MessageSegment = { type: 'text'; text: string } | { type: 'tag'; tag: MentionTagData };

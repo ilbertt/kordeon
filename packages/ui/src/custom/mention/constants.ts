@@ -1,4 +1,4 @@
-import type { MentionKind } from './types';
+import type { MentionKind } from '@repo/domain/workspace';
 
 export const TRIGGER_KINDS: Record<string, MentionKind[]> = {
   '@': ['person', 'time'],

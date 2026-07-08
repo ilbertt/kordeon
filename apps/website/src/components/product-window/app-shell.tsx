@@ -1,25 +1,49 @@
 import { Button, buttonVariants } from '@repo/ui/components/button';
 import { ThemeToggle } from '@repo/ui/custom/theme-toggle';
+import { WorkspaceProvider } from '@repo/ui/custom/workspace/context';
+import { PreviewPane } from '@repo/ui/custom/workspace/preview-pane';
+import { Sidebar } from '@repo/ui/custom/workspace/sidebar';
+import { Thread } from '@repo/ui/custom/workspace/thread';
+import { WorkspaceLayout } from '@repo/ui/custom/workspace/workspace-layout';
 import { ArrowRight, Workflow } from 'lucide-react';
-import { Thread } from './chat-panel';
-import { type ChannelSlug, channels } from './data';
-import { Sidebar } from './explorer-panel';
-import { PreviewPane } from './preview-panel';
+import { CollabPrompt } from '#components/collab-prompt';
+import { type ChannelSlug, channels, MENTION_SUGGESTIONS, PEOPLE } from './data';
+import { PreviewContent } from './preview-content';
+
+// The collaborate composer is a landing-only device, so the reusable Thread
+// takes it as a render prop rather than importing it.
+const renderComposerPrompt = ({
+  editable,
+  onText,
+  label,
+}: {
+  editable: boolean;
+  onText: (text: string) => void;
+  label?: string;
+}) => <CollabPrompt onText={onText} editable={editable} label={label} />;
 
 export function AppShell({ activeSlug }: { activeSlug: ChannelSlug }) {
   return (
-    <div className="flex h-full flex-col bg-background text-foreground">
-      <TopBar />
-      <div className="flex min-h-0 flex-1">
-        <Sidebar activeSlug={activeSlug} />
+    <WorkspaceProvider people={PEOPLE} currentUserId="you" mentionSuggestions={MENTION_SUGGESTIONS}>
+      <WorkspaceLayout
+        topBar={<TopBar />}
+        sidebar={<Sidebar channels={channels} activeSlug={activeSlug} />}
+      >
         {channels.map((channel) => (
-          <Thread key={channel.slug} channel={channel} active={channel.slug === activeSlug} />
+          <Thread
+            key={channel.slug}
+            channel={channel}
+            active={channel.slug === activeSlug}
+            renderComposerPrompt={renderComposerPrompt}
+          />
         ))}
         {channels.map((channel) => (
-          <PreviewPane key={channel.slug} channel={channel} active={channel.slug === activeSlug} />
+          <PreviewPane key={channel.slug} active={channel.slug === activeSlug}>
+            <PreviewContent channel={channel} />
+          </PreviewPane>
         ))}
-      </div>
-    </div>
+      </WorkspaceLayout>
+    </WorkspaceProvider>
   );
 }
 
