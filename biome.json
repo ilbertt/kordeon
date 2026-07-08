@@ -14,7 +14,8 @@
       "!**/bun.lock",
       "!**/*.lock",
       "!**/*.svg",
-      "!**/routeTree.gen.ts"
+      "!**/routeTree.gen.ts",
+      "!packages/ui/src/components"
     ]
   },
   "formatter": {
@@ -93,23 +94,6 @@
         "rules": {
           "style": {
             "useFilenamingConvention": "error"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["packages/ui/src/components/**"],
-      "linter": {
-        "rules": {
-          "a11y": {
-            "useSemanticElements": "off",
-            "useKeyWithClickEvents": "off"
-          },
-          "correctness": {
-            "noUnusedImports": "off"
-          },
-          "style": {
-            "noExportedImports": "off"
           }
         }
       }
