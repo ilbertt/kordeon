@@ -1,9 +1,14 @@
 {
   "name": "kordeon-website",
   "compatibility_date": "2026-07-06",
-  // Assets-only Worker: the site is fully prerendered to static HTML, so there is
-  // no `main` server entry — Cloudflare serves `dist/client` straight from the edge.
+  "main": "./src/worker.ts",
+  // The site is fully prerendered to static HTML and served straight from the edge.
+  // The Worker runs *only* for `/` and `/index.md` (`run_worker_first`) to serve a
+  // plain-Markdown mirror of the landing page to AI agents that content-negotiate with
+  // `Accept: text/markdown`; every other request is served from `dist/client` untouched.
   "assets": {
-    "directory": "./dist/client"
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "run_worker_first": ["/", "/index.md"]
   }
 }

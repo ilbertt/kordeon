@@ -14,7 +14,10 @@ export const Route = createRootRoute({
           'Chat and refine the plan together, hand it off to an AI agent, and watch the preview come to life. Where humans collaborate and agents execute.',
       },
     ],
-    links: [{ rel: 'stylesheet', href: appCss }],
+    links: [
+      { rel: 'stylesheet', href: appCss },
+      { rel: 'alternate', type: 'text/markdown', href: '/index.md' },
+    ],
   }),
   notFoundComponent: () => (
     <main className="mx-auto flex min-h-svh max-w-md flex-col justify-center gap-2 p-6">

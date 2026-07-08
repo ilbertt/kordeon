@@ -6,7 +6,7 @@
     "dev": "bun run --bun vite dev --port 3000",
     "build": "bun run --bun vite build",
     "preview": "bun run --bun vite preview",
-    "check:types": "bun run --bun tsc"
+    "check:types": "bun run --bun tsc && bun run --bun tsc -p tsconfig.worker.json"
   },
   "dependencies": {
     "@repo/domain": "workspace:*",
@@ -22,6 +22,7 @@
     "tailwindcss": "^4.3.2"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260701.1",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^26.1.0",
     "@types/react": "^19.2.17",
