@@ -1,5 +1,3 @@
-'use client';
-
 // The composer's `+` opens this; it pitches kordeon's connectors so the agent
 // can pull context from the tools a team already uses. The live connectors
 // toggle Connect ⇄ Connected (local-only, just for feel like the rest of the
