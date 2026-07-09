@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <style>
+    .tile { fill: #0d0d0b; }
+    .teal { fill: #00bba7; }
+    .orange { fill: #ff6900; }
+    @media (prefers-color-scheme: dark) {
+      .tile { fill: #ffffff; }
+      .teal { fill: #00786f; }
+    }
+  </style>
+  <rect class="tile" width="24" height="24" rx="5"/>
+  <rect class="teal" x="3" y="8" width="4" height="8" rx="2"/>
+  <rect class="teal" x="10" y="3" width="4" height="18" rx="2"/>
+  <rect class="orange" x="17" y="5" width="4" height="14" rx="2"/>
+</svg>
