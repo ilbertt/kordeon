@@ -13,13 +13,13 @@
     "binding": "ASSETS",
     "run_worker_first": ["/", "/index.md"]
   },
-  // Waitlist storage. Create it once with `wrangler d1 create kordeon-newsletter`, paste
+  // Waitlist storage. Create it once with `wrangler d1 create kordeon-waitlist`, paste
   // the returned database_id below, then apply the migration:
-  //   wrangler d1 migrations apply kordeon-newsletter --remote   (--local for dev)
+  //   wrangler d1 migrations apply kordeon-waitlist --remote   (--local for dev)
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "kordeon-newsletter",
+      "database_name": "kordeon-waitlist",
       "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID",
       "migrations_dir": "migrations"
     }
