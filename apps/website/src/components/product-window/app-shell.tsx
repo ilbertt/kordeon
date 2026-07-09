@@ -1,11 +1,12 @@
 import { Button, buttonVariants } from '@repo/ui/components/button';
+import { KordeonMark } from '@repo/ui/custom/kordeon-mark';
 import { ThemeToggle } from '@repo/ui/custom/theme-toggle';
 import { WorkspaceProvider } from '@repo/ui/custom/workspace/context';
 import { PreviewPane } from '@repo/ui/custom/workspace/preview-pane';
 import { Sidebar } from '@repo/ui/custom/workspace/sidebar';
 import { Thread } from '@repo/ui/custom/workspace/thread';
 import { WorkspaceLayout } from '@repo/ui/custom/workspace/workspace-layout';
-import { ArrowRight, Sparkles, Workflow } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import { CollabPrompt } from '#components/collab-prompt';
 import { type ChannelSlug, channels, MENTION_SUGGESTIONS, PEOPLE } from './data';
 import { PreviewContent } from './preview-content';
@@ -62,8 +63,8 @@ function TopBar() {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-border border-b px-4">
       <div className="flex items-center gap-2.5">
-        <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-          <Workflow className="size-4" />
+        <span className="flex size-7 items-center justify-center rounded-md bg-foreground">
+          <KordeonMark className="size-4" />
         </span>
         <span className="font-semibold tracking-tight">kordeon</span>
       </div>
