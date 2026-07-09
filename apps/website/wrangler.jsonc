@@ -1,14 +1,27 @@
 {
+  "$schema": "node_modules/wrangler/config-schema.json",
   "name": "kordeon-website",
   "compatibility_date": "2026-07-06",
-  "main": "./src/worker.ts",
-  // The site is fully prerendered to static HTML and served straight from the edge.
-  // The Worker runs *only* for `/` and `/index.md` (`run_worker_first`) to serve a
-  // plain-Markdown mirror of the landing page to AI agents that content-negotiate with
-  // `Accept: text/markdown`; every other request is served from `dist/client` untouched.
+  "compatibility_flags": ["nodejs_compat"],
+  // Custom entry (src/server.ts) so the Markdown mirror keeps working; it wraps the
+  // TanStack Start handler, which serves the prerendered pages and runs server functions.
+  "main": "./src/server.ts",
+  // Prerendered pages + client assets are served from the edge for free. The Worker only
+  // runs for `run_worker_first` paths (the Markdown mirror) and for non-asset requests
+  // (server functions) — so a static page view costs no compute.
   "assets": {
-    "directory": "./dist/client",
     "binding": "ASSETS",
     "run_worker_first": ["/", "/index.md"]
-  }
+  },
+  // Waitlist storage. Create it once with `wrangler d1 create kordeon-newsletter`, paste
+  // the returned database_id below, then apply the migration:
+  //   wrangler d1 migrations apply kordeon-newsletter --remote   (--local for dev)
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "kordeon-newsletter",
+      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ]
 }

@@ -1,9 +1,8 @@
 'use client';
 
-import type { Message, Person, PlanItem, PricingTier, Reaction } from '@repo/domain/workspace';
+import type { Message, Person, PlanItem, Reaction } from '@repo/domain/workspace';
 import { AvatarGroup } from '@repo/ui/components/avatar';
 import { Badge } from '@repo/ui/components/badge';
-import { Button } from '@repo/ui/components/button';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@repo/ui/components/card';
 import { Checkbox } from '@repo/ui/components/checkbox';
 import { Marker, MarkerContent } from '@repo/ui/components/marker';
@@ -16,7 +15,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@repo/ui/components/popover';
 import { MentionTag } from '@repo/ui/custom/mention/mention-tag';
 import { cn } from '@repo/ui/lib/utils';
-import { Check, SmilePlus, Zap } from 'lucide-react';
+import { SmilePlus, Zap } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { usePerson, useWorkspace } from './context';
 import { PersonAvatar } from './person-avatar';
@@ -55,7 +54,6 @@ function PersonMessage({ message }: { message: Extract<Message, { kind: 'msg' }>
           <MessageBody message={message} />
         </p>
         {message.plan ? <PlanCard items={message.plan} /> : null}
-        {message.pricing ? <PricingTable tiers={message.pricing} /> : null}
         {message.reactions ? <Reactions items={message.reactions} /> : null}
         {message.replies ? <Replies ids={message.replies} /> : null}
       </MessageContent>
@@ -202,61 +200,6 @@ function Replies({ ids }: { ids: string[] }) {
       </AvatarGroup>
       {resolved.length} replies
     </button>
-  );
-}
-
-// A SaaS pricing table rendered inline in the agent's reply — one compact column
-// per tier, the recommended one lifted with the brand ring. The grid stretches
-// every card to equal height, and each card's body fills that height so the CTA
-// (`mt-auto`) sits on a shared baseline across columns. `pb-1` keeps the cards'
-// outset ring off the row's bottom edge, which `content-visibility` would
-// otherwise clip. CTAs are inert here, matching the rest of the demo.
-function PricingTable({ tiers }: { tiers: PricingTier[] }) {
-  return (
-    <div className="mt-3 grid max-w-2xl items-stretch gap-3 pb-1 sm:grid-cols-3">
-      {tiers.map((tier) => (
-        <Card
-          key={tier.id}
-          size="sm"
-          className={cn('gap-2.5', tier.featured && 'ring-2 ring-primary')}
-        >
-          <CardHeader className="px-3">
-            <CardTitle className="flex items-center gap-2">
-              {tier.name}
-              {tier.featured ? (
-                <Badge className="px-1.5 py-0 text-[0.625rem]">Popular</Badge>
-              ) : null}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-1 flex-col gap-2.5 px-3">
-            <div className="flex items-baseline gap-1">
-              <span className="font-semibold text-foreground text-lg tabular-nums">
-                {tier.price}
-              </span>
-              {tier.unit ? (
-                <span className="text-muted-foreground text-xs">{tier.unit}</span>
-              ) : null}
-            </div>
-            <p className="text-muted-foreground text-xs leading-snug">{tier.tagline}</p>
-            <ul className="flex flex-col gap-1">
-              {tier.features.map((feature) => (
-                <li key={feature} className="flex items-start gap-1.5 text-xs">
-                  <Check className="mt-0.5 size-3 shrink-0 text-primary" />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-            <Button
-              size="sm"
-              variant={tier.featured ? 'default' : 'outline'}
-              className="mt-auto w-full"
-            >
-              {tier.cta}
-            </Button>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
   );
 }
 

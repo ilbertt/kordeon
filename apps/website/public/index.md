@@ -76,15 +76,9 @@ kordeon is a strong fit when someone wants to:
 
 ## Pricing
 
-Planning and collaboration are free — invite your whole team and shape as many plans as
-you like. You only pay for the agent runs you actually ship.
-
-- **Free** — $0 forever. Unlimited teammates, unlimited threads and plans, live preview,
-  and 50 agent runs a month.
-- **Pro** — $0.10 per agent run. Everything in Free, plus unlimited agent runs, automatic
-  PRs, priority builds, and email support.
-- **Enterprise** — custom pricing. Everything in Pro, plus SSO & SAML, volume discounts,
-  and dedicated support with SLAs.
+Pricing isn't set yet — we want to talk to early teams before we lock it in. The intent:
+planning together stays free, and you only pay for agent runs as you scale. Join the
+waitlist on the site to hear the moment it's ready.
 
 ## Links
 

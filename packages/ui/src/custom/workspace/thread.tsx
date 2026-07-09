@@ -40,20 +40,28 @@ export function Thread({
   channel,
   active,
   onSend,
+  onVisitorReply,
+  responderId,
   renderComposerPrompt,
 }: {
   channel: Channel;
   active: boolean;
   onSend?: (value: SendValue) => void;
+  // Lets the data source answer a visitor message in character: it returns the
+  // reply message(s) to append (e.g. the pricing agent confirming a waitlist
+  // email). While it's pending, `responderId` shows as typing.
+  onVisitorReply?: (value: SendValue) => Promise<Message[]>;
+  responderId?: string;
   renderComposerPrompt?: RenderComposerPrompt;
 }) {
-  const { currentUserId } = useWorkspace();
+  const { currentUserId, people } = useWorkspace();
   const { open } = useWorkspacePanels();
-  // Messages the visitor sends are kept locally, just for feel — nothing is
-  // persisted, so they reset on reload.
+  // Messages the visitor sends (and any replies) are kept locally, just for feel —
+  // nothing is persisted, so they reset on reload.
   const [sent, setSent] = useState<Message[]>([]);
+  const [responding, setResponding] = useState(false);
 
-  const send = (value: SendValue) => {
+  const send = async (value: SendValue) => {
     setSent((prev) => [
       ...prev,
       {
@@ -65,7 +73,20 @@ export function Thread({
       },
     ]);
     onSend?.(value);
+    if (!onVisitorReply) {
+      return;
+    }
+    setResponding(true);
+    try {
+      const replies = await onVisitorReply(value);
+      setSent((prev) => [...prev, ...replies]);
+    } finally {
+      setResponding(false);
+    }
   };
+
+  const typistId = responding ? responderId : channel.typing;
+  const typist = typistId ? (people[typistId] ?? null) : null;
 
   const messages = [...channel.messages, ...sent];
   return (
@@ -124,7 +145,12 @@ export function Thread({
           <MessageScrollerButton direction="end" />
         </MessageScroller>
       </MessageScrollerProvider>
-      <Composer channel={channel} onSend={send} renderComposerPrompt={renderComposerPrompt} />
+      <Composer
+        channel={channel}
+        onSend={send}
+        typist={typist}
+        renderComposerPrompt={renderComposerPrompt}
+      />
     </section>
   );
 }
@@ -195,19 +221,19 @@ function MessageBar({ channel, onSend }: { channel: Channel; onSend: (value: Sen
 function Composer({
   channel,
   onSend,
+  typist,
   renderComposerPrompt,
 }: {
   channel: Channel;
   onSend: (value: SendValue) => void;
+  // The person shown as typing above the message bar — a channel's seeded typist
+  // or, mid-exchange, whoever is drafting a reply (resolved by Thread).
+  typist: Person | null;
   renderComposerPrompt?: RenderComposerPrompt;
 }) {
-  const { people } = useWorkspace();
   // Live token count of the co-written prompt, mirroring what the agent would be billed to build it.
   const [promptText, setPromptText] = useState('');
   const tokens = useTokenCount(promptText);
-  // The typing indicator belongs with the message bar (someone drafting a chat
-  // message); in the prompt editor, the live cursors convey presence already.
-  const typist = channel.typing ? (people[channel.typing] ?? null) : null;
 
   if (channel.compose && renderComposerPrompt) {
     const editable = channel.compose === 'collab';

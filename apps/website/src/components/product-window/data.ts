@@ -5,7 +5,6 @@ import kordeAvatar from '#assets/avatars/korde.svg';
 import mayaAvatar from '#assets/avatars/maya.svg';
 import theoAvatar from '#assets/avatars/theo.svg';
 import youAvatar from '#assets/avatars/you.svg';
-import { PRICING_TIERS } from './pricing';
 
 // The cast that populates every feature thread — a small product team plus the
 // agent. Colors come from the shared chart tokens (agent in teal `primary`), so
@@ -225,26 +224,25 @@ export const channels: LandingChannel[] = [
   {
     slug: ChannelSlug.Pricing,
     status: 'open',
-    topic: 'Simple, usage-based pricing',
+    topic: 'Pricing’s still taking shape — get on the list',
     members: ['you', 'korde'],
     messages: [
       {
         id: 'pr1',
         kind: 'msg',
         from: 'you',
-        text: 'Hey @Korde, can you show me the pricing?',
+        text: 'Hey @Korde, how much is this going to cost?',
         segments: [
           { type: 'text', text: 'Hey ' },
           { type: 'tag', tag: { kind: 'person', token: '@Korde' } },
-          { type: 'text', text: ', can you show me the pricing?' },
+          { type: 'text', text: ', how much is this going to cost?' },
         ],
       },
       {
         id: 'pr2',
         kind: 'msg',
         from: 'korde',
-        text: 'Of course! Planning and collaborating is always free — you only pay for the agent runs you actually ship. Here are the plans:',
-        pricing: PRICING_TIERS,
+        text: 'Honest answer: we’re still figuring that out — we want to talk to early teams before we lock in a price. Planning together will always be free; you’d only ever pay for agent runs as you scale. Want first access? Reply with your email and I’ll add you to the list.',
       },
     ],
   },

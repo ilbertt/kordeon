@@ -34,20 +34,6 @@ export type PlanItem = { id: string; label: string; done: boolean };
 
 export type Reaction = { emoji: string; by: string[] };
 
-// A pricing plan, rendered inside an agent's message as a SaaS-style pricing
-// table. `unit` is the charge unit shown after the price ('forever', 'per agent
-// run'); `featured` lifts the recommended column with the brand accent.
-export type PricingTier = {
-  id: string;
-  name: string;
-  price: string;
-  unit?: string;
-  tagline: string;
-  features: string[];
-  cta: string;
-  featured?: boolean;
-};
-
 export type Message =
   | { id: string; kind: 'system'; text: string }
   | {
@@ -58,8 +44,6 @@ export type Message =
       plan?: PlanItem[];
       reactions?: Reaction[];
       replies?: string[];
-      // A SaaS-style pricing table rendered below the text (see PricingTier).
-      pricing?: PricingTier[];
       // Renders an inline channel tag after the text — a link into another feature.
       channel?: string;
       // A visitor-sent message: text interleaved with clickable tags (see MentionTag).
