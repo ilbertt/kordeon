@@ -1,5 +1,3 @@
-'use client';
-
 import type { Person } from '@repo/domain/workspace';
 import type { MentionSuggestion } from '@repo/ui/custom/mention/types';
 import { createContext, type ReactNode, useContext } from 'react';

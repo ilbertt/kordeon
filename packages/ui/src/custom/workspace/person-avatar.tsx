@@ -1,5 +1,3 @@
-'use client';
-
 import type { Person } from '@repo/domain/workspace';
 import {
   Avatar,

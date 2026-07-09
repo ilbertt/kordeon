@@ -1,5 +1,3 @@
-'use client';
-
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 
 // Which side panel is surfaced as an overlay on narrow viewports. The wide

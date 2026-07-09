@@ -1,5 +1,3 @@
-'use client';
-
 import type { Channel } from '@repo/domain/workspace';
 import { Button } from '@repo/ui/components/button';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@repo/ui/components/input-group';

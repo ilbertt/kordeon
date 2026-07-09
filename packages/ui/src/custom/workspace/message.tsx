@@ -1,5 +1,3 @@
-'use client';
-
 import type { Message, Person, PlanItem, Reaction } from '@repo/domain/workspace';
 import { AvatarGroup } from '@repo/ui/components/avatar';
 import { Badge } from '@repo/ui/components/badge';
