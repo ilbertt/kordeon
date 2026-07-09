@@ -101,8 +101,8 @@ function DashboardPreview() {
 function LiveDot() {
   return (
     <span className="relative flex size-1.5">
-      <span className="absolute inline-flex size-full animate-ping rounded-full bg-accent-warm/70" />
-      <span className="relative inline-flex size-1.5 rounded-full bg-accent-warm" />
+      <span className="absolute inline-flex size-full animate-ping rounded-full bg-chart-2/70" />
+      <span className="relative inline-flex size-1.5 rounded-full bg-chart-2" />
     </span>
   );
 }

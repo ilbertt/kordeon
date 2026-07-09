@@ -8,20 +8,22 @@ carrying the accent colour. Middle (chat) stands tallest.
 
 ## Colours
 
-The mark uses one brand colour per role, sourced from the theme tokens in
-[`packages/ui/src/styles/globals.css`](../../packages/ui/src/styles/globals.css) —
-never hard-code these hex values in components; reference the token.
+The mark is a brand asset, not themeable UI, so it carries **fixed hex** and neither
+reads nor extends the shadcn theme in
+[`packages/ui/src/styles/globals.css`](../../packages/ui/src/styles/globals.css) — keep
+that theme pure shadcn (no custom tokens). The orange accent appears **only in the mark
+and in charts** (`--chart-2`); it is never a general UI colour.
 
-| Role | Token | Light | Dark |
-| --- | --- | --- | --- |
-| Panels (explorer, chat) | `--primary` | `#00786f` | `#00bba7` |
-| Preview bar / warm accent | `--accent-warm` | `#ff6900` | `#ff6900` |
-| Tile (light UI) | ink | `#0d0d0b` | — |
-| Tile (dark UI) | paper | — | `#ffffff` |
+| Role | Hex | Notes |
+| --- | --- | --- |
+| Panel bars (explorer, chat) | `#00bba7` / `#00786f` | bright teal on the ink tile, deep teal on the white tile |
+| Preview bar | `#ff6900` | the warm accent — mark and charts only |
+| Tile (light UI) | `#0d0d0b` (ink) | |
+| Tile (dark UI) | `#ffffff` (paper) | |
 
-The tile is the **inverse of the surface**: an ink tile on light UI, a white tile on
-dark UI. Only two variants exist — the SVG favicon flips between them via
-`prefers-color-scheme`, so it doubles as both.
+The tile is the **inverse of the surface** — an ink tile on light UI, a white tile on
+dark UI — so only two variants exist; the SVG favicon flips between them via
+`prefers-color-scheme`.
 
 ## Files
 
