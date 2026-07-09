@@ -117,7 +117,7 @@ export function Sidebar({
           <ItemContent>
             <ItemTitle className="truncate text-sm">{currentUser.name}</ItemTitle>
             <ItemDescription className="flex items-center gap-1">
-              <span className="size-1.5 rounded-full bg-chart-2" />
+              <span className="size-1.5 rounded-full bg-primary" />
               Active
             </ItemDescription>
           </ItemContent>

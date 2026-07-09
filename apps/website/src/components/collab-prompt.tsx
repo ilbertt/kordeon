@@ -3,6 +3,7 @@ import { Cursor } from '@repo/ui/custom/cursor';
 import { PromptEditor } from '@repo/ui/custom/prompt-editor';
 import { cn } from '@repo/ui/lib/utils';
 import { useEffect, useRef, useState } from 'react';
+import { PEOPLE } from './product-window/data';
 
 // The collaborate composer: the team co-writes the prompt handed to the agent
 // in a real WYSIWYG editor (see PromptEditor). Maya's and Theo's cursors float
@@ -13,11 +14,11 @@ import { useEffect, useRef, useState } from 'react';
 type Mate = { id: string; name: string; color: string; start: { x: number; y: number } };
 
 const MATES: Mate[] = [
-  { id: 'maya', name: 'Maya', color: 'var(--chart-3)', start: { x: 0.16, y: 0.24 } },
-  { id: 'theo', name: 'Theo', color: 'var(--chart-4)', start: { x: 0.62, y: 0.5 } },
+  { id: 'maya', name: 'Maya', color: PEOPLE.maya.color, start: { x: 0.16, y: 0.24 } },
+  { id: 'theo', name: 'Theo', color: PEOPLE.theo.color, start: { x: 0.62, y: 0.5 } },
 ];
 
-const YOU_COLOR = 'var(--chart-2)';
+const YOU_COLOR = PEOPLE.you.color;
 
 // Anchors spread across the draft in both axes, so the cursors float around it
 // rather than sliding straight up and down.
