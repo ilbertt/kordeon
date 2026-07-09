@@ -16,6 +16,11 @@ components (e.g. `message-scroller`) pull shadcn's `@shadcn/react` runtime for t
 headless logic instead of inlining it — that's expected, not everything is fully
 copied in.
 
+Never add a `'use client'` directive to `custom/` code. The consuming apps run on
+TanStack Start without React Server Components, so the directive is inert everywhere —
+it only survives in the vendored `components/` because shadcn ships it and that output
+isn't ours to edit.
+
 Multi-file custom modules live in `custom/<name>/` and import each other with
 per-file relative paths — no barrel index (Biome `noBarrelFile`). The `./custom/*`
 export is an ordered `["*.tsx", "*.ts"]` fallback, so a component and a sibling

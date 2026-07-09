@@ -1,5 +1,3 @@
-'use client';
-
 import type { Channel, Message, MessageSegment, Person } from '@repo/domain/workspace';
 import { Button } from '@repo/ui/components/button';
 import { Card } from '@repo/ui/components/card';
