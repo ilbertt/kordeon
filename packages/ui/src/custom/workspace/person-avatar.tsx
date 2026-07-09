@@ -66,7 +66,7 @@ export function Facepile({
       </AvatarGroup>
       {online ? (
         <span className="flex items-center gap-1 text-muted-foreground text-xs">
-          <span className="size-1.5 rounded-full bg-chart-2" />
+          <span className="size-1.5 rounded-full bg-primary" />
           {resolved.length} online
         </span>
       ) : null}
