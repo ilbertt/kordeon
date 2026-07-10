@@ -1,55 +1,23 @@
-// biome-ignore-all lint/style/noMagicNumbers: motion + layout tuning constants
+// biome-ignore-all lint/style/noMagicNumbers: layout tuning constants
 import { Cursor } from '@repo/ui/custom/cursor';
-import { PromptEditor } from '@repo/ui/custom/prompt-editor';
+import { PromptEditor, type PromptEditorHandle } from '@repo/ui/custom/prompt-editor';
 import { cn } from '@repo/ui/lib/utils';
 import { useEffect, useRef, useState } from 'react';
+import { MATES, useCollabChoreography } from './collab-choreography';
 import { PEOPLE } from './product-window/data';
 
-// The collaborate composer: the team co-writes the prompt handed to the agent
-// in a real WYSIWYG editor (see PromptEditor). Maya's and Theo's cursors float
-// over it, and on hover the viewer's own pointer becomes a labelled "You"
-// cursor — one of the collaborators. Nothing is saved. The box starts tall and
-// grows when you drag the handle at its top.
-
-type Mate = { id: string; name: string; color: string; start: { x: number; y: number } };
-
-const MATES: Mate[] = [
-  { id: 'maya', name: 'Maya', color: PEOPLE.maya.color, start: { x: 0.16, y: 0.24 } },
-  { id: 'theo', name: 'Theo', color: PEOPLE.theo.color, start: { x: 0.62, y: 0.5 } },
-];
+// The collaborate composer: the team co-writes the prompt handed to the agent in
+// a real WYSIWYG editor (see PromptEditor). Maya's and Theo's cursors travel to
+// actual lines, highlight them, and change the draft on a loop (see
+// useCollabChoreography), so it reads as live collaboration. On hover the
+// viewer's own pointer becomes a labelled "You" cursor. Nothing is saved; the box
+// starts tall and grows via the top handle.
 
 const YOU_COLOR = PEOPLE.you.color;
-
-// Anchors spread across the draft in both axes, so the cursors float around it
-// rather than sliding straight up and down.
-const ANCHORS = [
-  { x: 0.16, y: 0.24 },
-  { x: 0.62, y: 0.3 },
-  { x: 0.34, y: 0.48 },
-  { x: 0.72, y: 0.6 },
-  { x: 0.22, y: 0.72 },
-  { x: 0.52, y: 0.84 },
-];
-
-const EASE = 0.06;
-const ARRIVE_PX = 4;
-const REST_MIN = 400;
-const REST_MAX = 1500;
 
 const MIN_H = 176;
 const MAX_H = 640;
 const DEFAULT_H = 320;
-
-function rand({ min, max }: { min: number; max: number }) {
-  return min + Math.random() * (max - min);
-}
-
-function pickTarget() {
-  const anchor = ANCHORS[Math.floor(Math.random() * ANCHORS.length)] ?? ANCHORS[0]!;
-  return { x: anchor.x + (Math.random() - 0.5) * 0.08, y: anchor.y + (Math.random() - 0.5) * 0.05 };
-}
-
-type Drift = { x: number; y: number; tx: number; ty: number; restUntil: number };
 
 export function CollabPrompt({
   onText,
@@ -64,73 +32,15 @@ export function CollabPrompt({
 }) {
   const areaRef = useRef<HTMLDivElement>(null);
   const mateRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const highlightRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const youRef = useRef<HTMLDivElement>(null);
+  const handleRef = useRef<PromptEditorHandle | null>(null);
   const [joined, setJoined] = useState(false);
   const [height, setHeight] = useState(DEFAULT_H);
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef({ startY: 0, startH: DEFAULT_H });
 
-  useEffect(() => {
-    if (!editable) {
-      return;
-    }
-    const area = areaRef.current;
-    if (!area) {
-      return;
-    }
-    let width = area.clientWidth;
-    let height2 = area.clientHeight;
-    const ro = new ResizeObserver(() => {
-      width = area.clientWidth;
-      height2 = area.clientHeight;
-    });
-    ro.observe(area);
-
-    const drifts: Record<string, Drift> = {};
-    for (const mate of MATES) {
-      drifts[mate.id] = {
-        x: mate.start.x,
-        y: mate.start.y,
-        tx: mate.start.x,
-        ty: mate.start.y,
-        restUntil: 0,
-      };
-    }
-
-    let raf = 0;
-    const frame = (now: number) => {
-      for (const mate of MATES) {
-        const drift = drifts[mate.id]!;
-        const dx = drift.tx - drift.x;
-        const dy = drift.ty - drift.y;
-        if (Math.hypot(dx * width, dy * height2) < ARRIVE_PX) {
-          if (drift.restUntil === 0) {
-            drift.restUntil = now + rand({ min: REST_MIN, max: REST_MAX });
-          } else if (now >= drift.restUntil) {
-            const target = pickTarget();
-            drift.tx = target.x;
-            drift.ty = target.y;
-            drift.restUntil = 0;
-          }
-        } else {
-          drift.x += dx * EASE;
-          drift.y += dy * EASE;
-        }
-        const node = mateRefs.current[mate.id];
-        if (node) {
-          node.style.left = `${drift.x * width}px`;
-          node.style.top = `${drift.y * height2}px`;
-        }
-      }
-      raf = requestAnimationFrame(frame);
-    };
-    raf = requestAnimationFrame(frame);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      ro.disconnect();
-    };
-  }, [editable]);
+  useCollabChoreography({ enabled: editable, areaRef, mateRefs, highlightRefs, handleRef });
 
   useEffect(() => {
     if (!dragging) {
@@ -194,8 +104,30 @@ export function CollabPrompt({
             }
           }}
         >
-          <div className="overflow-auto" style={{ height }}>
-            <PromptEditor onText={onText} editable={editable} />
+          {editable
+            ? MATES.map((mate) => (
+                <div
+                  key={`highlight-${mate.id}`}
+                  ref={(node) => {
+                    highlightRefs.current[mate.id] = node;
+                  }}
+                  className="pointer-events-none absolute top-0 left-0 rounded-[3px] opacity-0 transition-opacity duration-200"
+                />
+              ))
+            : null}
+
+          <div className="relative overflow-auto" style={{ height }}>
+            <PromptEditor
+              onText={onText}
+              editable={editable}
+              onReady={
+                editable
+                  ? (handle) => {
+                      handleRef.current = handle;
+                    }
+                  : undefined
+              }
+            />
           </div>
 
           {editable

@@ -15,12 +15,13 @@ import { MentionInput } from '@repo/ui/custom/mention/mention-input';
 import { useTokenCount } from '@repo/ui/hooks/use-token-count';
 import { cn } from '@repo/ui/lib/utils';
 import { Check, Eye, Hash, Mic, Play, Send } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import { ConnectorsButton } from './connectors-menu';
 import { useWorkspace } from './context';
-import { ChatMessage } from './message';
+import { ChatMessage, ThreadTypingRow } from './message';
 import { Facepile, PersonAvatar } from './person-avatar';
 import { StatusIcon } from './status-icon';
+import { useThreadPlayback } from './use-thread-playback';
 import { useWorkspacePanels } from './workspace-ui';
 
 type SendValue = { text: string; segments: MessageSegment[] };
@@ -42,6 +43,7 @@ export type VisitorReply = { replies: Message[]; resolved?: boolean };
 export function Thread({
   channel,
   active,
+  animate = false,
   onSend,
   onVisitorReply,
   responderId,
@@ -51,6 +53,10 @@ export function Thread({
 }: {
   channel: Channel;
   active: boolean;
+  // Plays the seeded thread back like a live conversation (typing beats, messages
+  // arriving one by one) once it scrolls into view. Off by default so the thread
+  // renders statically unless a consumer opts in.
+  animate?: boolean;
   onSend?: (value: SendValue) => void;
   // Lets the data source answer a visitor message in character: it returns the
   // reply message(s) to append (e.g. the pricing agent confirming a waitlist
@@ -101,16 +107,26 @@ export function Thread({
     }
   };
 
-  const typistId = responding ? responderId : channel.typing;
+  const rootRef = useRef<HTMLElement>(null);
+  const { revealCount, typing, playing } = useThreadPlayback({
+    messages: channel.messages,
+    active,
+    animate,
+    rootRef,
+  });
+
+  // The composer's own "typing" line stands down while the thread is playing —
+  // the inline typing row carries it there instead.
+  const typistId = responding ? responderId : playing ? undefined : channel.typing;
   const typist = typistId ? (people[typistId] ?? null) : null;
   const composerPlaceholder =
     !resolved && channel.composerPlaceholder
       ? channel.composerPlaceholder
       : `Message #${channel.slug}…`;
 
-  const messages = [...channel.messages, ...sent];
+  const revealed = channel.messages.slice(0, revealCount);
   return (
-    <section className={cn('min-w-0 flex-1 flex-col', active ? 'flex' : 'hidden')}>
+    <section ref={rootRef} className={cn('min-w-0 flex-1 flex-col', active ? 'flex' : 'hidden')}>
       <div className="flex h-14 shrink-0 items-center gap-2 border-border border-b px-3 sm:px-5">
         {/* Opens the features rail as a drawer where it isn't a fixed rail (below md).
             Rendered as the channels' own # glyph, standing in for a hamburger. */}
@@ -154,11 +170,23 @@ export function Thread({
         <MessageScroller className="flex-1">
           <MessageScrollerViewport className="px-5 py-6">
             <MessageScrollerContent className="gap-5">
-              {messages.map((message) => (
+              {revealed.map((message) => (
+                <MessageScrollerItem
+                  key={message.id}
+                  messageId={message.id}
+                  className={cn(
+                    playing && 'duration-300 animate-in fade-in slide-in-from-bottom-2',
+                  )}
+                >
+                  <ChatMessage message={message} renderExtra={renderMessageExtra} />
+                </MessageScrollerItem>
+              ))}
+              {sent.map((message) => (
                 <MessageScrollerItem key={message.id} messageId={message.id}>
                   <ChatMessage message={message} renderExtra={renderMessageExtra} />
                 </MessageScrollerItem>
               ))}
+              {playing && typing ? <ThreadTypingRow ids={typing.ids} /> : null}
             </MessageScrollerContent>
           </MessageScrollerViewport>
           <MessageScrollerButton direction="end" />

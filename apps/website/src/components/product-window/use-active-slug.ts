@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { type ChannelSlug, channelBySlug, DEFAULT_SLUG } from './data';
+import { channelBySlug, DEFAULT_SLUG } from './data';
 
 // On load, a URL that deep-links to a real section (e.g. `#refine-the-plan`)
 // should present the product already full at that section, skipping the
@@ -27,10 +27,11 @@ export function clearActiveChannel(): void {
 
 // The active feature is derived from `location.hash`. `useSyncExternalStore` is
 // the SSR-safe way to read it: the prerender/hydration pass uses the default and
-// the client re-reads after mount, so there's no hydration mismatch. TanStack
-// Router has no type-safe hash validation, so `ChannelSlug` is what keeps the
-// fragment type-safe end to end.
-export function useActiveSlug(): ChannelSlug {
+// the client re-reads after mount, so there's no hydration mismatch. The slug is
+// a plain string because visitor-created channels route through the same hash
+// but aren't part of the `ChannelSlug` enum; `channelBySlug` validates it against
+// both the seeded and the dynamic channels.
+export function useActiveSlug(): string {
   return useSyncExternalStore(
     subscribeToHash,
     () => channelBySlug(window.location.hash.slice(1))?.slug ?? DEFAULT_SLUG,

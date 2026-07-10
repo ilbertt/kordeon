@@ -8,17 +8,23 @@ import { PreviewPane } from '@repo/ui/custom/workspace/preview-pane';
 import { Sidebar } from '@repo/ui/custom/workspace/sidebar';
 import { Thread, type VisitorReply } from '@repo/ui/custom/workspace/thread';
 import { WorkspaceLayout } from '@repo/ui/custom/workspace/workspace-layout';
-import { ArrowRight, Home, Sparkles } from 'lucide-react';
+import { ArrowRight, Home, type LucideIcon, Sparkles } from 'lucide-react';
+import { useSyncExternalStore } from 'react';
 import { CollabPrompt } from '#components/collab-prompt';
 import { subscribe } from '#lib/subscribe';
 import {
+  addDynamicChannel,
   ChannelSlug,
   channelBySlug,
   channels,
+  createChannel,
+  getDynamicChannels,
+  getDynamicChannelsServerSnapshot,
   MENTION_SUGGESTIONS,
   OPEN_SOURCE_STAR_MESSAGE_ID,
   PEOPLE,
   REPO_URL,
+  subscribeDynamicChannels,
 } from './data';
 import { GithubStar } from './github-star';
 import { PreviewContent } from './preview-content';
@@ -93,22 +99,44 @@ const renderChannelIcon = (channel: Channel) => {
 const renderMessageExtra = (message: Message) =>
   message.id === OPEN_SOURCE_STAR_MESSAGE_ID ? <GithubStar /> : null;
 
-export function AppShell({ activeSlug }: { activeSlug: ChannelSlug }) {
+export function AppShell({ activeSlug }: { activeSlug: string }) {
+  // Visitor-created channels are appended to the seeded list; they live only in
+  // this session (see the dynamic registry in ./data).
+  const dynamicChannels = useSyncExternalStore(
+    subscribeDynamicChannels,
+    getDynamicChannels,
+    getDynamicChannelsServerSnapshot,
+  );
+  const allChannels = dynamicChannels.length ? [...channels, ...dynamicChannels] : channels;
+
+  const handleCreateChannel = ({ name, icon }: { name: string; icon: LucideIcon }) => {
+    const channel = createChannel({ name, icon });
+    addDynamicChannel(channel);
+    // Route to it like any channel — the hash change flips it active.
+    window.location.hash = channel.slug;
+  };
+
   return (
     <WorkspaceProvider people={PEOPLE} currentUserId="you" mentionSuggestions={MENTION_SUGGESTIONS}>
       <WorkspaceLayout
         topBar={<TopBar />}
         sidebar={
-          <Sidebar channels={channels} activeSlug={activeSlug} renderIcon={renderChannelIcon} />
+          <Sidebar
+            channels={allChannels}
+            activeSlug={activeSlug}
+            renderIcon={renderChannelIcon}
+            onCreateChannel={handleCreateChannel}
+          />
         }
       >
-        {channels.map((channel) => {
+        {allChannels.map((channel) => {
           const isPricing = channel.slug === ChannelSlug.Pricing;
           return (
             <Thread
               key={channel.slug}
               channel={channel}
               active={channel.slug === activeSlug}
+              animate
               renderComposerPrompt={renderComposerPrompt}
               renderIcon={renderChannelIcon}
               renderMessageExtra={renderMessageExtra}
@@ -117,7 +145,7 @@ export function AppShell({ activeSlug }: { activeSlug: ChannelSlug }) {
             />
           );
         })}
-        {channels.map((channel) => (
+        {allChannels.map((channel) => (
           <PreviewPane key={channel.slug} active={channel.slug === activeSlug}>
             <PreviewContent channel={channel} />
           </PreviewPane>
