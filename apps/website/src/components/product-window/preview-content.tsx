@@ -1,8 +1,8 @@
 import type { Channel } from '@repo/domain/workspace';
+import { GithubIcon } from '@repo/ui/custom/github-icon';
 import { PersonAvatar } from '@repo/ui/custom/workspace/person-avatar';
 import { AppWindow, ArrowRight, Database, LoaderCircle, TrendingUp } from 'lucide-react';
 import { ChannelSlug, PEOPLE, REPO_URL } from './data';
-import { GithubIcon } from './github-icon';
 
 // The landing's static preview content, selected by channel. The reusable
 // <PreviewPane> supplies the frame; this fills it.

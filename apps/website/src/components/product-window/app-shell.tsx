@@ -1,5 +1,6 @@
 import type { Channel, Message } from '@repo/domain/workspace';
 import { Button, buttonVariants } from '@repo/ui/components/button';
+import { GithubIcon } from '@repo/ui/custom/github-icon';
 import { KordeonMark } from '@repo/ui/custom/kordeon-mark';
 import { ThemeToggle } from '@repo/ui/custom/theme-toggle';
 import { WorkspaceProvider } from '@repo/ui/custom/workspace/context';
@@ -19,7 +20,6 @@ import {
   PEOPLE,
   REPO_URL,
 } from './data';
-import { GithubIcon } from './github-icon';
 import { GithubStar } from './github-star';
 import { PreviewContent } from './preview-content';
 
