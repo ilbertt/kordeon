@@ -8,9 +8,7 @@ runs:
       with:
         bun-version-file: .bun-version
 
-    # The website's Vite build runs under Node — @cloudflare/vite-plugin needs
-    # node:module APIs (registerHooks) that Bun lacks.
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@v6
       with:
         node-version-file: .node-version
 
