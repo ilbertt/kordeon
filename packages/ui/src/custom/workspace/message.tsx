@@ -12,9 +12,8 @@ import {
 } from '@repo/ui/components/message';
 import { Popover, PopoverContent, PopoverTrigger } from '@repo/ui/components/popover';
 import { MentionTag } from '@repo/ui/custom/mention/mention-tag';
-import { cn } from '@repo/ui/lib/utils';
 import { SmilePlus, Zap } from 'lucide-react';
-import { type CSSProperties, type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { usePerson, useWorkspace } from './context';
 import { PersonAvatar } from './person-avatar';
 import { ReactionPill } from './reaction-pill';
@@ -107,41 +106,88 @@ function MessageBody({ message }: { message: Extract<Message, { kind: 'msg' }> }
 
 const QUICK_EMOJIS = ['👍', '❤️', '🎉', '🚀', '👀', '😄'];
 
-const REACTION_REVEAL_MS = 700;
-const REACTION_STAGGER_MS = 90;
+// The first reactor arrives this long after the message; each further reactor
+// follows one step later, so the counts climb one at a time.
+const REACTION_REVEAL_MS = 650;
+const REACTION_STEP_MS = 600;
 
-// Reactions land as their own beat — a short pause after the message appears,
-// then a staggered pop — so it reads like people reacting once they've read it.
-// Reduced motion shows them at once.
-function useReactionReveal(): { revealed: boolean; animate: boolean } {
-  const [state, setState] = useState({ revealed: false, animate: false });
+type LiveReactions = { revealed: boolean; animate: boolean; counts: Record<string, number> };
+
+// Reactions tick up live: each person's reaction "arrives" a beat after the
+// message, one after another, so the count climbs as if people are reacting in
+// real time. `counts` is the other people's running total per emoji (the viewer's
+// own +1 is added at the call site). Reduced motion shows the finals at once.
+function useLiveReactions({
+  items,
+  currentUserId,
+}: {
+  items: Reaction[];
+  currentUserId: string;
+}): LiveReactions {
+  const targets = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const reaction of items) {
+      map[reaction.emoji] = reaction.by.filter((id) => id !== currentUserId).length;
+    }
+    return map;
+  }, [items, currentUserId]);
+
+  const [state, setState] = useState<LiveReactions>({
+    revealed: false,
+    animate: false,
+    counts: {},
+  });
+
   useEffect(() => {
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-      setState({ revealed: true, animate: false });
+      setState({ revealed: true, animate: false, counts: targets });
       return;
     }
-    const id = window.setTimeout(
-      () => setState({ revealed: true, animate: true }),
-      REACTION_REVEAL_MS,
-    );
-    return () => clearTimeout(id);
-  }, []);
-  return state;
-}
+    setState({ revealed: false, animate: true, counts: {} });
 
-// The enter animation for a reaction, staggered by position so they pop in one
-// after another. `backwards` fill keeps later pills hidden until their turn.
-function reactionEnter({ index, animate }: { index: number; animate: boolean }): {
-  className?: string;
-  style?: CSSProperties;
-} {
-  if (!animate) {
-    return {};
-  }
-  return {
-    className: 'fade-in zoom-in-75 animate-in duration-300',
-    style: { animationDelay: `${index * REACTION_STAGGER_MS}ms`, animationFillMode: 'backwards' },
-  };
+    // Interleave reactors across emojis (round-robin) so multiple counts rise
+    // together rather than one emoji finishing before the next starts.
+    const queue: string[] = [];
+    const remaining = { ...targets };
+    let pending = true;
+    while (pending) {
+      pending = false;
+      for (const emoji of Object.keys(targets)) {
+        if ((remaining[emoji] ?? 0) > 0) {
+          queue.push(emoji);
+          remaining[emoji] = (remaining[emoji] ?? 0) - 1;
+          pending = true;
+        }
+      }
+    }
+
+    const timers: number[] = [
+      window.setTimeout(
+        () => setState((prev) => ({ ...prev, revealed: true })),
+        REACTION_REVEAL_MS,
+      ),
+    ];
+    for (const [index, emoji] of queue.entries()) {
+      timers.push(
+        window.setTimeout(
+          () =>
+            setState((prev) => ({
+              revealed: true,
+              animate: true,
+              counts: { ...prev.counts, [emoji]: (prev.counts[emoji] ?? 0) + 1 },
+            })),
+          REACTION_REVEAL_MS + index * REACTION_STEP_MS,
+        ),
+      );
+    }
+    return () => {
+      for (const timer of timers) {
+        clearTimeout(timer);
+      }
+    };
+  }, [targets]);
+
+  return state;
 }
 
 // Visitors can react for fun — nothing is persisted. Base counts exclude the
@@ -152,7 +198,7 @@ function reactionEnter({ index, animate }: { index: number; animate: boolean }):
 // that fights these brand-tinted chips, so it isn't a clean drop-in here.
 function Reactions({ items }: { items: Reaction[] }) {
   const { currentUserId } = useWorkspace();
-  const reveal = useReactionReveal();
+  const { revealed, animate, counts } = useLiveReactions({ items, currentUserId });
   const [mine, setMine] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(
       items
@@ -162,57 +208,41 @@ function Reactions({ items }: { items: Reaction[] }) {
   );
   const [picking, setPicking] = useState(false);
 
-  const base = new Map(
-    items.map((reaction) => [
-      reaction.emoji,
-      reaction.by.filter((id) => id !== currentUserId).length,
-    ]),
-  );
   const toggle = (emoji: string) => setMine((prev) => ({ ...prev, [emoji]: !prev[emoji] }));
   const add = (emoji: string) => {
     setMine((prev) => ({ ...prev, [emoji]: true }));
     setPicking(false);
   };
 
-  const emojis = [
-    ...base.keys(),
-    ...Object.keys(mine).filter((emoji) => mine[emoji] && !base.has(emoji)),
-  ];
-  const visibleEmojis = emojis.filter(
-    (emoji) => (base.get(emoji) ?? 0) + (mine[emoji] ? 1 : 0) > 0,
-  );
+  // Displayed count = the running total of other people (climbing live) plus the
+  // viewer's own +1. A pill shows once its count reaches one.
+  const displayed = (emoji: string) => (counts[emoji] ?? 0) + (mine[emoji] ? 1 : 0);
+  const emojis = [...new Set([...items.map((reaction) => reaction.emoji), ...Object.keys(mine)])];
+  const visibleEmojis = emojis.filter((emoji) => displayed(emoji) > 0);
 
-  // Held back until the reveal beat, then popped in one by one.
-  if (!reveal.revealed) {
+  // Held back until the first reactor arrives.
+  if (!revealed) {
     return null;
   }
-  const addButtonEnter = reactionEnter({ index: visibleEmojis.length, animate: reveal.animate });
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-1.5">
-      {[...visibleEmojis.entries()].map(([index, emoji]) => {
-        const enter = reactionEnter({ index, animate: reveal.animate });
-        return (
-          <ReactionPill
-            key={emoji}
-            emoji={emoji}
-            count={(base.get(emoji) ?? 0) + (mine[emoji] ? 1 : 0)}
-            reacted={Boolean(mine[emoji])}
-            onClick={() => toggle(emoji)}
-            className={enter.className}
-            style={enter.style}
-          />
-        );
-      })}
+      {visibleEmojis.map((emoji) => (
+        <ReactionPill
+          key={emoji}
+          emoji={emoji}
+          count={displayed(emoji)}
+          reacted={Boolean(mine[emoji])}
+          onClick={() => toggle(emoji)}
+          live={animate}
+          className={animate ? 'fade-in zoom-in-75 animate-in duration-300' : undefined}
+        />
+      ))}
 
       <Popover open={picking} onOpenChange={setPicking}>
         <PopoverTrigger
           aria-label="Add reaction"
-          style={addButtonEnter.style}
-          className={cn(
-            'flex items-center rounded-full border border-border bg-muted/40 px-1.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[popup-open]:bg-muted data-[popup-open]:text-foreground',
-            addButtonEnter.className,
-          )}
+          className="flex items-center rounded-full border border-border bg-muted/40 px-1.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[popup-open]:bg-muted data-[popup-open]:text-foreground"
         >
           <SmilePlus className="size-3.5" />
         </PopoverTrigger>

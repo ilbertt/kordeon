@@ -13,6 +13,7 @@ export function ReactionPill({
   label,
   className,
   style,
+  live = false,
 }: {
   emoji: string;
   count: number | null;
@@ -21,6 +22,9 @@ export function ReactionPill({
   label?: string;
   className?: string;
   style?: CSSProperties;
+  // When set, the count re-keys on each change so it pops as it ticks up — used
+  // while reactions are arriving live (see the landing playback).
+  live?: boolean;
 }) {
   return (
     <button
@@ -38,7 +42,14 @@ export function ReactionPill({
     >
       <span>{emoji}</span>
       {count !== null ? (
-        <span className={reacted ? 'text-primary' : 'text-muted-foreground'}>
+        <span
+          key={live ? count : undefined}
+          className={cn(
+            'tabular-nums',
+            reacted ? 'text-primary' : 'text-muted-foreground',
+            live && 'zoom-in-75 animate-in duration-200',
+          )}
+        >
           {count.toLocaleString()}
         </span>
       ) : null}
