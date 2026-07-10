@@ -1,5 +1,5 @@
 import type { Channel, Message } from '@repo/domain/workspace';
-import { Button, buttonVariants } from '@repo/ui/components/button';
+import { buttonVariants } from '@repo/ui/components/button';
 import { GithubIcon } from '@repo/ui/custom/github-icon';
 import { KordeonMark } from '@repo/ui/custom/kordeon-mark';
 import { ThemeToggle } from '@repo/ui/custom/theme-toggle';
@@ -159,13 +159,10 @@ function TopBar() {
           <GithubIcon />
         </a>
         <ThemeToggle />
-        <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
-          Sign in
-        </Button>
-        <Button size="sm">
+        <a href={`#${ChannelSlug.Pricing}`} className={buttonVariants({ size: 'sm' })}>
           Get started — free
           <ArrowRight />
-        </Button>
+        </a>
       </div>
     </header>
   );
