@@ -64,5 +64,8 @@ export type Channel = {
   // bar: `collab` is a live, co-written draft; `build` is that same prompt
   // locked read-only while the agent works; `built` is it once shipped.
   compose?: 'collab' | 'build' | 'built';
+  // Overrides the message-bar placeholder when a channel invites a specific
+  // reply (e.g. the pricing waitlist asks for an email).
+  composerPlaceholder?: string;
   messages: Message[];
 };

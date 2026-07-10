@@ -226,6 +226,7 @@ export const channels: LandingChannel[] = [
     status: 'open',
     topic: 'Pricing’s still taking shape — get on the list',
     members: ['you', 'korde'],
+    composerPlaceholder: 'Send here your email to join the waitlist',
     messages: [
       {
         id: 'pr1',
@@ -242,7 +243,13 @@ export const channels: LandingChannel[] = [
         id: 'pr2',
         kind: 'msg',
         from: 'korde',
-        text: 'Honest answer: we’re still figuring that out — we want to talk to early teams before we lock in a price. Planning together will always be free; you’d only ever pay for agent runs as you scale. Want first access? Reply with your email and I’ll add you to the list.',
+        text: 'Honest answer: we’re still figuring that out — we want to talk to early teams before we lock in a price. Planning together will always be free; you’d only ever pay for agent runs as you scale.',
+      },
+      {
+        id: 'pr3',
+        kind: 'msg',
+        from: 'korde',
+        text: 'Want first access? Send me your email below and I’ll save you a spot on the waitlist.',
       },
     ],
   },

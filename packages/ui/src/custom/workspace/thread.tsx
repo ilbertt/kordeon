@@ -192,7 +192,7 @@ function MessageBar({ channel, onSend }: { channel: Channel; onSend: (value: Sen
         allowCustomDate
         suggestions={mentionSuggestions}
         ariaLabel={`Message #${channel.slug}`}
-        placeholder={`Message #${channel.slug}…`}
+        placeholder={channel.composerPlaceholder ?? `Message #${channel.slug}…`}
         onChange={setValue}
         onSubmit={submit}
       />
