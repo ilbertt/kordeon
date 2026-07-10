@@ -1,7 +1,8 @@
 import type { Channel } from '@repo/domain/workspace';
 import { PersonAvatar } from '@repo/ui/custom/workspace/person-avatar';
-import { Clock, Database, LoaderCircle, TrendingUp } from 'lucide-react';
-import { ChannelSlug, PEOPLE } from './data';
+import { AppWindow, ArrowRight, Database, LoaderCircle, TrendingUp } from 'lucide-react';
+import { ChannelSlug, PEOPLE, REPO_URL } from './data';
+import { GithubIcon } from './github-icon';
 
 // The landing's static preview content, selected by channel. The reusable
 // <PreviewPane> supplies the frame; this fills it.
@@ -11,6 +12,9 @@ export function PreviewContent({ channel }: { channel: Channel }) {
   }
   if (channel.slug === ChannelSlug.Build) {
     return <BuildingPreview />;
+  }
+  if (channel.slug === ChannelSlug.OpenSource) {
+    return <SelfHostPreview />;
   }
   return <PreviewPlaceholder />;
 }
@@ -142,15 +146,72 @@ function BuildingPreview() {
   );
 }
 
+// The right panel is empty on channels where nothing's been built yet — so it
+// explains what the preview *is* rather than reporting a status, since "what's a
+// preview?" is the thing first-time visitors most often miss.
 function PreviewPlaceholder() {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
       <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
-        <Clock className="size-5" />
+        <AppWindow className="size-5" />
       </span>
-      <p className="text-balance text-muted-foreground text-sm">
-        Previews are available after the agent completes the work.
+      <div className="space-y-1">
+        <p className="font-medium text-sm">The live preview</p>
+        <p className="text-balance text-muted-foreground text-sm">
+          The real, running product renders right here — updating live as the agent builds it. No
+          tabbing to a separate tool.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Kept as data (not inline literals) to steer clear of the no-magic-numbers rule.
+const SELF_HOST_STEPS = [
+  { key: 'clone', text: 'git clone https://github.com/ilbertt/kordeon' },
+  { key: 'install', text: 'bun install' },
+  { key: 'run', text: 'bun dev' },
+];
+
+function SelfHostPreview() {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-1.5">
+        <GithubIcon className="size-3.5 text-foreground" />
+        <span className="font-medium text-sm">Open source · self-hostable</span>
+      </div>
+
+      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+        <div className="flex items-center gap-1.5 border-border border-b px-3 py-2">
+          <span className="size-2 rounded-full bg-muted-foreground/30" />
+          <span className="size-2 rounded-full bg-muted-foreground/30" />
+          <span className="size-2 rounded-full bg-muted-foreground/30" />
+          <span className="ml-1.5 text-[0.7rem] text-muted-foreground">Run it yourself</span>
+        </div>
+        <div className="space-y-1.5 px-3 py-3 font-mono text-[0.72rem] leading-relaxed">
+          {SELF_HOST_STEPS.map((step) => (
+            <div key={step.key} className="flex gap-2">
+              <span className="select-none text-primary">$</span>
+              <span className="text-foreground/90">{step.text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <p className="text-balance text-muted-foreground text-xs">
+        Run kordeon on your own infrastructure and keep your data in-house — nothing’s locked behind
+        our servers.
       </p>
+
+      <a
+        href={REPO_URL}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex items-center gap-1.5 font-medium text-primary text-xs hover:underline"
+      >
+        View source on GitHub
+        <ArrowRight className="size-3.5" />
+      </a>
     </div>
   );
 }

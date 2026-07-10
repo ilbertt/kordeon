@@ -13,6 +13,7 @@ import { ScrollArea } from '@repo/ui/components/scroll-area';
 import { Separator } from '@repo/ui/components/separator';
 import { cn } from '@repo/ui/lib/utils';
 import { Plus, Search, Users, X } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useCurrentUser } from './context';
 import { PersonAvatar } from './person-avatar';
 import { StatusIcon } from './status-icon';
@@ -22,15 +23,19 @@ import { useWorkspacePanels } from './workspace-ui';
 // like a stacked-PR view. Presentational — channels come in as a prop, and the
 // footer identity resolves through the workspace context. On md+ it's a fixed
 // rail; below that it collapses behind the header toggle and slides over as a
-// drawer (the `sidebar` panel in the workspace-panels context).
+// drawer (the `sidebar` panel in the workspace-panels context). `renderIcon`
+// overrides the per-channel glyph (the landing shows purpose icons instead of
+// the git-status default).
 export function Sidebar({
   channels,
   activeSlug,
   channelHref = (slug) => `#${slug}`,
+  renderIcon,
 }: {
   channels: Channel[];
   activeSlug: string;
   channelHref?: (slug: string) => string;
+  renderIcon?: (channel: Channel) => ReactNode;
 }) {
   const currentUser = useCurrentUser();
   const { openPanel, close } = useWorkspacePanels();
@@ -95,7 +100,7 @@ export function Sidebar({
                   )}
                 >
                   <ItemMedia variant="icon">
-                    <StatusIcon status={channel.status} />
+                    {renderIcon ? renderIcon(channel) : <StatusIcon status={channel.status} />}
                   </ItemMedia>
                   <ItemContent>
                     <ItemTitle className="truncate">#{channel.slug}</ItemTitle>

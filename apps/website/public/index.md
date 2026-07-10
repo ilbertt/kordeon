@@ -14,7 +14,7 @@ A team and an agent talk through the work in the chat, refine a plan together, h
 it off, and watch it render in the preview. Nothing tabs away.
 
 This is the plain-Markdown edition of the kordeon landing page, served for AI agents
-and other tools. kordeon is open source — the code is on
+and other tools. kordeon is open source and self-hostable — the code is on
 [GitHub](https://github.com/ilbertt/kordeon).
 
 ## The problem it solves
@@ -73,6 +73,12 @@ kordeon is a strong fit when someone wants to:
   is lighter.
 - Work with no artifact to render and no structured units to track — the two panels
   that set kordeon apart add little there.
+
+## Open source and self-hostable
+
+kordeon is fully open source. Run it on your own infrastructure and keep your data
+in-house — nothing is locked behind our servers. Clone the repo, install, and run it
+yourself.
 
 ## Pricing
 
