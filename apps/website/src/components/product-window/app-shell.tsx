@@ -5,7 +5,7 @@ import { ThemeToggle } from '@repo/ui/custom/theme-toggle';
 import { WorkspaceProvider } from '@repo/ui/custom/workspace/context';
 import { PreviewPane } from '@repo/ui/custom/workspace/preview-pane';
 import { Sidebar } from '@repo/ui/custom/workspace/sidebar';
-import { Thread } from '@repo/ui/custom/workspace/thread';
+import { Thread, type VisitorReply } from '@repo/ui/custom/workspace/thread';
 import { WorkspaceLayout } from '@repo/ui/custom/workspace/workspace-layout';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { CollabPrompt } from '#components/collab-prompt';
@@ -36,23 +36,26 @@ const kordeReply = (text: string): Message => ({
 // The #pricing thread captures the waitlist through the chat itself: a visitor replies
 // with their email, Korde stores it (D1, via the subscribe server function) and confirms —
 // or ribs them into sending a real address.
-async function handlePricingReply(value: { text: string }): Promise<Message[]> {
+async function handlePricingReply(value: { text: string }): Promise<VisitorReply> {
   await sleep(KORDE_REPLY_DELAY_MS);
   const email = value.text.match(EMAIL_PATTERN)?.[0];
   if (!email) {
     const index = Math.floor(Math.random() * NO_EMAIL_REPLIES.length);
-    return [kordeReply(NO_EMAIL_REPLIES[index] ?? NO_EMAIL_REPLIES[0])];
+    return { replies: [kordeReply(NO_EMAIL_REPLIES[index] ?? NO_EMAIL_REPLIES[0])] };
   }
   try {
     await subscribe({ data: email });
-    return [
-      kordeReply(
-        `You’re in — I’ve got ${email} on the early-access list. I’ll reach out the moment pricing lands. 🎉`,
-      ),
-    ];
+    return {
+      replies: [
+        kordeReply(
+          `You’re in — I’ve got ${email} on the early-access list. I’ll reach out the moment pricing lands. 🎉`,
+        ),
+      ],
+      resolved: true,
+    };
   } catch (error) {
     const reason = error instanceof Error ? error.message : 'that didn’t go through.';
-    return [kordeReply(`Hmm — ${reason} Mind trying once more?`)];
+    return { replies: [kordeReply(`Hmm — ${reason} Mind trying once more?`)] };
   }
 }
 

@@ -34,6 +34,11 @@ type RenderComposerPrompt = (args: {
   label?: string;
 }) => ReactNode;
 
+// What a visitor's message resolves to: the reply(s) to append, plus whether the visitor
+// completed what the composer was asking for (e.g. joined the waitlist) — once resolved, the
+// composer's custom placeholder reverts to the default.
+export type VisitorReply = { replies: Message[]; resolved?: boolean };
+
 export function Thread({
   channel,
   active,
@@ -48,7 +53,7 @@ export function Thread({
   // Lets the data source answer a visitor message in character: it returns the
   // reply message(s) to append (e.g. the pricing agent confirming a waitlist
   // email). While it's pending, `responderId` shows as typing.
-  onVisitorReply?: (value: SendValue) => Promise<Message[]>;
+  onVisitorReply?: (value: SendValue) => Promise<VisitorReply>;
   responderId?: string;
   renderComposerPrompt?: RenderComposerPrompt;
 }) {
@@ -58,6 +63,9 @@ export function Thread({
   // nothing is persisted, so they reset on reload.
   const [sent, setSent] = useState<Message[]>([]);
   const [responding, setResponding] = useState(false);
+  // Once the visitor fulfils the composer's ask (e.g. joins the waitlist), the custom
+  // placeholder reverts to the default.
+  const [resolved, setResolved] = useState(false);
 
   const send = async (value: SendValue) => {
     setSent((prev) => [
@@ -76,8 +84,11 @@ export function Thread({
     }
     setResponding(true);
     try {
-      const replies = await onVisitorReply(value);
+      const { replies, resolved: didResolve } = await onVisitorReply(value);
       setSent((prev) => [...prev, ...replies]);
+      if (didResolve) {
+        setResolved(true);
+      }
     } finally {
       setResponding(false);
     }
@@ -85,6 +96,10 @@ export function Thread({
 
   const typistId = responding ? responderId : channel.typing;
   const typist = typistId ? (people[typistId] ?? null) : null;
+  const composerPlaceholder =
+    !resolved && channel.composerPlaceholder
+      ? channel.composerPlaceholder
+      : `Message #${channel.slug}…`;
 
   const messages = [...channel.messages, ...sent];
   return (
@@ -146,6 +161,7 @@ export function Thread({
         channel={channel}
         onSend={send}
         typist={typist}
+        placeholder={composerPlaceholder}
         renderComposerPrompt={renderComposerPrompt}
       />
     </section>
@@ -167,7 +183,15 @@ function MicButton() {
 
 // `seq` bumps on send to remount the (uncontrolled) MentionInput, clearing it and
 // returning focus (autoFocus once seq > 0). The mic is an inert placeholder.
-function MessageBar({ channel, onSend }: { channel: Channel; onSend: (value: SendValue) => void }) {
+function MessageBar({
+  channel,
+  onSend,
+  placeholder,
+}: {
+  channel: Channel;
+  onSend: (value: SendValue) => void;
+  placeholder: string;
+}) {
   const { mentionSuggestions } = useWorkspace();
   const [value, setValue] = useState<SendValue>({ text: '', segments: [] });
   const [seq, setSeq] = useState(0);
@@ -192,7 +216,7 @@ function MessageBar({ channel, onSend }: { channel: Channel; onSend: (value: Sen
         allowCustomDate
         suggestions={mentionSuggestions}
         ariaLabel={`Message #${channel.slug}`}
-        placeholder={channel.composerPlaceholder ?? `Message #${channel.slug}…`}
+        placeholder={placeholder}
         onChange={setValue}
         onSubmit={submit}
       />
@@ -219,6 +243,7 @@ function Composer({
   channel,
   onSend,
   typist,
+  placeholder,
   renderComposerPrompt,
 }: {
   channel: Channel;
@@ -226,6 +251,7 @@ function Composer({
   // The person shown as typing above the message bar — a channel's seeded typist
   // or, mid-exchange, whoever is drafting a reply (resolved by Thread).
   typist: Person | null;
+  placeholder: string;
   renderComposerPrompt?: RenderComposerPrompt;
 }) {
   // Live token count of the co-written prompt, mirroring what the agent would be billed to build it.
@@ -251,7 +277,7 @@ function Composer({
         </Card>
         <div className="space-y-1">
           {typist ? <TypingIndicator person={typist} /> : null}
-          <MessageBar channel={channel} onSend={onSend} />
+          <MessageBar channel={channel} onSend={onSend} placeholder={placeholder} />
         </div>
       </div>
     );
@@ -259,7 +285,7 @@ function Composer({
   return (
     <div className="shrink-0 space-y-1 px-5 pb-5">
       {typist ? <TypingIndicator person={typist} /> : null}
-      <MessageBar channel={channel} onSend={onSend} />
+      <MessageBar channel={channel} onSend={onSend} placeholder={placeholder} />
     </div>
   );
 }
