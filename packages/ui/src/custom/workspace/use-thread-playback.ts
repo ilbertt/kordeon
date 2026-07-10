@@ -10,15 +10,17 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 // returning `total` until it opts in), so the prerendered HTML stays complete
 // and there's no hydration mismatch.
 
-const TYPE_MIN_MS = 550;
-const TYPE_MAX_MS = 2200;
-const TYPE_PER_CHAR_MS = 15;
-const READ_MIN_MS = 500;
-const READ_MAX_MS = 2600;
-const READ_PER_CHAR_MS = 18;
+const TYPE_MIN_MS = 700;
+const TYPE_MAX_MS = 2600;
+const TYPE_PER_CHAR_MS = 20;
+// The reading beat after a message lands, before the next author starts typing —
+// generous so each message is actually readable before the thread moves on.
+const READ_MIN_MS = 1000;
+const READ_MAX_MS = 3800;
+const READ_PER_CHAR_MS = 30;
 // System notes (e.g. the welcome intro) have no author, so they get a flat beat
 // instead of a length-scaled typing pause.
-const SYSTEM_BEAT_MS = 650;
+const SYSTEM_BEAT_MS = 1000;
 // Fraction of a message's typing beat after which the next author "joins in",
 // turning the indicator into "A and B are typing".
 const CO_TYPING_AT = 0.55;

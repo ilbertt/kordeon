@@ -12,8 +12,9 @@ import {
 } from '@repo/ui/components/message';
 import { Popover, PopoverContent, PopoverTrigger } from '@repo/ui/components/popover';
 import { MentionTag } from '@repo/ui/custom/mention/mention-tag';
+import { cn } from '@repo/ui/lib/utils';
 import { SmilePlus, Zap } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { type CSSProperties, type ReactNode, useEffect, useState } from 'react';
 import { usePerson, useWorkspace } from './context';
 import { PersonAvatar } from './person-avatar';
 import { ReactionPill } from './reaction-pill';
@@ -106,6 +107,43 @@ function MessageBody({ message }: { message: Extract<Message, { kind: 'msg' }> }
 
 const QUICK_EMOJIS = ['👍', '❤️', '🎉', '🚀', '👀', '😄'];
 
+const REACTION_REVEAL_MS = 700;
+const REACTION_STAGGER_MS = 90;
+
+// Reactions land as their own beat — a short pause after the message appears,
+// then a staggered pop — so it reads like people reacting once they've read it.
+// Reduced motion shows them at once.
+function useReactionReveal(): { revealed: boolean; animate: boolean } {
+  const [state, setState] = useState({ revealed: false, animate: false });
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setState({ revealed: true, animate: false });
+      return;
+    }
+    const id = window.setTimeout(
+      () => setState({ revealed: true, animate: true }),
+      REACTION_REVEAL_MS,
+    );
+    return () => clearTimeout(id);
+  }, []);
+  return state;
+}
+
+// The enter animation for a reaction, staggered by position so they pop in one
+// after another. `backwards` fill keeps later pills hidden until their turn.
+function reactionEnter({ index, animate }: { index: number; animate: boolean }): {
+  className?: string;
+  style?: CSSProperties;
+} {
+  if (!animate) {
+    return {};
+  }
+  return {
+    className: 'fade-in zoom-in-75 animate-in duration-300',
+    style: { animationDelay: `${index * REACTION_STAGGER_MS}ms`, animationFillMode: 'backwards' },
+  };
+}
+
 // Visitors can react for fun — nothing is persisted. Base counts exclude the
 // viewer, whose own reactions live in local state — seeded from `by` so a
 // reaction they're already part of renders highlighted, and toggling adds/drops
@@ -114,6 +152,7 @@ const QUICK_EMOJIS = ['👍', '❤️', '🎉', '🚀', '👀', '😄'];
 // that fights these brand-tinted chips, so it isn't a clean drop-in here.
 function Reactions({ items }: { items: Reaction[] }) {
   const { currentUserId } = useWorkspace();
+  const reveal = useReactionReveal();
   const [mine, setMine] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(
       items
@@ -139,21 +178,29 @@ function Reactions({ items }: { items: Reaction[] }) {
     ...base.keys(),
     ...Object.keys(mine).filter((emoji) => mine[emoji] && !base.has(emoji)),
   ];
+  const visibleEmojis = emojis.filter(
+    (emoji) => (base.get(emoji) ?? 0) + (mine[emoji] ? 1 : 0) > 0,
+  );
+
+  // Held back until the reveal beat, then popped in one by one.
+  if (!reveal.revealed) {
+    return null;
+  }
+  const addButtonEnter = reactionEnter({ index: visibleEmojis.length, animate: reveal.animate });
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-1.5">
-      {emojis.map((emoji) => {
-        const count = (base.get(emoji) ?? 0) + (mine[emoji] ? 1 : 0);
-        if (count === 0) {
-          return null;
-        }
+      {[...visibleEmojis.entries()].map(([index, emoji]) => {
+        const enter = reactionEnter({ index, animate: reveal.animate });
         return (
           <ReactionPill
             key={emoji}
             emoji={emoji}
-            count={count}
+            count={(base.get(emoji) ?? 0) + (mine[emoji] ? 1 : 0)}
             reacted={Boolean(mine[emoji])}
             onClick={() => toggle(emoji)}
+            className={enter.className}
+            style={enter.style}
           />
         );
       })}
@@ -161,7 +208,11 @@ function Reactions({ items }: { items: Reaction[] }) {
       <Popover open={picking} onOpenChange={setPicking}>
         <PopoverTrigger
           aria-label="Add reaction"
-          className="flex items-center rounded-full border border-border bg-muted/40 px-1.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[popup-open]:bg-muted data-[popup-open]:text-foreground"
+          style={addButtonEnter.style}
+          className={cn(
+            'flex items-center rounded-full border border-border bg-muted/40 px-1.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[popup-open]:bg-muted data-[popup-open]:text-foreground',
+            addButtonEnter.className,
+          )}
         >
           <SmilePlus className="size-3.5" />
         </PopoverTrigger>
