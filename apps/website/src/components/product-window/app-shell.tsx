@@ -1,15 +1,63 @@
+import type { Message } from '@repo/domain/workspace';
 import { Button, buttonVariants } from '@repo/ui/components/button';
 import { KordeonMark } from '@repo/ui/custom/kordeon-mark';
 import { ThemeToggle } from '@repo/ui/custom/theme-toggle';
 import { WorkspaceProvider } from '@repo/ui/custom/workspace/context';
 import { PreviewPane } from '@repo/ui/custom/workspace/preview-pane';
 import { Sidebar } from '@repo/ui/custom/workspace/sidebar';
-import { Thread } from '@repo/ui/custom/workspace/thread';
+import { Thread, type VisitorReply } from '@repo/ui/custom/workspace/thread';
 import { WorkspaceLayout } from '@repo/ui/custom/workspace/workspace-layout';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { CollabPrompt } from '#components/collab-prompt';
-import { type ChannelSlug, channels, MENTION_SUGGESTIONS, PEOPLE } from './data';
+import { subscribe } from '#lib/subscribe';
+import { ChannelSlug, channels, MENTION_SUGGESTIONS, PEOPLE } from './data';
 import { PreviewContent } from './preview-content';
+
+const EMAIL_PATTERN = /[^\s@]+@[^\s@]+\.[^\s@]+/;
+const KORDE_REPLY_DELAY_MS = 700;
+
+// Korde's ad-libs when a visitor sends something that isn't an email.
+const NO_EMAIL_REPLIES = [
+  'Ha — love the energy. But I run on email addresses, not vibes. Drop yours and you’re on the early-access list. 📮',
+  'That’s the spirit! Now hit me with an email and I’ll ping you the second pricing’s ready. ✨',
+  'Noted for the record. The record being: I still need your email to get you in. 😄',
+  'Straight talk — no email, no early access. Paste one in and I’ve got you. 🙌',
+] as const;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const kordeReply = (text: string): Message => ({
+  id: crypto.randomUUID(),
+  kind: 'msg',
+  from: 'korde',
+  text,
+});
+
+// The #pricing thread captures the waitlist through the chat itself: a visitor replies
+// with their email, Korde stores it (D1, via the subscribe server function) and confirms —
+// or ribs them into sending a real address.
+async function handlePricingReply(value: { text: string }): Promise<VisitorReply> {
+  await sleep(KORDE_REPLY_DELAY_MS);
+  const email = value.text.match(EMAIL_PATTERN)?.[0];
+  if (!email) {
+    const index = Math.floor(Math.random() * NO_EMAIL_REPLIES.length);
+    return { replies: [kordeReply(NO_EMAIL_REPLIES[index] ?? NO_EMAIL_REPLIES[0])] };
+  }
+  try {
+    await subscribe({ data: email });
+    return {
+      replies: [
+        kordeReply(
+          `You’re in — I’ve got ${email} on the early-access list. I’ll reach out the moment pricing lands. 🎉`,
+        ),
+      ],
+      resolved: true,
+    };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'that didn’t go through.';
+    return { replies: [kordeReply(`Hmm — ${reason} Mind trying once more?`)] };
+  }
+}
 
 // The collaborate composer is a landing-only device, so the reusable Thread
 // takes it as a render prop rather than importing it.
@@ -30,14 +78,19 @@ export function AppShell({ activeSlug }: { activeSlug: ChannelSlug }) {
         topBar={<TopBar />}
         sidebar={<Sidebar channels={channels} activeSlug={activeSlug} />}
       >
-        {channels.map((channel) => (
-          <Thread
-            key={channel.slug}
-            channel={channel}
-            active={channel.slug === activeSlug}
-            renderComposerPrompt={renderComposerPrompt}
-          />
-        ))}
+        {channels.map((channel) => {
+          const isPricing = channel.slug === ChannelSlug.Pricing;
+          return (
+            <Thread
+              key={channel.slug}
+              channel={channel}
+              active={channel.slug === activeSlug}
+              renderComposerPrompt={renderComposerPrompt}
+              onVisitorReply={isPricing ? handlePricingReply : undefined}
+              responderId={isPricing ? 'korde' : undefined}
+            />
+          );
+        })}
         {channels.map((channel) => (
           <PreviewPane key={channel.slug} active={channel.slug === activeSlug}>
             <PreviewContent channel={channel} />
@@ -79,7 +132,7 @@ function TopBar() {
           className="hidden items-center gap-1.5 rounded-full border border-border py-1 pr-2.5 pl-2 font-medium text-muted-foreground text-xs transition-colors hover:bg-muted hover:text-foreground lg:inline-flex"
         >
           <Sparkles className="size-3.5 text-primary" />
-          For your AI agent
+          Tell your AI agent
         </a>
         <a
           href={REPO_URL}

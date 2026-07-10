@@ -224,21 +224,32 @@ export const channels: LandingChannel[] = [
   {
     slug: ChannelSlug.Pricing,
     status: 'open',
-    topic: 'Simple, usage-based pricing',
+    topic: 'Pricing’s still taking shape — get on the list',
     members: ['you', 'korde'],
+    composerPlaceholder: 'Send here your email to join the waitlist',
     messages: [
       {
         id: 'pr1',
         kind: 'msg',
         from: 'you',
-        text: 'How much does this cost?',
+        text: 'Hey @Korde, how much is this going to cost?',
+        segments: [
+          { type: 'text', text: 'Hey ' },
+          { type: 'tag', tag: { kind: 'person', token: '@Korde' } },
+          { type: 'text', text: ', how much is this going to cost?' },
+        ],
       },
       {
         id: 'pr2',
         kind: 'msg',
         from: 'korde',
-        text: 'Free to start — invite your team and plan as much as you like. You only pay for agent runs as you scale.',
-        cta: true,
+        text: 'Honest answer: we’re still figuring that out — we want to talk to early teams before we lock in a price. Planning together will always be free; you’d only ever pay for agent runs as you scale.',
+      },
+      {
+        id: 'pr3',
+        kind: 'msg',
+        from: 'korde',
+        text: 'Want first access? Send me your email below and I’ll save you a spot on the waitlist.',
       },
     ],
   },

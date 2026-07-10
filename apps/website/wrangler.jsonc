@@ -1,14 +1,39 @@
 {
+  "$schema": "node_modules/wrangler/config-schema.json",
   "name": "kordeon-website",
   "compatibility_date": "2026-07-06",
-  "main": "./src/worker.ts",
-  // The site is fully prerendered to static HTML and served straight from the edge.
-  // The Worker runs *only* for `/` and `/index.md` (`run_worker_first`) to serve a
-  // plain-Markdown mirror of the landing page to AI agents that content-negotiate with
-  // `Accept: text/markdown`; every other request is served from `dist/client` untouched.
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "./src/server.ts",
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
   "assets": {
-    "directory": "./dist/client",
     "binding": "ASSETS",
-    "run_worker_first": ["/", "/index.md"]
+    "run_worker_first": ["/"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "kordeon-waitlist",
+      "database_id": "4b5037a3-ecbf-4276-837c-c7f4d47d2a29",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "env": {
+    "preview": {
+      // Override the auto env name (kordeon-website-preview) back to the base so a
+      // CLOUDFLARE_ENV=preview build stays the one worker — preview ships as a version of it,
+      // bound to the preview D1 below.
+      "name": "kordeon-website",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "kordeon-waitlist-preview",
+          "database_id": "c6f661f7-25b9-4c3d-b73f-ead07d7220bd",
+          "migrations_dir": "migrations"
+        }
+      ]
+    }
   }
 }

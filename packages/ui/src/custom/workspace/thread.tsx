@@ -34,24 +34,40 @@ type RenderComposerPrompt = (args: {
   label?: string;
 }) => ReactNode;
 
+// What a visitor's message resolves to: the reply(s) to append, plus whether the visitor
+// completed what the composer was asking for (e.g. joined the waitlist) — once resolved, the
+// composer's custom placeholder reverts to the default.
+export type VisitorReply = { replies: Message[]; resolved?: boolean };
+
 export function Thread({
   channel,
   active,
   onSend,
+  onVisitorReply,
+  responderId,
   renderComposerPrompt,
 }: {
   channel: Channel;
   active: boolean;
   onSend?: (value: SendValue) => void;
+  // Lets the data source answer a visitor message in character: it returns the
+  // reply message(s) to append (e.g. the pricing agent confirming a waitlist
+  // email). While it's pending, `responderId` shows as typing.
+  onVisitorReply?: (value: SendValue) => Promise<VisitorReply>;
+  responderId?: string;
   renderComposerPrompt?: RenderComposerPrompt;
 }) {
-  const { currentUserId } = useWorkspace();
+  const { currentUserId, people } = useWorkspace();
   const { open } = useWorkspacePanels();
-  // Messages the visitor sends are kept locally, just for feel — nothing is
-  // persisted, so they reset on reload.
+  // Messages the visitor sends (and any replies) are kept locally, just for feel —
+  // nothing is persisted, so they reset on reload.
   const [sent, setSent] = useState<Message[]>([]);
+  const [responding, setResponding] = useState(false);
+  // Once the visitor fulfils the composer's ask (e.g. joins the waitlist), the custom
+  // placeholder reverts to the default.
+  const [resolved, setResolved] = useState(false);
 
-  const send = (value: SendValue) => {
+  const send = async (value: SendValue) => {
     setSent((prev) => [
       ...prev,
       {
@@ -63,7 +79,27 @@ export function Thread({
       },
     ]);
     onSend?.(value);
+    if (!onVisitorReply) {
+      return;
+    }
+    setResponding(true);
+    try {
+      const { replies, resolved: didResolve } = await onVisitorReply(value);
+      setSent((prev) => [...prev, ...replies]);
+      if (didResolve) {
+        setResolved(true);
+      }
+    } finally {
+      setResponding(false);
+    }
   };
+
+  const typistId = responding ? responderId : channel.typing;
+  const typist = typistId ? (people[typistId] ?? null) : null;
+  const composerPlaceholder =
+    !resolved && channel.composerPlaceholder
+      ? channel.composerPlaceholder
+      : `Message #${channel.slug}…`;
 
   const messages = [...channel.messages, ...sent];
   return (
@@ -121,7 +157,13 @@ export function Thread({
           <MessageScrollerButton direction="end" />
         </MessageScroller>
       </MessageScrollerProvider>
-      <Composer channel={channel} onSend={send} renderComposerPrompt={renderComposerPrompt} />
+      <Composer
+        channel={channel}
+        onSend={send}
+        typist={typist}
+        placeholder={composerPlaceholder}
+        renderComposerPrompt={renderComposerPrompt}
+      />
     </section>
   );
 }
@@ -141,7 +183,15 @@ function MicButton() {
 
 // `seq` bumps on send to remount the (uncontrolled) MentionInput, clearing it and
 // returning focus (autoFocus once seq > 0). The mic is an inert placeholder.
-function MessageBar({ channel, onSend }: { channel: Channel; onSend: (value: SendValue) => void }) {
+function MessageBar({
+  channel,
+  onSend,
+  placeholder,
+}: {
+  channel: Channel;
+  onSend: (value: SendValue) => void;
+  placeholder: string;
+}) {
   const { mentionSuggestions } = useWorkspace();
   const [value, setValue] = useState<SendValue>({ text: '', segments: [] });
   const [seq, setSeq] = useState(0);
@@ -166,7 +216,7 @@ function MessageBar({ channel, onSend }: { channel: Channel; onSend: (value: Sen
         allowCustomDate
         suggestions={mentionSuggestions}
         ariaLabel={`Message #${channel.slug}`}
-        placeholder={`Message #${channel.slug}…`}
+        placeholder={placeholder}
         onChange={setValue}
         onSubmit={submit}
       />
@@ -192,19 +242,21 @@ function MessageBar({ channel, onSend }: { channel: Channel; onSend: (value: Sen
 function Composer({
   channel,
   onSend,
+  typist,
+  placeholder,
   renderComposerPrompt,
 }: {
   channel: Channel;
   onSend: (value: SendValue) => void;
+  // The person shown as typing above the message bar — a channel's seeded typist
+  // or, mid-exchange, whoever is drafting a reply (resolved by Thread).
+  typist: Person | null;
+  placeholder: string;
   renderComposerPrompt?: RenderComposerPrompt;
 }) {
-  const { people } = useWorkspace();
   // Live token count of the co-written prompt, mirroring what the agent would be billed to build it.
   const [promptText, setPromptText] = useState('');
   const tokens = useTokenCount(promptText);
-  // The typing indicator belongs with the message bar (someone drafting a chat
-  // message); in the prompt editor, the live cursors convey presence already.
-  const typist = channel.typing ? (people[channel.typing] ?? null) : null;
 
   if (channel.compose && renderComposerPrompt) {
     const editable = channel.compose === 'collab';
@@ -225,7 +277,7 @@ function Composer({
         </Card>
         <div className="space-y-1">
           {typist ? <TypingIndicator person={typist} /> : null}
-          <MessageBar channel={channel} onSend={onSend} />
+          <MessageBar channel={channel} onSend={onSend} placeholder={placeholder} />
         </div>
       </div>
     );
@@ -233,7 +285,7 @@ function Composer({
   return (
     <div className="shrink-0 space-y-1 px-5 pb-5">
       {typist ? <TypingIndicator person={typist} /> : null}
-      <MessageBar channel={channel} onSend={onSend} />
+      <MessageBar channel={channel} onSend={onSend} placeholder={placeholder} />
     </div>
   );
 }

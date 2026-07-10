@@ -76,8 +76,9 @@ kordeon is a strong fit when someone wants to:
 
 ## Pricing
 
-Free to start — invite your team and plan as much as you like. You only pay for agent
-runs as you scale.
+Pricing isn't set yet — we want to talk to early teams before we lock it in. The intent:
+planning together stays free, and you only pay for agent runs as you scale. Join the
+waitlist on the site to hear the moment it's ready.
 
 ## Links
 

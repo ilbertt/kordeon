@@ -7,6 +7,6 @@
       "@repo/ui/*": ["../../packages/ui/src/*"]
     }
   },
-  "include": ["src", "vite.config.ts"],
-  "exclude": ["node_modules", "dist", ".output", "src/worker.ts"]
+  "include": ["src", "vite.config.ts", "worker-configuration.d.ts"],
+  "exclude": ["node_modules", "dist", ".output"]
 }

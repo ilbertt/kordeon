@@ -3,10 +3,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun run --bun vite dev --port 3000",
-    "build": "bun run --bun vite build",
-    "preview": "bun run --bun vite preview",
-    "check:types": "bun run --bun tsc && bun run --bun tsc -p tsconfig.worker.json"
+    "dev": "vite dev --port 3000",
+    "build": "vite build",
+    "build:preview": "CLOUDFLARE_ENV=preview vite build",
+    "preview": "vite preview",
+    "cf:typegen": "wrangler types",
+    "cf:migrate": "wrangler d1 migrations apply kordeon-waitlist --remote",
+    "cf:migrate:preview": "wrangler d1 migrations apply kordeon-waitlist-preview --remote --env preview",
+    "cf:deploy": "bun run cf:migrate && bun run build && wrangler deploy",
+    "cf:deploy:preview": "bun run cf:migrate:preview && bun run build:preview && wrangler versions upload",
+    "check:types": "bun run cf:typegen && tsc"
   },
   "dependencies": {
     "@repo/domain": "workspace:*",
@@ -16,12 +22,15 @@
     "@tanstack/react-start": "^1.168.27",
     "@tanstack/router-plugin": "^1.168.19",
     "gpt-tokenizer": "^3.4.0",
+    "kysely": "^0.29.3",
+    "kysely-d1": "^0.4.0",
     "lucide-react": "^1.23.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "tailwindcss": "^4.3.2"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.43.1",
     "@cloudflare/workers-types": "^4.20260701.1",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^26.1.0",
@@ -30,6 +39,6 @@
     "@vitejs/plugin-react": "^6.0.3",
     "typescript": "catalog:",
     "vite": "^8.1.3",
-    "wrangler": "^4.107.0"
+    "wrangler": "^4.107.1"
   }
 }

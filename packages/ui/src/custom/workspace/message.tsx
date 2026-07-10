@@ -1,7 +1,6 @@
 import type { Message, Person, PlanItem, Reaction } from '@repo/domain/workspace';
 import { AvatarGroup } from '@repo/ui/components/avatar';
 import { Badge } from '@repo/ui/components/badge';
-import { Button } from '@repo/ui/components/button';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@repo/ui/components/card';
 import { Checkbox } from '@repo/ui/components/checkbox';
 import { Marker, MarkerContent } from '@repo/ui/components/marker';
@@ -14,7 +13,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@repo/ui/components/popover';
 import { MentionTag } from '@repo/ui/custom/mention/mention-tag';
 import { cn } from '@repo/ui/lib/utils';
-import { ArrowRight, SmilePlus, Zap } from 'lucide-react';
+import { SmilePlus, Zap } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { usePerson, useWorkspace } from './context';
 import { PersonAvatar } from './person-avatar';
@@ -55,12 +54,6 @@ function PersonMessage({ message }: { message: Extract<Message, { kind: 'msg' }>
         {message.plan ? <PlanCard items={message.plan} /> : null}
         {message.reactions ? <Reactions items={message.reactions} /> : null}
         {message.replies ? <Replies ids={message.replies} /> : null}
-        {message.cta ? (
-          <Button size="sm" className="mt-3">
-            Create your workspace
-            <ArrowRight />
-          </Button>
-        ) : null}
       </MessageContent>
     </MessageRow>
   );
