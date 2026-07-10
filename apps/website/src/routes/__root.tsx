@@ -5,7 +5,7 @@ import { themeScript } from '#lib/theme-script';
 const SITE_URL = 'https://kordeon.com';
 const TITLE = 'kordeon — Where humans collaborate and agents execute';
 const DESCRIPTION =
-  'Chat and refine the plan together, hand it off to an AI agent, and watch the preview come to life. Where humans collaborate and agents execute.';
+  'Chat and refine the plan together, hand it off to an AI agent, and watch the preview come to life.';
 const OG_IMAGE = `${SITE_URL}/og.png`;
 
 export const Route = createRootRoute({
