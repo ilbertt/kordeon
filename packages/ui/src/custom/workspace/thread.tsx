@@ -123,18 +123,17 @@ export function Thread({
           </Button>
         </div>
       </div>
-      {/* autoScroll keeps the thread pinned to the newest message; a sent
-          message is a scroll anchor, so the scroller brings it into view. */}
+      {/* autoScroll keeps the thread pinned to the newest message: sending
+          scrolls to the latest only when the messages overflow the viewport
+          (scrollToEnd is a no-op otherwise), which is the behavior we want.
+          No scrollAnchor — that would pin the sent message to the top of the
+          viewport and push the earlier ones out of view. */}
       <MessageScrollerProvider autoScroll defaultScrollPosition="end">
         <MessageScroller className="flex-1">
           <MessageScrollerViewport className="px-5 py-6">
             <MessageScrollerContent className="gap-5">
               {messages.map((message) => (
-                <MessageScrollerItem
-                  key={message.id}
-                  messageId={message.id}
-                  scrollAnchor={message.kind === 'msg' && message.from === currentUserId}
-                >
+                <MessageScrollerItem key={message.id} messageId={message.id}>
                   <ChatMessage message={message} />
                 </MessageScrollerItem>
               ))}
