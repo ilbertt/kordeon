@@ -5,12 +5,13 @@
   "scripts": {
     "dev": "vite dev --port 3000",
     "build": "vite build",
+    "build:preview": "CLOUDFLARE_ENV=preview vite build",
     "preview": "vite preview",
     "cf:typegen": "wrangler types",
     "cf:migrate": "wrangler d1 migrations apply kordeon-waitlist --remote",
     "cf:migrate:preview": "wrangler d1 migrations apply kordeon-waitlist-preview --remote --env preview",
-    "cf:deploy": "bun run cf:migrate && wrangler deploy",
-    "cf:deploy:preview": "bun run cf:migrate:preview && wrangler versions upload --env preview",
+    "cf:deploy": "bun run cf:migrate && bun run build && wrangler deploy",
+    "cf:deploy:preview": "bun run cf:migrate:preview && bun run build:preview && wrangler deploy",
     "check:types": "bun run cf:typegen && tsc"
   },
   "dependencies": {
