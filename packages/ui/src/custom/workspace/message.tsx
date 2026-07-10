@@ -13,7 +13,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@repo/ui/components/popover';
 import { MentionTag } from '@repo/ui/custom/mention/mention-tag';
 import { SmilePlus, Zap } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { usePerson, useWorkspace } from './context';
 import { PersonAvatar } from './person-avatar';
 import { ReactionPill } from './reaction-pill';
@@ -106,6 +106,90 @@ function MessageBody({ message }: { message: Extract<Message, { kind: 'msg' }> }
 
 const QUICK_EMOJIS = ['👍', '❤️', '🎉', '🚀', '👀', '😄'];
 
+// The first reactor arrives this long after the message; each further reactor
+// follows one step later, so the counts climb one at a time.
+const REACTION_REVEAL_MS = 650;
+const REACTION_STEP_MS = 600;
+
+type LiveReactions = { revealed: boolean; animate: boolean; counts: Record<string, number> };
+
+// Reactions tick up live: each person's reaction "arrives" a beat after the
+// message, one after another, so the count climbs as if people are reacting in
+// real time. `counts` is the other people's running total per emoji (the viewer's
+// own +1 is added at the call site). Reduced motion shows the finals at once.
+function useLiveReactions({
+  items,
+  currentUserId,
+}: {
+  items: Reaction[];
+  currentUserId: string;
+}): LiveReactions {
+  const targets = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const reaction of items) {
+      map[reaction.emoji] = reaction.by.filter((id) => id !== currentUserId).length;
+    }
+    return map;
+  }, [items, currentUserId]);
+
+  const [state, setState] = useState<LiveReactions>({
+    revealed: false,
+    animate: false,
+    counts: {},
+  });
+
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setState({ revealed: true, animate: false, counts: targets });
+      return;
+    }
+    setState({ revealed: false, animate: true, counts: {} });
+
+    // Interleave reactors across emojis (round-robin) so multiple counts rise
+    // together rather than one emoji finishing before the next starts.
+    const queue: string[] = [];
+    const remaining = { ...targets };
+    let pending = true;
+    while (pending) {
+      pending = false;
+      for (const emoji of Object.keys(targets)) {
+        if ((remaining[emoji] ?? 0) > 0) {
+          queue.push(emoji);
+          remaining[emoji] = (remaining[emoji] ?? 0) - 1;
+          pending = true;
+        }
+      }
+    }
+
+    const timers: number[] = [
+      window.setTimeout(
+        () => setState((prev) => ({ ...prev, revealed: true })),
+        REACTION_REVEAL_MS,
+      ),
+    ];
+    for (const [index, emoji] of queue.entries()) {
+      timers.push(
+        window.setTimeout(
+          () =>
+            setState((prev) => ({
+              revealed: true,
+              animate: true,
+              counts: { ...prev.counts, [emoji]: (prev.counts[emoji] ?? 0) + 1 },
+            })),
+          REACTION_REVEAL_MS + index * REACTION_STEP_MS,
+        ),
+      );
+    }
+    return () => {
+      for (const timer of timers) {
+        clearTimeout(timer);
+      }
+    };
+  }, [targets]);
+
+  return state;
+}
+
 // Visitors can react for fun — nothing is persisted. Base counts exclude the
 // viewer, whose own reactions live in local state — seeded from `by` so a
 // reaction they're already part of renders highlighted, and toggling adds/drops
@@ -114,6 +198,7 @@ const QUICK_EMOJIS = ['👍', '❤️', '🎉', '🚀', '👀', '😄'];
 // that fights these brand-tinted chips, so it isn't a clean drop-in here.
 function Reactions({ items }: { items: Reaction[] }) {
   const { currentUserId } = useWorkspace();
+  const { revealed, animate, counts } = useLiveReactions({ items, currentUserId });
   const [mine, setMine] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(
       items
@@ -123,40 +208,36 @@ function Reactions({ items }: { items: Reaction[] }) {
   );
   const [picking, setPicking] = useState(false);
 
-  const base = new Map(
-    items.map((reaction) => [
-      reaction.emoji,
-      reaction.by.filter((id) => id !== currentUserId).length,
-    ]),
-  );
   const toggle = (emoji: string) => setMine((prev) => ({ ...prev, [emoji]: !prev[emoji] }));
   const add = (emoji: string) => {
     setMine((prev) => ({ ...prev, [emoji]: true }));
     setPicking(false);
   };
 
-  const emojis = [
-    ...base.keys(),
-    ...Object.keys(mine).filter((emoji) => mine[emoji] && !base.has(emoji)),
-  ];
+  // Displayed count = the running total of other people (climbing live) plus the
+  // viewer's own +1. A pill shows once its count reaches one.
+  const displayed = (emoji: string) => (counts[emoji] ?? 0) + (mine[emoji] ? 1 : 0);
+  const emojis = [...new Set([...items.map((reaction) => reaction.emoji), ...Object.keys(mine)])];
+  const visibleEmojis = emojis.filter((emoji) => displayed(emoji) > 0);
+
+  // Held back until the first reactor arrives.
+  if (!revealed) {
+    return null;
+  }
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-1.5">
-      {emojis.map((emoji) => {
-        const count = (base.get(emoji) ?? 0) + (mine[emoji] ? 1 : 0);
-        if (count === 0) {
-          return null;
-        }
-        return (
-          <ReactionPill
-            key={emoji}
-            emoji={emoji}
-            count={count}
-            reacted={Boolean(mine[emoji])}
-            onClick={() => toggle(emoji)}
-          />
-        );
-      })}
+      {visibleEmojis.map((emoji) => (
+        <ReactionPill
+          key={emoji}
+          emoji={emoji}
+          count={displayed(emoji)}
+          reacted={Boolean(mine[emoji])}
+          onClick={() => toggle(emoji)}
+          live={animate}
+          className={animate ? 'fade-in zoom-in-75 animate-in duration-300' : undefined}
+        />
+      ))}
 
       <Popover open={picking} onOpenChange={setPicking}>
         <PopoverTrigger
@@ -205,6 +286,49 @@ function Replies({ ids }: { ids: string[] }) {
       </AvatarGroup>
       {resolved.length} replies
     </button>
+  );
+}
+
+// The playback's live "typing" row, sized to sit inline with the messages (the
+// composer's own indicator stays compact). Reads "Maya is typing", "Maya and
+// Theo are typing", or "Maya, Theo and 2 others are typing".
+function typingText(names: string[]): string {
+  if (names.length === 1) {
+    return `${names[0]} is typing`;
+  }
+  if (names.length === 2) {
+    return `${names[0]} and ${names[1]} are typing`;
+  }
+  const [first, second] = names;
+  return `${first}, ${second} and ${names.length - 2} others are typing`;
+}
+
+const TYPING_DOT_DELAYS = ['0ms', '150ms', '300ms'];
+
+export function ThreadTypingRow({ ids }: { ids: string[] }) {
+  const { people } = useWorkspace();
+  const typists = ids.map((id) => people[id]).filter((person): person is Person => Boolean(person));
+  if (typists.length === 0) {
+    return null;
+  }
+  return (
+    <MessageRow align="start" className="gap-3 duration-300 animate-in fade-in">
+      <MessageAvatar className="min-w-8 self-start bg-transparent">
+        <PersonAvatar person={typists[0]!} className="size-8" />
+      </MessageAvatar>
+      <div className="flex items-center gap-2 pt-1.5 text-muted-foreground text-sm">
+        <span>{typingText(typists.map((person) => person.name))}</span>
+        <span className="flex items-center gap-0.5">
+          {TYPING_DOT_DELAYS.map((delay) => (
+            <span
+              key={delay}
+              className="size-1 animate-bounce rounded-full bg-muted-foreground/60"
+              style={{ animationDelay: delay }}
+            />
+          ))}
+        </span>
+      </div>
+    </MessageRow>
   );
 }
 

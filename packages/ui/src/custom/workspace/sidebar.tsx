@@ -1,20 +1,14 @@
 import type { Channel } from '@repo/domain/workspace';
 import { Button } from '@repo/ui/components/button';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@repo/ui/components/input-group';
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemMedia,
-  ItemTitle,
-} from '@repo/ui/components/item';
+import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from '@repo/ui/components/item';
 import { ScrollArea } from '@repo/ui/components/scroll-area';
 import { Separator } from '@repo/ui/components/separator';
 import { cn } from '@repo/ui/lib/utils';
-import { Plus, Search, Users, X } from 'lucide-react';
+import { Plus, Search, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useCurrentUser } from './context';
+import { CreateChannelButton, type NewChannel } from './create-channel';
 import { PersonAvatar } from './person-avatar';
 import { StatusIcon } from './status-icon';
 import { useWorkspacePanels } from './workspace-ui';
@@ -31,11 +25,15 @@ export function Sidebar({
   activeSlug,
   channelHref = (slug) => `#${slug}`,
   renderIcon,
+  onCreateChannel,
 }: {
   channels: Channel[];
   activeSlug: string;
   channelHref?: (slug: string) => string;
   renderIcon?: (channel: Channel) => ReactNode;
+  // Wires the header "+" to the create-feature flow (name + icon). Without it the
+  // "+" is an inert glyph.
+  onCreateChannel?: (value: NewChannel) => void;
 }) {
   const currentUser = useCurrentUser();
   const { openPanel, close } = useWorkspacePanels();
@@ -62,7 +60,11 @@ export function Sidebar({
         <div className="flex items-center justify-between px-4 py-3">
           <span className="font-medium text-sm">Features</span>
           <div className="flex items-center gap-1">
-            <Plus className="size-4 text-muted-foreground" />
+            {onCreateChannel ? (
+              <CreateChannelButton onCreate={onCreateChannel} />
+            ) : (
+              <Plus className="size-4 text-muted-foreground" />
+            )}
             <Button
               variant="ghost"
               size="icon-sm"
@@ -105,10 +107,6 @@ export function Sidebar({
                   <ItemContent>
                     <ItemTitle className="truncate">#{channel.slug}</ItemTitle>
                   </ItemContent>
-                  <ItemActions className="text-muted-foreground text-xs">
-                    <Users className="size-3" />
-                    {channel.members.length}
-                  </ItemActions>
                 </Item>
               );
             })}
