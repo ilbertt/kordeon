@@ -1,6 +1,7 @@
 import { Button } from '@repo/ui/components/button';
 import { Input } from '@repo/ui/components/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@repo/ui/components/popover';
+import { MentionTag } from '@repo/ui/custom/mention/mention-tag';
 import { cn } from '@repo/ui/lib/utils';
 import {
   Bot,
@@ -14,12 +15,12 @@ import {
   ShieldCheck,
   Zap,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 export type NewChannel = { name: string; icon: LucideIcon };
 
 // A small palette the visitor picks from — enough variety to feel like naming a
-// real feature, without a full icon browser.
+// real channel, without a full icon browser.
 const ICON_OPTIONS: { key: string; icon: LucideIcon }[] = [
   { key: 'rocket', icon: Rocket },
   { key: 'chart', icon: LineChart },
@@ -33,13 +34,24 @@ const ICON_OPTIONS: { key: string; icon: LucideIcon }[] = [
 
 const NAME_MAX = 32;
 
-// The features rail's "+" — the trigger and the inline create form are one unit
-// so any consumer gets the whole "add a feature" flow (name + icon) for free and
-// only wires up what happens on submit via `onCreate`.
+// The rail's "+" — the trigger and the inline create form are one unit so any
+// consumer gets the whole "add a channel" flow (name + icon) for free and only
+// wires up what happens on submit via `onCreate`.
 export function CreateChannelButton({ onCreate }: { onCreate: (value: NewChannel) => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [iconKey, setIconKey] = useState(ICON_OPTIONS[0]!.key);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Base UI has no `preventScroll` option and focuses the first field on open
+  // without it. This popup lives inside the landing's scaled, sticky product
+  // frame, where that focus-scroll miscomputes the transform and yanks the whole
+  // page back to the top. So take over `initialFocus`: focus the field ourselves
+  // with `preventScroll` and return `false` so Base UI doesn't focus it again.
+  const focusName = () => {
+    inputRef.current?.focus({ preventScroll: true });
+    return false as const;
+  };
 
   const submit = () => {
     const trimmed = name.trim();
@@ -56,18 +68,21 @@ export function CreateChannelButton({ onCreate }: { onCreate: (value: NewChannel
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        aria-label="Create feature"
+        aria-label="Create channel"
         className="flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[popup-open]:bg-muted data-[popup-open]:text-foreground"
       >
         <Plus className="size-4" />
       </PopoverTrigger>
-      <PopoverContent align="end" sideOffset={8} className="w-64 gap-3">
+      <PopoverContent initialFocus={focusName} align="end" sideOffset={8} className="w-64 gap-3">
         <div className="space-y-1">
-          <p className="font-medium text-sm">New feature</p>
-          <p className="text-muted-foreground text-xs">Name it and Korde will kick it off.</p>
+          <p className="font-medium text-sm">New channel</p>
+          <p className="text-muted-foreground text-xs">
+            <MentionTag tag={{ kind: 'person', token: '@Korde' }} /> joins automatically, ready to
+            build anything you need.
+          </p>
         </div>
         <Input
-          autoFocus
+          ref={inputRef}
           value={name}
           onChange={(event) => setName(event.target.value)}
           onKeyDown={(event) => {
@@ -102,7 +117,7 @@ export function CreateChannelButton({ onCreate }: { onCreate: (value: NewChannel
           })}
         </div>
         <Button size="sm" className="w-full" disabled={!name.trim()} onClick={submit}>
-          Create feature
+          Create channel
         </Button>
       </PopoverContent>
     </Popover>
