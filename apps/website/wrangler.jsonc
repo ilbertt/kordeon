@@ -3,26 +3,14 @@
   "name": "kordeon-website",
   "compatibility_date": "2026-07-06",
   "compatibility_flags": ["nodejs_compat"],
-  // Custom entry (src/server.ts) so the Markdown mirror keeps working; it wraps the
-  // TanStack Start handler, which serves the prerendered pages and runs server functions.
   "main": "./src/server.ts",
-  // Workers Logs — captures invocation logs, our console output, and uncaught errors from
-  // the server function, queryable in the dashboard. TanStack Start's own Cloudflare config
-  // enables this by default; the free tier covers a landing page many times over.
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1
   },
-  // Prerendered pages + client assets are served from the edge for free. The Worker only
-  // runs for `run_worker_first` paths (the Markdown mirror) and for non-asset requests
-  // (server functions) — so a static page view costs no compute.
   "assets": {
-    "binding": "ASSETS",
-    "run_worker_first": ["/", "/index.md"]
+    "run_worker_first": ["/index.md"]
   },
-  // Waitlist storage (created via `wrangler d1 create kordeon-waitlist`). Migrations run on
-  // deploy through `bun run cf:deploy`; for dev use `wrangler d1 migrations apply
-  // kordeon-waitlist --local`.
   "d1_databases": [
     {
       "binding": "DB",
@@ -31,10 +19,6 @@
       "migrations_dir": "migrations"
     }
   ],
-  // Preview deployments (non-production branches) bind an isolated waitlist DB so branch /
-  // test signups never reach production (created via `wrangler d1 create
-  // kordeon-waitlist-preview`). Inheritable keys (main, assets, observability, …) carry over
-  // from the top level; only bindings are redefined per environment.
   "env": {
     "preview": {
       "d1_databases": [
