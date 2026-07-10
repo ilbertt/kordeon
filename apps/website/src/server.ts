@@ -10,11 +10,15 @@ import indexMarkdown from '../public/index.md?raw';
 
 const startFetch = createStartHandler(defaultStreamHandler);
 
-const markdownMirror = (): Response =>
-  new Response(indexMarkdown, { headers: { 'content-type': 'text/markdown; charset=utf-8' } });
+function markdownMirror(): Response {
+  return new Response(indexMarkdown, {
+    headers: { 'content-type': 'text/markdown; charset=utf-8' },
+  });
+}
 
-const acceptsMarkdown = (request: Request): boolean =>
-  (request.headers.get('accept') ?? '').includes('text/markdown');
+function acceptsMarkdown(request: Request): boolean {
+  return (request.headers.get('accept') ?? '').includes('text/markdown');
+}
 
 export default {
   async fetch(request) {
