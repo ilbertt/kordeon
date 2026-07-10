@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev --port 3000",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev": "node ./node_modules/.bin/vite dev --port 3000",
+    "build": "node ./node_modules/.bin/vite build",
+    "preview": "node ./node_modules/.bin/vite preview",
     "cf-typegen": "wrangler types",
     "cf:migrate": "wrangler d1 migrations apply kordeon-waitlist --remote",
     "cf:migrate:preview": "wrangler d1 migrations apply kordeon-waitlist-preview --remote --env preview",
