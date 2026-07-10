@@ -11,7 +11,7 @@
     "cf:migrate": "wrangler d1 migrations apply kordeon-waitlist --remote",
     "cf:migrate:preview": "wrangler d1 migrations apply kordeon-waitlist-preview --remote --env preview",
     "cf:deploy": "bun run cf:migrate && bun run build && wrangler deploy",
-    "cf:deploy:preview": "bun run cf:migrate:preview && bun run build:preview && wrangler deploy",
+    "cf:deploy:preview": "bun run cf:migrate:preview && bun run build:preview && wrangler versions upload",
     "check:types": "bun run cf:typegen && tsc"
   },
   "dependencies": {

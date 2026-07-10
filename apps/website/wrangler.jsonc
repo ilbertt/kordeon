@@ -22,6 +22,7 @@
   ],
   "env": {
     "preview": {
+      "name": "kordeon-website",
       "d1_databases": [
         {
           "binding": "DB",
