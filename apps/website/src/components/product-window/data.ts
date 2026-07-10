@@ -68,12 +68,13 @@ export enum ChannelSlug {
   Pricing = 'pricing',
 }
 
-// The landing pins each channel's slug to the enum, while still satisfying the
-// domain `Channel` shape (whose slug is a plain string). It also carries a
-// purpose icon: cold visitors can't decode the git-status metaphor, so the rail
-// shows what each channel is *for* instead (the shared components fall back to
-// the status icon when no override is passed).
-type LandingChannel = Channel & { slug: ChannelSlug; icon: LucideIcon };
+// A landing channel satisfies the domain `Channel` shape and carries a purpose
+// icon: cold visitors can't decode the git-status metaphor, so the rail shows
+// what each channel is *for* instead (the shared components fall back to the
+// status icon when no override is passed). The seeded channels pin their slug to
+// `ChannelSlug`; visitor-created ones (see the dynamic registry below) carry a
+// plain slugified string, so the slug stays a string here.
+export type LandingChannel = Channel & { icon: LucideIcon };
 
 export const channels: LandingChannel[] = [
   {
@@ -353,12 +354,85 @@ export const MENTION_SUGGESTIONS: MentionSuggestion[] = [
   })),
 ];
 
+// Visitor-created channels live only in the browser session (never persisted),
+// so they sit in a tiny module-level registry the routing consults alongside the
+// seeded list. `EMPTY_DYNAMIC_CHANNELS` is a stable reference so the
+// `useSyncExternalStore` server snapshot never changes identity between renders.
+const EMPTY_DYNAMIC_CHANNELS: LandingChannel[] = [];
+let dynamicChannels: LandingChannel[] = EMPTY_DYNAMIC_CHANNELS;
+const dynamicChannelListeners = new Set<() => void>();
+
+export function getDynamicChannels(): LandingChannel[] {
+  return dynamicChannels;
+}
+
+export function getDynamicChannelsServerSnapshot(): LandingChannel[] {
+  return EMPTY_DYNAMIC_CHANNELS;
+}
+
+export function subscribeDynamicChannels(onChange: () => void): () => void {
+  dynamicChannelListeners.add(onChange);
+  return () => {
+    dynamicChannelListeners.delete(onChange);
+  };
+}
+
+export function addDynamicChannel(channel: LandingChannel): void {
+  dynamicChannels = [...dynamicChannels, channel];
+  for (const listener of dynamicChannelListeners) {
+    listener();
+  }
+}
+
+// Turns a visitor's feature name into a unique, fragment-safe slug so a created
+// channel routes through `location.hash` exactly like a seeded one.
+export function slugifyChannelName(name: string): string {
+  const base =
+    name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'feature';
+  let slug = base;
+  let suffix = 2;
+  while (channelBySlug(slug)) {
+    slug = `${base}-${suffix}`;
+    suffix += 1;
+  }
+  return slug;
+}
+
+// Builds a freshly created feature: the agent greets it and invites the visitor
+// to say what to build — the create → ask handoff. There's no auto-reply beyond
+// this greeting.
+export function createChannel({ name, icon }: { name: string; icon: LucideIcon }): LandingChannel {
+  const slug = slugifyChannelName(name);
+  return {
+    slug,
+    status: 'draft',
+    icon,
+    topic: 'A new feature — tell Korde what to build',
+    members: ['you', 'korde'],
+    messages: [
+      {
+        id: `${slug}-intro`,
+        kind: 'msg',
+        from: 'korde',
+        text: `New feature #${slug} — what are we building here? Tell me what you have in mind and I’ll draft the plan.`,
+      },
+    ],
+  };
+}
+
 // The feature the page opens on when there's no fragment. Because there are no
 // per-feature routes, all channels render into the one prerendered page — only
 // the active one is shown — so every feature's content stays in the crawlable
 // HTML and remains SEO-indexable.
 export const DEFAULT_SLUG = ChannelSlug.Welcome;
 
-export function channelBySlug(slug: string) {
-  return channels.find((channel) => channel.slug === slug);
+export function channelBySlug(slug: string): LandingChannel | undefined {
+  return (
+    channels.find((channel) => channel.slug === slug) ??
+    dynamicChannels.find((channel) => channel.slug === slug)
+  );
 }

@@ -1,4 +1,7 @@
 // biome-ignore-all lint/style/noMagicNumbers: scroll-scrub interpolation constants
+import { buttonVariants } from '@repo/ui/components/button';
+import { cn } from '@repo/ui/lib/utils';
+import { ArrowDown } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 /**
@@ -17,6 +20,18 @@ export function ScrollStage({
   const wrapRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const introRef = useRef<HTMLDivElement>(null);
+
+  // Runs the scroll-scrub to the end of the track, so the product zooms to full
+  // and becomes interactive — the CTA does what scrolling down does.
+  const revealProduct = () => {
+    const wrap = wrapRef.current;
+    if (wrap) {
+      window.scrollTo({
+        top: Math.max(0, wrap.offsetHeight - window.innerHeight),
+        behavior: 'smooth',
+      });
+    }
+  };
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -61,6 +76,9 @@ export function ScrollStage({
       if (intro) {
         intro.style.opacity = `${Math.max(0, 1 - ease * 2.2)}`;
         intro.style.transform = `translateY(${-20 * ease}px)`;
+        // Once it starts fading out, stop the intro (and its CTA) from catching
+        // clicks over the product beneath it.
+        intro.style.pointerEvents = ease > 0.15 ? 'none' : 'auto';
       }
     };
     const onScroll = () => {
@@ -101,6 +119,14 @@ export function ScrollStage({
           <p className="mx-auto mt-4 max-w-xl text-balance text-muted-foreground">
             Chat, refine the plan, and hand it to an agent — together, in one place.
           </p>
+          <button
+            type="button"
+            onClick={revealProduct}
+            className={cn(buttonVariants({ size: 'lg' }), 'pointer-events-auto mt-8 gap-2')}
+          >
+            Try it now
+            <ArrowDown className="size-4" />
+          </button>
         </div>
         <div
           ref={frameRef}

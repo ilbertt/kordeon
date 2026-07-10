@@ -208,6 +208,49 @@ function Replies({ ids }: { ids: string[] }) {
   );
 }
 
+// The playback's live "typing" row, sized to sit inline with the messages (the
+// composer's own indicator stays compact). Reads "Maya is typing", "Maya and
+// Theo are typing", or "Maya, Theo and 2 others are typing".
+function typingText(names: string[]): string {
+  if (names.length === 1) {
+    return `${names[0]} is typing`;
+  }
+  if (names.length === 2) {
+    return `${names[0]} and ${names[1]} are typing`;
+  }
+  const [first, second] = names;
+  return `${first}, ${second} and ${names.length - 2} others are typing`;
+}
+
+const TYPING_DOT_DELAYS = ['0ms', '150ms', '300ms'];
+
+export function ThreadTypingRow({ ids }: { ids: string[] }) {
+  const { people } = useWorkspace();
+  const typists = ids.map((id) => people[id]).filter((person): person is Person => Boolean(person));
+  if (typists.length === 0) {
+    return null;
+  }
+  return (
+    <MessageRow align="start" className="gap-3 duration-300 animate-in fade-in">
+      <MessageAvatar className="min-w-8 self-start bg-transparent">
+        <PersonAvatar person={typists[0]!} className="size-8" />
+      </MessageAvatar>
+      <div className="flex items-center gap-2 pt-1.5 text-muted-foreground text-sm">
+        <span>{typingText(typists.map((person) => person.name))}</span>
+        <span className="flex items-center gap-0.5">
+          {TYPING_DOT_DELAYS.map((delay) => (
+            <span
+              key={delay}
+              className="size-1 animate-bounce rounded-full bg-muted-foreground/60"
+              style={{ animationDelay: delay }}
+            />
+          ))}
+        </span>
+      </div>
+    </MessageRow>
+  );
+}
+
 function PlanCard({ items }: { items: PlanItem[] }) {
   const done = items.filter((item) => item.done).length;
   return (
