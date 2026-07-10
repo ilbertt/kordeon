@@ -22,6 +22,9 @@
   ],
   "env": {
     "preview": {
+      // Override the auto env name (kordeon-website-preview) back to the base so a
+      // CLOUDFLARE_ENV=preview build stays the one worker — preview ships as a version of it,
+      // bound to the preview D1 below.
       "name": "kordeon-website",
       "d1_databases": [
         {
