@@ -46,6 +46,8 @@ export function Thread({
   onVisitorReply,
   responderId,
   renderComposerPrompt,
+  renderIcon,
+  renderMessageExtra,
 }: {
   channel: Channel;
   active: boolean;
@@ -56,6 +58,11 @@ export function Thread({
   onVisitorReply?: (value: SendValue) => Promise<VisitorReply>;
   responderId?: string;
   renderComposerPrompt?: RenderComposerPrompt;
+  // Overrides the channel glyph in the header, matching the sidebar (the landing
+  // shows purpose icons in place of the git-status default).
+  renderIcon?: (channel: Channel) => ReactNode;
+  // Appends caller-owned content under a message (see ChatMessage.renderExtra).
+  renderMessageExtra?: (message: Message) => ReactNode;
 }) {
   const { currentUserId, people } = useWorkspace();
   const { open } = useWorkspacePanels();
@@ -116,7 +123,7 @@ export function Thread({
         >
           <Hash />
         </Button>
-        <StatusIcon status={channel.status} />
+        {renderIcon ? renderIcon(channel) : <StatusIcon status={channel.status} />}
         <span className="font-medium">#{channel.slug}</span>
         <span className="mx-2 hidden text-border sm:inline">|</span>
         <span className="hidden truncate text-muted-foreground text-sm lg:inline">
@@ -149,7 +156,7 @@ export function Thread({
             <MessageScrollerContent className="gap-5">
               {messages.map((message) => (
                 <MessageScrollerItem key={message.id} messageId={message.id}>
-                  <ChatMessage message={message} />
+                  <ChatMessage message={message} renderExtra={renderMessageExtra} />
                 </MessageScrollerItem>
               ))}
             </MessageScrollerContent>

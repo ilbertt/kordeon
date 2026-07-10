@@ -12,13 +12,21 @@ import {
 } from '@repo/ui/components/message';
 import { Popover, PopoverContent, PopoverTrigger } from '@repo/ui/components/popover';
 import { MentionTag } from '@repo/ui/custom/mention/mention-tag';
-import { cn } from '@repo/ui/lib/utils';
 import { SmilePlus, Zap } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { usePerson, useWorkspace } from './context';
 import { PersonAvatar } from './person-avatar';
+import { ReactionPill } from './reaction-pill';
 
-export function ChatMessage({ message }: { message: Message }) {
+// `renderExtra` appends caller-owned content under a message (after reactions) —
+// used by the landing to hang a GitHub star off the agent's open-source reply.
+export function ChatMessage({
+  message,
+  renderExtra,
+}: {
+  message: Message;
+  renderExtra?: (message: Message) => ReactNode;
+}) {
   if (message.kind === 'system') {
     return (
       <Marker variant="separator" className="text-sm">
@@ -27,10 +35,16 @@ export function ChatMessage({ message }: { message: Message }) {
     );
   }
 
-  return <PersonMessage message={message} />;
+  return <PersonMessage message={message} renderExtra={renderExtra} />;
 }
 
-function PersonMessage({ message }: { message: Extract<Message, { kind: 'msg' }> }) {
+function PersonMessage({
+  message,
+  renderExtra,
+}: {
+  message: Extract<Message, { kind: 'msg' }>;
+  renderExtra?: (message: Message) => ReactNode;
+}) {
   const person = usePerson(message.from);
   const isAgent = person.kind === 'agent';
   return (
@@ -53,6 +67,7 @@ function PersonMessage({ message }: { message: Extract<Message, { kind: 'msg' }>
         </p>
         {message.plan ? <PlanCard items={message.plan} /> : null}
         {message.reactions ? <Reactions items={message.reactions} /> : null}
+        {renderExtra ? renderExtra(message) : null}
         {message.replies ? <Replies ids={message.replies} /> : null}
       </MessageContent>
     </MessageRow>
@@ -132,22 +147,14 @@ function Reactions({ items }: { items: Reaction[] }) {
         if (count === 0) {
           return null;
         }
-        const reacted = Boolean(mine[emoji]);
         return (
-          <button
+          <ReactionPill
             key={emoji}
-            type="button"
+            emoji={emoji}
+            count={count}
+            reacted={Boolean(mine[emoji])}
             onClick={() => toggle(emoji)}
-            className={cn(
-              'flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors',
-              reacted
-                ? 'border-primary/40 bg-primary/10 text-primary'
-                : 'border-border bg-muted/40 hover:bg-muted',
-            )}
-          >
-            <span>{emoji}</span>
-            <span className={reacted ? 'text-primary' : 'text-muted-foreground'}>{count}</span>
-          </button>
+          />
         );
       })}
 

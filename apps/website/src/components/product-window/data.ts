@@ -1,5 +1,6 @@
 import type { Channel, Person } from '@repo/domain/workspace';
 import type { MentionSuggestion } from '@repo/ui/custom/mention/types';
+import { AppWindow, Code, Hammer, Home, type LucideIcon, Tag, Users } from 'lucide-react';
 import adaAvatar from '#assets/avatars/ada.svg';
 import kordeAvatar from '#assets/avatars/korde.svg';
 import mayaAvatar from '#assets/avatars/maya.svg';
@@ -63,17 +64,22 @@ export enum ChannelSlug {
   Collaborate = 'collaborate',
   Build = 'build',
   LivePreview = 'live-preview',
+  OpenSource = 'open-source',
   Pricing = 'pricing',
 }
 
 // The landing pins each channel's slug to the enum, while still satisfying the
-// domain `Channel` shape (whose slug is a plain string).
-type LandingChannel = Channel & { slug: ChannelSlug };
+// domain `Channel` shape (whose slug is a plain string). It also carries a
+// purpose icon: cold visitors can't decode the git-status metaphor, so the rail
+// shows what each channel is *for* instead (the shared components fall back to
+// the status icon when no override is passed).
+type LandingChannel = Channel & { slug: ChannelSlug; icon: LucideIcon };
 
 export const channels: LandingChannel[] = [
   {
     slug: ChannelSlug.Welcome,
     status: 'main',
+    icon: Home,
     topic: 'One surface — chat, the work, and the live preview',
     members: ['you', 'maya', 'theo', 'ada', 'korde'],
     messages: [
@@ -86,7 +92,7 @@ export const channels: LandingChannel[] = [
         id: 'w2',
         kind: 'msg',
         from: 'korde',
-        text: 'Your team and I work across all three — talk it through here, I pull the context and build it, and it renders in the preview. No tabbing away. Browse the features on the left, or start a thread and tell me what to build. And kordeon itself is open source — the whole thing’s on GitHub.',
+        text: 'Your team and I work across all three panels — talk it through here, I pull the context and build it, and it renders live in the preview on the right. No tabbing away. Browse the features on the left, or just tell me what to build.',
         reactions: [{ emoji: '👋', by: ['maya', 'theo', 'ada'] }],
       },
       {
@@ -120,6 +126,7 @@ export const channels: LandingChannel[] = [
   {
     slug: ChannelSlug.Collaborate,
     status: 'draft',
+    icon: Users,
     topic: 'Turn the idea into a prompt, together',
     members: ['maya', 'theo', 'ada', 'you', 'korde'],
     typing: 'ada',
@@ -141,24 +148,43 @@ export const channels: LandingChannel[] = [
         id: 'c3',
         kind: 'msg',
         from: 'korde',
-        text: 'Drafted that into the prompt above and added the warehouse source. One thing to pin down — does a paid trial count as activated, or only a conversion?',
+        text: 'Drafted that into the prompt above. I checked the warehouse — the signups table already has a channel column, so no new pipeline needed, and I matched the finance export’s definition so the numbers reconcile. Does a paid trial count as activated, or only a conversion?',
       },
       {
         id: 'c4',
         kind: 'msg',
         from: 'ada',
-        text: 'Only conversions. I’ll handle the warehouse query.',
-        reactions: [{ emoji: '👍', by: ['maya'] }],
+        text: 'Only conversions. @Korde can you take the warehouse query? I’m heads-down on billing.',
+        segments: [
+          { type: 'text', text: 'Only conversions. ' },
+          { type: 'tag', tag: { kind: 'person', token: '@Korde' } },
+          { type: 'text', text: ' can you take the warehouse query? I’m heads-down on billing.' },
+        ],
       },
       {
         id: 'c5',
+        kind: 'msg',
+        from: 'korde',
+        text: 'On it — drafting it off the existing connection, no new access needed. @Ada I’ll tag you to review before it runs.',
+        segments: [
+          {
+            type: 'text',
+            text: 'On it — drafting it off the existing connection, no new access needed. ',
+          },
+          { type: 'tag', tag: { kind: 'person', token: '@Ada' } },
+          { type: 'text', text: ' I’ll tag you to review before it runs.' },
+        ],
+        reactions: [{ emoji: '👍', by: ['ada'] }],
+      },
+      {
+        id: 'c6',
         kind: 'msg',
         from: 'maya',
         text: 'And drop the scheduled refresh — next sprint.',
         reactions: [{ emoji: '✅', by: ['you', 'theo'] }],
       },
       {
-        id: 'c6',
+        id: 'c7',
         kind: 'msg',
         from: 'korde',
         text: 'Updated. The prompt’s ready whenever you want to hand it to me.',
@@ -168,6 +194,7 @@ export const channels: LandingChannel[] = [
   {
     slug: ChannelSlug.Build,
     status: 'open',
+    icon: Hammer,
     topic: 'Plan approved — the agent builds it',
     members: ['maya', 'theo', 'you', 'korde'],
     compose: 'build',
@@ -183,7 +210,12 @@ export const channels: LandingChannel[] = [
         id: 'h2',
         kind: 'msg',
         from: 'korde',
-        text: 'On it. Step 1 of 3 done — warehouse connected, metrics defined. Charting signups by week now.',
+        text: 'On it. Step 1 of 3 done — ran the query @Ada signed off on, metrics defined. Charting signups by week now.',
+        segments: [
+          { type: 'text', text: 'On it. Step 1 of 3 done — ran the query ' },
+          { type: 'tag', tag: { kind: 'person', token: '@Ada' } },
+          { type: 'text', text: ' signed off on, metrics defined. Charting signups by week now.' },
+        ],
       },
       {
         id: 'h3',
@@ -196,6 +228,7 @@ export const channels: LandingChannel[] = [
   {
     slug: ChannelSlug.LivePreview,
     status: 'merged',
+    icon: AppWindow,
     topic: 'Watch it render as the agent ships each step',
     members: ['maya', 'theo', 'ada', 'you', 'korde'],
     compose: 'built',
@@ -216,14 +249,42 @@ export const channels: LandingChannel[] = [
       {
         id: 'v3',
         kind: 'msg',
+        from: 'korde',
+        text: 'Same thing jumped out at me — organic’s converting about 2× better than paid. Want me to add a cohort breakdown by signup month so we can see if it holds?',
+      },
+      {
+        id: 'v4',
+        kind: 'msg',
         from: 'you',
-        text: 'Ship it.',
+        text: 'Ship it — and yes, do the breakdown.',
+      },
+    ],
+  },
+  {
+    slug: ChannelSlug.OpenSource,
+    status: 'main',
+    icon: Code,
+    topic: 'Open source, and yours to self-host',
+    members: ['you', 'korde'],
+    messages: [
+      {
+        id: 'os1',
+        kind: 'msg',
+        from: 'you',
+        text: 'Is kordeon actually open source? Can we run it ourselves?',
+      },
+      {
+        id: 'os2',
+        kind: 'msg',
+        from: 'korde',
+        text: 'Yep — the whole thing is open source, and self-hostable. Clone it, run it on your own infra, keep your data in-house. Nothing’s locked behind our servers — the setup’s on the right.',
       },
     ],
   },
   {
     slug: ChannelSlug.Pricing,
     status: 'open',
+    icon: Tag,
     topic: 'Pricing’s still taking shape — get on the list',
     members: ['you', 'korde'],
     composerPlaceholder: 'Send here your email to join the waitlist',
@@ -254,6 +315,12 @@ export const channels: LandingChannel[] = [
     ],
   },
 ];
+
+// The public repo — surfaced in the top bar and the open-source preview.
+export const REPO_URL = 'https://github.com/ilbertt/kordeon';
+
+// The agent's open-source reply that carries the live GitHub star (see GithubStar).
+export const OPEN_SOURCE_STAR_MESSAGE_ID = 'os2';
 
 // Relative time tags, Notion-style. Kept as labels (not computed dates) so the
 // prerender and client agree and there's no date math to drift.

@@ -16,8 +16,11 @@ opening (the `welcome` channel) exists to name all three and show the agent span
 them.
 
 The explorer's organising metaphor: **each channel is a feature — a branch/PR**, a unit
-of work handed between humans and agents. That's what the git status on every channel is
-for, and why the sidebar reads like a stacked-PR list.
+of work handed between humans and agents. The domain model still carries a git status per
+channel (the reusable components render it by default). But cold visitors can't decode a
+stacked-PR list, so the landing overrides the rail glyph with a **purpose icon** — what each
+channel is *for* — via the `renderIcon` prop on `Sidebar`/`Thread`. The branch/PR idea now
+lives in the copy and the vision, not in an icon the visitor has no context for.
 
 ## Markdown mirror for agents
 
