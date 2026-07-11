@@ -141,7 +141,7 @@ function BuildingPreview() {
       <div className="space-y-1">
         <p className="font-medium text-sm">Korde is building…</p>
         <p className="text-balance text-muted-foreground text-xs">
-          Implementing the handed-off prompt — the preview goes live as each step ships.
+          Implementing the handed-off plan — the preview goes live as each step ships.
         </p>
       </div>
       <div className="w-full max-w-[13rem] space-y-2">

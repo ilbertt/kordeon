@@ -1,4 +1,4 @@
-import type { Channel, Message, MessageSegment, Person } from '@repo/domain/workspace';
+import type { Channel, Message, MessageSegment } from '@repo/domain/workspace';
 import { Button } from '@repo/ui/components/button';
 import { Card } from '@repo/ui/components/card';
 import { InputGroup, InputGroupAddon, InputGroupButton } from '@repo/ui/components/input-group';
@@ -20,9 +20,9 @@ import { ConnectorsButton } from './connectors-menu';
 import { useWorkspace } from './context';
 import { type AnchoredMessage, interleaveMessages } from './interleave-messages';
 import { ChatMessage, ThreadTypingRow } from './message';
-import { Facepile, PersonAvatar } from './person-avatar';
+import { Facepile } from './person-avatar';
 import { StatusIcon } from './status-icon';
-import { useThreadPlayback } from './use-thread-playback';
+import { type TypingState, useThreadPlayback } from './use-thread-playback';
 import { useWorkspacePanels } from './workspace-ui';
 
 type SendValue = { text: string; segments: MessageSegment[] };
@@ -76,7 +76,7 @@ export function Thread({
   // Appends caller-owned content under a message (see ChatMessage.renderExtra).
   renderMessageExtra?: (message: Message) => ReactNode;
 }) {
-  const { currentUserId, people } = useWorkspace();
+  const { currentUserId } = useWorkspace();
   const { open } = useWorkspacePanels();
   // Messages the visitor sends (and any replies) are kept locally, just for feel —
   // nothing is persisted, so they reset on reload. `revealCountRef` mirrors the
@@ -123,10 +123,16 @@ export function Thread({
   });
   revealCountRef.current = revealCount;
 
-  // The composer's own "typing" line stands down while the thread is playing —
-  // the inline typing row carries it there instead.
-  const typistId = responding ? responderId : playing ? undefined : channel.typing;
-  const typist = typistId ? (people[typistId] ?? null) : null;
+  // Typing is only ever shown in one place — the row trailing the last message.
+  // Whoever's composing right now: the responder answering a visitor mid-exchange,
+  // the playback's live author(s), or the channel's resting typist once it settles.
+  const typingIds = resolveTypingIds({
+    responding,
+    responderId,
+    playing,
+    typing,
+    resting: channel.typing,
+  });
   const composerPlaceholder = placeholder ?? `Message #${channel.slug}…`;
 
   // Visitor-sent messages slot into the playback stream where they landed (by
@@ -191,7 +197,7 @@ export function Thread({
                   <ChatMessage message={message} renderExtra={renderMessageExtra} />
                 </MessageScrollerItem>
               ))}
-              {playing && typing ? <ThreadTypingRow ids={typing.ids} /> : null}
+              {typingIds.length > 0 ? <ThreadTypingRow ids={typingIds} /> : null}
             </MessageScrollerContent>
           </MessageScrollerViewport>
           <MessageScrollerButton direction="end" />
@@ -200,7 +206,6 @@ export function Thread({
       <Composer
         channel={channel}
         onSend={send}
-        typist={typist}
         placeholder={composerPlaceholder}
         renderComposerPrompt={renderComposerPrompt}
       />
@@ -282,15 +287,11 @@ function MessageBar({
 function Composer({
   channel,
   onSend,
-  typist,
   placeholder,
   renderComposerPrompt,
 }: {
   channel: Channel;
   onSend: (value: SendValue) => void;
-  // The person shown as typing above the message bar — a channel's seeded typist
-  // or, mid-exchange, whoever is drafting a reply (resolved by Thread).
-  typist: Person | null;
   placeholder: string;
   renderComposerPrompt?: RenderComposerPrompt;
 }) {
@@ -306,7 +307,7 @@ function Composer({
           {renderComposerPrompt({
             editable,
             onText: setPromptText,
-            label: editable ? undefined : 'Prompt',
+            label: editable ? undefined : 'Plan',
           })}
           <div className="flex items-center gap-2 border-border border-t px-3 py-2">
             <span className="flex-1 text-muted-foreground text-xs tabular-nums">
@@ -315,16 +316,12 @@ function Composer({
             <ComposerAction compose={channel.compose} />
           </div>
         </Card>
-        <div className="space-y-1">
-          {typist ? <TypingIndicator person={typist} /> : null}
-          <MessageBar channel={channel} onSend={onSend} placeholder={placeholder} />
-        </div>
+        <MessageBar channel={channel} onSend={onSend} placeholder={placeholder} />
       </div>
     );
   }
   return (
-    <div className="shrink-0 space-y-1 px-5 pb-5">
-      {typist ? <TypingIndicator person={typist} /> : null}
+    <div className="shrink-0 px-5 pb-5">
       <MessageBar channel={channel} onSend={onSend} placeholder={placeholder} />
     </div>
   );
@@ -355,22 +352,27 @@ function ComposerAction({ compose }: { compose: NonNullable<Channel['compose']> 
   );
 }
 
-const TYPING_DELAYS = ['0ms', '150ms', '300ms'];
-
-function TypingIndicator({ person }: { person: Person }) {
-  return (
-    <div className="flex items-center gap-2 px-1 text-muted-foreground text-xs">
-      <PersonAvatar person={person} className="size-5" />
-      <span>{person.name} is typing</span>
-      <span className="flex items-center gap-0.5">
-        {TYPING_DELAYS.map((delay) => (
-          <span
-            key={delay}
-            className="size-1 animate-bounce rounded-full bg-muted-foreground/60"
-            style={{ animationDelay: delay }}
-          />
-        ))}
-      </span>
-    </div>
-  );
+// Resolves who the trailing typing row shows, in priority order: the responder
+// mid-exchange, then the playback's live author(s), then the channel's resting
+// typist. Empty means no one's composing, so the row is hidden.
+function resolveTypingIds({
+  responding,
+  responderId,
+  playing,
+  typing,
+  resting,
+}: {
+  responding: boolean;
+  responderId?: string;
+  playing: boolean;
+  typing: TypingState | null;
+  resting?: string;
+}): string[] {
+  if (responding) {
+    return responderId ? [responderId] : [];
+  }
+  if (playing) {
+    return typing?.ids ?? [];
+  }
+  return resting ? [resting] : [];
 }
