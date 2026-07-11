@@ -15,11 +15,13 @@ const scrollActiveIntoView = (node: HTMLElement | null) => {
 export function MentionMenu({
   items,
   activeId,
+  dateActive,
   onPick,
   onPickDate,
 }: {
   items: MentionSuggestion[];
   activeId?: string;
+  dateActive?: boolean;
   onPick: (item: MentionSuggestion) => void;
   onPickDate?: () => void;
 }) {
@@ -64,24 +66,28 @@ export function MentionMenu({
         );
       })}
       {onPickDate ? (
-        <Item
-          size="xs"
-          render={
-            <button
-              type="button"
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={onPickDate}
-            />
-          }
-          className="text-muted-foreground hover:bg-muted"
-        >
-          <ItemMedia variant="icon">
-            <Calendar className="size-3.5" />
-          </ItemMedia>
-          <ItemContent>
-            <ItemTitle className="font-normal">Pick a date…</ItemTitle>
-          </ItemContent>
-        </Item>
+        <div ref={dateActive ? scrollActiveIntoView : undefined}>
+          <Item
+            size="xs"
+            render={
+              <button
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={onPickDate}
+              />
+            }
+            className={cn(
+              dateActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted',
+            )}
+          >
+            <ItemMedia variant="icon">
+              <Calendar className="size-3.5" />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle className="font-normal">Pick a date…</ItemTitle>
+            </ItemContent>
+          </Item>
+        </div>
       ) : null}
     </div>
   );

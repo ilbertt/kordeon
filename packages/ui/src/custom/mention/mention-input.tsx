@@ -77,7 +77,10 @@ export function MentionInput({
         );
   const offersTime = trigger !== null && (TRIGGER_KINDS[trigger.char]?.includes('time') ?? false);
   const showCustomDate = allowCustomDate && offersTime;
-  const open = !pickingDate && (matches.length > 0 || showCustomDate);
+  // The custom-date row sits after the matches, so it owns index `matches.length`.
+  const optionCount = matches.length + (showCustomDate ? 1 : 0);
+  const dateActive = showCustomDate && active === matches.length;
+  const open = !pickingDate && optionCount > 0;
 
   const emit = () => {
     const root = editorRef.current;
@@ -198,12 +201,12 @@ export function MentionInput({
     if (open) {
       if (event.key === 'ArrowDown') {
         event.preventDefault();
-        setActive((index) => (index + 1) % matches.length);
+        setActive((index) => (index + 1) % optionCount);
         return;
       }
       if (event.key === 'ArrowUp') {
         event.preventDefault();
-        setActive((index) => (index - 1 + matches.length) % matches.length);
+        setActive((index) => (index - 1 + optionCount) % optionCount);
         return;
       }
       if (event.key === 'Enter' || event.key === 'Tab') {
@@ -237,6 +240,7 @@ export function MentionInput({
         <MentionMenu
           items={matches}
           activeId={matches[active]?.id}
+          dateActive={dateActive}
           onPick={insert}
           onPickDate={showCustomDate ? openPicker : undefined}
         />
