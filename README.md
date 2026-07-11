@@ -1,6 +1,6 @@
 <div align="center">
 
-# <img src="apps/website/public/favicon.svg" width="40" alt="kordeon"> kordeon
+# <img src="apps/website/public/favicon.svg" width="40" align="middle" alt="kordeon"> kordeon
 
 **Where humans collaborate and agents execute.**
 
