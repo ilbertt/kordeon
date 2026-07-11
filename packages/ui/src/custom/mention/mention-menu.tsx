@@ -5,6 +5,13 @@ import { Calendar, Clock, Hash } from 'lucide-react';
 import { KIND_HEADING } from './constants';
 import type { MentionSuggestion } from './types';
 
+// Attached to whichever row is currently active, so it scrolls into view the
+// moment arrow-key navigation makes it active (the scrollable list itself
+// doesn't follow `activeId`).
+const scrollActiveIntoView = (node: HTMLElement | null) => {
+  node?.scrollIntoView({ block: 'nearest' });
+};
+
 export function MentionMenu({
   items,
   activeId,
@@ -23,7 +30,7 @@ export function MentionMenu({
         const heading = item.kind === lastKind ? null : KIND_HEADING[item.kind];
         lastKind = item.kind;
         return (
-          <div key={item.id}>
+          <div key={item.id} ref={item.id === activeId ? scrollActiveIntoView : undefined}>
             {heading ? (
               <div className="px-2 pt-1.5 pb-1 font-medium text-[0.65rem] text-muted-foreground uppercase tracking-wide">
                 {heading}

@@ -1,4 +1,5 @@
 import type { MentionTagData } from '@repo/domain/workspace';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@repo/ui/components/tooltip';
 import { cn } from '@repo/ui/lib/utils';
 import { MENTION_CHIP_CLASS } from './constants';
 
@@ -25,9 +26,23 @@ export function MentionTag({ tag }: { tag: MentionTagData }) {
       </button>
     );
   }
+  // A custom date carries its exact source time + zone — surface it on hover as
+  // a popover. Relative labels (Today, …) carry no tooltip and stay inert.
+  if (!tag.tooltip) {
+    return <span className={MENTION_CHIP_CLASS.time}>{tag.token}</span>;
+  }
   return (
-    <span className={MENTION_CHIP_CLASS.time} title={tag.tooltip}>
-      {tag.token}
-    </span>
+    <Tooltip>
+      <TooltipTrigger
+        render={<span />}
+        className={cn(
+          MENTION_CHIP_CLASS.time,
+          'cursor-default transition-colors hover:bg-muted-foreground/15',
+        )}
+      >
+        {tag.token}
+      </TooltipTrigger>
+      <TooltipContent side="top">{tag.tooltip}</TooltipContent>
+    </Tooltip>
   );
 }

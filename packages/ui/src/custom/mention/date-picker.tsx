@@ -7,15 +7,17 @@ import { formatInZone, systemTimeZone, TIME_ZONES, todayInputValue, zonedToInsta
 // Pick a wall-clock time in any timezone; the preview (and the resulting tag)
 // show it in the viewer's system timezone.
 export function DatePicker({
+  initialValue,
   onAdd,
   onCancel,
 }: {
+  initialValue?: { date: string; time: string; timeZone: string };
   onAdd: (value: { date: string; time: string; timeZone: string }) => void;
   onCancel: () => void;
 }) {
-  const [date, setDate] = useState(todayInputValue);
-  const [time, setTime] = useState('09:00');
-  const [timeZone, setTimeZone] = useState(systemTimeZone);
+  const [date, setDate] = useState(initialValue?.date ?? todayInputValue);
+  const [time, setTime] = useState(initialValue?.time ?? '09:00');
+  const [timeZone, setTimeZone] = useState(initialValue?.timeZone ?? systemTimeZone);
   const valid = Boolean(date && time);
   const preview = valid ? formatInZone({ instant: zonedToInstant({ date, time, timeZone }) }) : '';
 
