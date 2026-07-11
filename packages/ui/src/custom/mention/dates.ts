@@ -139,3 +139,15 @@ export function relativeDateInputValue(label: string): string {
   const now = new Date();
   return dateInputValue(new Date(now.getFullYear(), now.getMonth(), now.getDate() + offsetDays));
 }
+
+// The concrete day a relative label names, in the reader's locale — so a sent
+// "Today"/"Tomorrow" chip can show *which* day on hover, the way a custom date
+// shows its exact time. Day-only: no time, no zone.
+export function relativeDateLabel(label: string): string {
+  const [year = 0, month = 1, day = 1] = relativeDateInputValue(label).split('-').map(Number);
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(year, month - 1, day));
+}

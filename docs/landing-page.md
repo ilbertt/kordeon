@@ -22,6 +22,16 @@ stacked-PR list, so the landing overrides the rail glyph with a **purpose icon**
 channel is *for* — via the `renderIcon` prop on `Sidebar`/`Thread`. The branch/PR idea now
 lives in the copy and the vision, not in an icon the visitor has no context for.
 
+Most channels are beats in the loop (welcome → collaborate → build → live-preview). One is
+a deliberate exception: **`#the-details` is a showcase**, not a loop step — a home for the
+craft the product sweats that competitors skip. Its hero is the **timezone-aware date
+chip**: a date typed into a message is a real, interactive pill, not text, and every reader
+sees it in *their own* timezone (`MentionTag` re-derives the display from the tag's source
+value on mount — the frozen token is only the SSR-safe first paint). The seeded thread shows
+one landed chip and then points the visitor at the live picker in the composer, which every
+channel's message bar already carries (`allowCustomDate`). If more such details earn a
+spotlight, they belong here rather than bolted onto a loop channel.
+
 ## Markdown mirror for agents
 
 [`apps/website/public/index.md`](../apps/website/public/index.md) is a plain-Markdown

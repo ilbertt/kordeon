@@ -1,7 +1,15 @@
 import type { Channel } from '@repo/domain/workspace';
 import { GithubIcon } from '@repo/ui/custom/github-icon';
 import { PersonAvatar } from '@repo/ui/custom/workspace/person-avatar';
-import { AppWindow, ArrowRight, Database, LoaderCircle, TrendingUp } from 'lucide-react';
+import {
+  AppWindow,
+  ArrowRight,
+  CalendarClock,
+  Database,
+  LoaderCircle,
+  Sparkles,
+  TrendingUp,
+} from 'lucide-react';
 import { ChannelSlug, PEOPLE, REPO_URL } from './data';
 
 // The landing's static preview content, selected by channel. The reusable
@@ -12,6 +20,9 @@ export function PreviewContent({ channel }: { channel: Channel }) {
   }
   if (channel.slug === ChannelSlug.Build) {
     return <BuildingPreview />;
+  }
+  if (channel.slug === ChannelSlug.Details) {
+    return <DetailsPreview />;
   }
   if (channel.slug === ChannelSlug.OpenSource) {
     return <SelfHostPreview />;
@@ -142,6 +153,47 @@ function BuildingPreview() {
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+// The same instant, read from three desks — the payoff of the timezone-aware
+// date chip. Illustrative fixed labels (not the viewer's real cities), so it
+// stays deterministic between prerender and client.
+const TIMEZONE_ROWS = [
+  { city: 'San Francisco', time: '3:00 PM' },
+  { city: 'New York', time: '6:00 PM' },
+  { city: 'London', time: '11:00 PM' },
+];
+
+function DetailsPreview() {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-1.5">
+        <Sparkles className="size-3.5 text-primary" />
+        <span className="font-medium text-sm">Details that add up</span>
+      </div>
+
+      <div className="space-y-2.5 rounded-lg border border-border bg-card p-3 shadow-sm">
+        <div className="flex items-center justify-between">
+          <span className="font-medium text-xs">One moment, every timezone</span>
+          <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 font-medium text-[0.7rem] text-primary">
+            <CalendarClock className="size-3" />
+            Aug 14
+          </span>
+        </div>
+        {TIMEZONE_ROWS.map((row) => (
+          <div key={row.city} className="flex items-center justify-between text-[0.7rem]">
+            <span className="text-foreground/80">{row.city}</span>
+            <span className="text-muted-foreground tabular-nums">{row.time}</span>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-balance text-muted-foreground text-xs">
+        Type a date into any message — everyone reads it in their own timezone, no mental math.
+        Hover to confirm, click to change. No other chat app does this.
+      </p>
     </div>
   );
 }
