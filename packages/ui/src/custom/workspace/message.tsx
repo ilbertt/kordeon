@@ -289,9 +289,9 @@ function Replies({ ids }: { ids: string[] }) {
   );
 }
 
-// The playback's live "typing" row, sized to sit inline with the messages (the
-// composer's own indicator stays compact). Reads "Maya is typing", "Maya and
-// Theo are typing", or "Maya, Theo and 2 others are typing".
+// The live "typing" row that trails the last message — the one place typing is
+// ever shown. Reads "Maya is typing", "Maya and Theo are typing", or "Maya, Theo
+// and 2 others are typing", with avatars a touch smaller than a message's.
 function typingText(names: string[]): string {
   if (names.length === 1) {
     return `${names[0]} is typing`;
@@ -312,11 +312,15 @@ export function ThreadTypingRow({ ids }: { ids: string[] }) {
     return null;
   }
   return (
-    <MessageRow align="start" className="gap-3 duration-300 animate-in fade-in">
-      <MessageAvatar className="min-w-8 self-start bg-transparent">
-        <PersonAvatar person={typists[0]!} className="size-8" />
-      </MessageAvatar>
-      <div className="flex items-center gap-2 pt-1.5 text-muted-foreground text-sm">
+    <MessageRow align="start" className="items-center gap-3 duration-300 animate-in fade-in">
+      <div className="flex min-w-8 shrink-0 justify-start">
+        <AvatarGroup className="-space-x-1.5">
+          {typists.map((person) => (
+            <PersonAvatar key={person.id} person={person} className="size-6" />
+          ))}
+        </AvatarGroup>
+      </div>
+      <div className="flex items-center gap-2 text-muted-foreground text-sm">
         <span>{typingText(typists.map((person) => person.name))}</span>
         <span className="flex items-center gap-0.5">
           {TYPING_DOT_DELAYS.map((delay) => (

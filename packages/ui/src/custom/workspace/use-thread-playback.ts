@@ -13,8 +13,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 const TYPE_MIN_MS = 700;
 const TYPE_MAX_MS = 2600;
 const TYPE_PER_CHAR_MS = 20;
-// The reading beat after a message lands, before the next author starts typing —
-// generous so each message is actually readable before the thread moves on.
+// The reading beat after a message lands, during which the next author already
+// shows as composing — generous so each message stays readable before it lands.
 const READ_MIN_MS = 1000;
 const READ_MAX_MS = 3800;
 const READ_PER_CHAR_MS = 30;
@@ -132,6 +132,9 @@ export function useThreadPlayback({
         return;
       }
       const list = messagesRef.current;
+      // The reading pause before this author "sends". Their indicator is already
+      // on screen — handed over the instant the previous message landed — so the
+      // pause reads as them composing, never as a blank gap that blinks back.
       push({
         delay: readBeat(list[index - 1]!),
         fn: () => {
@@ -141,9 +144,9 @@ export function useThreadPlayback({
           const current = list[index]!;
           const author = authorOf(current);
           const beat = typeBeat(current);
+          const nextAuthor = index + 1 < total ? authorOf(list[index + 1]!) : null;
           if (author) {
             setTyping({ ids: [author] });
-            const nextAuthor = index + 1 < total ? authorOf(list[index + 1]!) : null;
             if (nextAuthor && nextAuthor !== author) {
               push({
                 delay: beat * CO_TYPING_AT,
@@ -159,8 +162,11 @@ export function useThreadPlayback({
               if (cancelled) {
                 return;
               }
-              setTyping(null);
               setRevealCount(index + 1);
+              // Hand the row straight to the next author as this message lands —
+              // never a blank frame between messages. It clears only at a system
+              // note (no author) or the end of the thread.
+              setTyping(nextAuthor ? { ids: [nextAuthor] } : null);
               revealFrom(index + 1);
             },
           });

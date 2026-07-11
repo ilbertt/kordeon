@@ -22,7 +22,7 @@ const DEFAULT_H = 320;
 export function CollabPrompt({
   onText,
   editable = true,
-  label = 'New prompt',
+  label = 'New plan',
 }: {
   onText?: (text: string) => void;
   // Read-only renders the same prompt as a locked, handed-off brief (no live
