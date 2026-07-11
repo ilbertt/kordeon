@@ -1,7 +1,7 @@
 import type { Channel } from '@repo/domain/workspace';
 import { Button } from '@repo/ui/components/button';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@repo/ui/components/input-group';
-import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from '@repo/ui/components/item';
+import { Item, ItemContent, ItemMedia, ItemTitle } from '@repo/ui/components/item';
 import { ScrollArea } from '@repo/ui/components/scroll-area';
 import { Separator } from '@repo/ui/components/separator';
 import { cn } from '@repo/ui/lib/utils';
@@ -26,6 +26,7 @@ export function Sidebar({
   channelHref = (slug) => `#${slug}`,
   renderIcon,
   onCreateChannel,
+  email,
 }: {
   channels: Channel[];
   activeSlug: string;
@@ -34,6 +35,9 @@ export function Sidebar({
   // Wires the header "+" to the create-feature flow (name + icon). Without it the
   // "+" is an inert glyph.
   onCreateChannel?: (value: NewChannel) => void;
+  // The visitor's waitlist email, shown under their name once captured. Omitted
+  // until they send one, so the identity stays a single centered line.
+  email?: string;
 }) {
   const currentUser = useCurrentUser();
   const { openPanel, close } = useWorkspacePanels();
@@ -113,16 +117,17 @@ export function Sidebar({
           </nav>
         </ScrollArea>
         <Separator />
+        {/* Without an email the identity is a single line; once captured it
+            stacks name + email. Either way the avatar stays vertically centered
+            (no `item-description` slot, so the media's top-align rule doesn't
+            kick in). */}
         <Item size="sm" className="mx-1">
           <ItemMedia>
             <PersonAvatar person={currentUser} />
           </ItemMedia>
           <ItemContent>
             <ItemTitle className="truncate text-sm">{currentUser.name}</ItemTitle>
-            <ItemDescription className="flex items-center gap-1">
-              <span className="size-1.5 rounded-full bg-primary" />
-              Active
-            </ItemDescription>
+            {email ? <span className="truncate text-muted-foreground text-xs">{email}</span> : null}
           </ItemContent>
         </Item>
       </aside>

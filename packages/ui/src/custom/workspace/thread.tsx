@@ -15,9 +15,10 @@ import { MentionInput } from '@repo/ui/custom/mention/mention-input';
 import { useTokenCount } from '@repo/ui/hooks/use-token-count';
 import { cn } from '@repo/ui/lib/utils';
 import { Check, Eye, Hash, Mic, Play, Send } from 'lucide-react';
-import { type ReactNode, useRef, useState } from 'react';
+import { type ReactNode, useMemo, useRef, useState } from 'react';
 import { ConnectorsButton } from './connectors-menu';
 import { useWorkspace } from './context';
+import { type AnchoredMessage, interleaveMessages } from './interleave-messages';
 import { ChatMessage, ThreadTypingRow } from './message';
 import { Facepile, PersonAvatar } from './person-avatar';
 import { StatusIcon } from './status-icon';
@@ -35,10 +36,10 @@ type RenderComposerPrompt = (args: {
   label?: string;
 }) => ReactNode;
 
-// What a visitor's message resolves to: the reply(s) to append, plus whether the visitor
-// completed what the composer was asking for (e.g. joined the waitlist) — once resolved, the
-// composer's custom placeholder reverts to the default.
-export type VisitorReply = { replies: Message[]; resolved?: boolean };
+// What a visitor's message resolves to: the reply(s) to append. The data source
+// (the landing) owns when the composer's "ask" is fulfilled — e.g. it stops passing
+// a custom placeholder once the visitor has joined.
+export type VisitorReply = { replies: Message[] };
 
 export function Thread({
   channel,
@@ -50,6 +51,7 @@ export function Thread({
   renderComposerPrompt,
   renderIcon,
   renderMessageExtra,
+  placeholder,
 }: {
   channel: Channel;
   active: boolean;
@@ -59,10 +61,14 @@ export function Thread({
   animate?: boolean;
   onSend?: (value: SendValue) => void;
   // Lets the data source answer a visitor message in character: it returns the
-  // reply message(s) to append (e.g. the pricing agent confirming a waitlist
-  // email). While it's pending, `responderId` shows as typing.
+  // reply message(s) to append (e.g. the agent confirming a waitlist email).
+  // While it's pending, `responderId` shows as typing.
   onVisitorReply?: (value: SendValue) => Promise<VisitorReply>;
   responderId?: string;
+  // Overrides the message-bar placeholder — the landing passes a waitlist prompt
+  // while the visitor hasn't joined yet, and drops it (reverting to the default
+  // `Message #slug…`) once they have.
+  placeholder?: string;
   renderComposerPrompt?: RenderComposerPrompt;
   // Overrides the channel glyph in the header, matching the sidebar (the landing
   // shows purpose icons in place of the git-status default).
@@ -73,12 +79,12 @@ export function Thread({
   const { currentUserId, people } = useWorkspace();
   const { open } = useWorkspacePanels();
   // Messages the visitor sends (and any replies) are kept locally, just for feel —
-  // nothing is persisted, so they reset on reload.
-  const [sent, setSent] = useState<Message[]>([]);
+  // nothing is persisted, so they reset on reload. `revealCountRef` mirrors the
+  // playback's revealed count so `send` (defined before the hook) can stamp each
+  // message with where it belongs in the stream.
+  const revealCountRef = useRef(0);
+  const [sent, setSent] = useState<AnchoredMessage[]>([]);
   const [responding, setResponding] = useState(false);
-  // Once the visitor fulfils the composer's ask (e.g. joins the waitlist), the custom
-  // placeholder reverts to the default.
-  const [resolved, setResolved] = useState(false);
 
   const send = async (value: SendValue) => {
     setSent((prev) => [
@@ -89,6 +95,7 @@ export function Thread({
         from: currentUserId,
         text: value.text,
         segments: value.segments,
+        anchor: revealCountRef.current,
       },
     ]);
     onSend?.(value);
@@ -97,11 +104,11 @@ export function Thread({
     }
     setResponding(true);
     try {
-      const { replies, resolved: didResolve } = await onVisitorReply(value);
-      setSent((prev) => [...prev, ...replies]);
-      if (didResolve) {
-        setResolved(true);
-      }
+      const { replies } = await onVisitorReply(value);
+      // Re-read the count when the reply lands: more seeded messages may have
+      // revealed during the response delay, and the reply belongs after them.
+      const anchor = revealCountRef.current;
+      setSent((prev) => [...prev, ...replies.map((reply) => ({ ...reply, anchor }))]);
     } finally {
       setResponding(false);
     }
@@ -114,17 +121,20 @@ export function Thread({
     animate,
     rootRef,
   });
+  revealCountRef.current = revealCount;
 
   // The composer's own "typing" line stands down while the thread is playing —
   // the inline typing row carries it there instead.
   const typistId = responding ? responderId : playing ? undefined : channel.typing;
   const typist = typistId ? (people[typistId] ?? null) : null;
-  const composerPlaceholder =
-    !resolved && channel.composerPlaceholder
-      ? channel.composerPlaceholder
-      : `Message #${channel.slug}…`;
+  const composerPlaceholder = placeholder ?? `Message #${channel.slug}…`;
 
-  const revealed = channel.messages.slice(0, revealCount);
+  // Visitor-sent messages slot into the playback stream where they landed (by
+  // reveal count), so later-revealing seeded ones render below them, not above.
+  const ordered = useMemo(
+    () => interleaveMessages({ seeded: channel.messages, sent, revealCount }),
+    [channel.messages, revealCount, sent],
+  );
   return (
     <section ref={rootRef} className={cn('min-w-0 flex-1 flex-col', active ? 'flex' : 'hidden')}>
       <div className="flex h-14 shrink-0 items-center gap-2 border-border border-b px-3 sm:px-5">
@@ -170,19 +180,14 @@ export function Thread({
         <MessageScroller className="flex-1">
           <MessageScrollerViewport className="px-5 py-6">
             <MessageScrollerContent className="gap-5">
-              {revealed.map((message) => (
+              {ordered.map(({ message, isSent }) => (
                 <MessageScrollerItem
                   key={message.id}
                   messageId={message.id}
                   className={cn(
-                    playing && 'duration-300 animate-in fade-in slide-in-from-bottom-2',
+                    playing && !isSent && 'duration-300 animate-in fade-in slide-in-from-bottom-2',
                   )}
                 >
-                  <ChatMessage message={message} renderExtra={renderMessageExtra} />
-                </MessageScrollerItem>
-              ))}
-              {sent.map((message) => (
-                <MessageScrollerItem key={message.id} messageId={message.id}>
                   <ChatMessage message={message} renderExtra={renderMessageExtra} />
                 </MessageScrollerItem>
               ))}
