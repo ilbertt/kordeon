@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- [Bun](https://bun.sh) — the pinned version lives in `packageManager` in the root `package.json`.
+- [Bun](https://bun.sh) — the pinned version is in [`.bun-version`](../.bun-version).
 - [Node.js](https://nodejs.org) — the required major is pinned in [`.node-version`](../.node-version).
 
 ## Development setup
