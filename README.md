@@ -1,14 +1,10 @@
 <div align="center">
 
-<img src="apps/website/public/og.png" alt="kordeon" width="840">
-
-# kordeon
+# <img src="docs/brand/kordeon-mark.svg" width="28" alt="kordeon"> kordeon
 
 **Where humans collaborate and agents execute.**
 
 Chat, refine the plan, and hand it to an agent — together, in one place.
-
-[![GitHub](https://img.shields.io/badge/source-github-181717?logo=github)](https://github.com/ilbertt/kordeon)
 
 </div>
 
