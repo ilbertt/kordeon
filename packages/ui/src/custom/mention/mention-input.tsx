@@ -261,8 +261,11 @@ export function MentionInput({
         }}
         onKeyDown={onKeyDown}
         onClick={(event) => {
+          // A time chip reopens the picker prefilled — custom dates with their
+          // stored value, relative labels (Today, …) with today so they can be
+          // refined into a concrete date.
           const chip = (event.target as HTMLElement).closest<HTMLSpanElement>(
-            '[data-mention="time"][data-date]',
+            '[data-mention="time"]',
           );
           if (chip) {
             editChip(chip);
