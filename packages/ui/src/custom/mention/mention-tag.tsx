@@ -37,7 +37,7 @@ export function MentionTag({ tag }: { tag: MentionTagData }) {
         render={<span />}
         className={cn(
           MENTION_CHIP_CLASS.time,
-          'cursor-default transition-colors hover:bg-muted-foreground/15',
+          'cursor-default transition-colors hover:bg-primary/20',
         )}
       >
         {tag.token}
