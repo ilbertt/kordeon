@@ -258,6 +258,11 @@ export function MentionInput({
         onInput={() => {
           emit();
           syncTrigger();
+          // If the chip being edited was removed (e.g. backspaced), drop the
+          // picker too — otherwise it floats over a chip that no longer exists.
+          if (editingChip.current && !editingChip.current.isConnected) {
+            closePicker();
+          }
         }}
         onKeyDown={onKeyDown}
         onClick={(event) => {
