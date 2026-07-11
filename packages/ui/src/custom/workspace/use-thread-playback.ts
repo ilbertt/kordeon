@@ -120,7 +120,7 @@ export function useThreadPlayback({
       timers.push(window.setTimeout(fn, delay));
     };
 
-    const revealFrom = (index: number) => {
+    const revealFrom = ({ index, preTyping }: { index: number; preTyping: boolean }) => {
       if (cancelled) {
         return;
       }
@@ -132,8 +132,10 @@ export function useThreadPlayback({
         return;
       }
       const list = messagesRef.current;
+      // No reading pause when this author was already co-typing the previous
+      // message — their "is typing" carries straight over instead of blinking out.
       push({
-        delay: readBeat(list[index - 1]!),
+        delay: preTyping ? 0 : readBeat(list[index - 1]!),
         fn: () => {
           if (cancelled) {
             return;
@@ -141,9 +143,9 @@ export function useThreadPlayback({
           const current = list[index]!;
           const author = authorOf(current);
           const beat = typeBeat(current);
+          const nextAuthor = index + 1 < total ? authorOf(list[index + 1]!) : null;
           if (author) {
             setTyping({ ids: [author] });
-            const nextAuthor = index + 1 < total ? authorOf(list[index + 1]!) : null;
             if (nextAuthor && nextAuthor !== author) {
               push({
                 delay: beat * CO_TYPING_AT,
@@ -159,9 +161,12 @@ export function useThreadPlayback({
               if (cancelled) {
                 return;
               }
-              setTyping(null);
               setRevealCount(index + 1);
-              revealFrom(index + 1);
+              // Hand the indicator straight to the next author when they were
+              // co-typing, so it never blanks between back-to-back authors.
+              const handoff = Boolean(author && nextAuthor && nextAuthor !== author);
+              setTyping(handoff ? { ids: [nextAuthor!] } : null);
+              revealFrom({ index: index + 1, preTyping: handoff });
             },
           });
         },
@@ -174,7 +179,7 @@ export function useThreadPlayback({
           if (!started && entry.isIntersecting && entry.intersectionRatio >= IN_VIEW_RATIO) {
             started = true;
             observer.disconnect();
-            revealFrom(1);
+            revealFrom({ index: 1, preTyping: false });
             break;
           }
         }
