@@ -35,10 +35,10 @@ type RenderComposerPrompt = (args: {
   label?: string;
 }) => ReactNode;
 
-// What a visitor's message resolves to: the reply(s) to append, plus whether the visitor
-// completed what the composer was asking for (e.g. joined the waitlist) — once resolved, the
-// composer's custom placeholder reverts to the default.
-export type VisitorReply = { replies: Message[]; resolved?: boolean };
+// What a visitor's message resolves to: the reply(s) to append. The data source
+// (the landing) owns when the composer's "ask" is fulfilled — e.g. it stops passing
+// a custom placeholder once the visitor has joined.
+export type VisitorReply = { replies: Message[] };
 
 export function Thread({
   channel,
@@ -50,6 +50,7 @@ export function Thread({
   renderComposerPrompt,
   renderIcon,
   renderMessageExtra,
+  placeholder,
 }: {
   channel: Channel;
   active: boolean;
@@ -59,10 +60,14 @@ export function Thread({
   animate?: boolean;
   onSend?: (value: SendValue) => void;
   // Lets the data source answer a visitor message in character: it returns the
-  // reply message(s) to append (e.g. the pricing agent confirming a waitlist
-  // email). While it's pending, `responderId` shows as typing.
+  // reply message(s) to append (e.g. the agent confirming a waitlist email).
+  // While it's pending, `responderId` shows as typing.
   onVisitorReply?: (value: SendValue) => Promise<VisitorReply>;
   responderId?: string;
+  // Overrides the message-bar placeholder — the landing passes a waitlist prompt
+  // while the visitor hasn't joined yet, and drops it (reverting to the default
+  // `Message #slug…`) once they have.
+  placeholder?: string;
   renderComposerPrompt?: RenderComposerPrompt;
   // Overrides the channel glyph in the header, matching the sidebar (the landing
   // shows purpose icons in place of the git-status default).
@@ -76,9 +81,6 @@ export function Thread({
   // nothing is persisted, so they reset on reload.
   const [sent, setSent] = useState<Message[]>([]);
   const [responding, setResponding] = useState(false);
-  // Once the visitor fulfils the composer's ask (e.g. joins the waitlist), the custom
-  // placeholder reverts to the default.
-  const [resolved, setResolved] = useState(false);
 
   const send = async (value: SendValue) => {
     setSent((prev) => [
@@ -97,11 +99,8 @@ export function Thread({
     }
     setResponding(true);
     try {
-      const { replies, resolved: didResolve } = await onVisitorReply(value);
+      const { replies } = await onVisitorReply(value);
       setSent((prev) => [...prev, ...replies]);
-      if (didResolve) {
-        setResolved(true);
-      }
     } finally {
       setResponding(false);
     }
@@ -119,10 +118,7 @@ export function Thread({
   // the inline typing row carries it there instead.
   const typistId = responding ? responderId : playing ? undefined : channel.typing;
   const typist = typistId ? (people[typistId] ?? null) : null;
-  const composerPlaceholder =
-    !resolved && channel.composerPlaceholder
-      ? channel.composerPlaceholder
-      : `Message #${channel.slug}…`;
+  const composerPlaceholder = placeholder ?? `Message #${channel.slug}…`;
 
   const revealed = channel.messages.slice(0, revealCount);
   return (

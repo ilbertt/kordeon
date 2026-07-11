@@ -288,7 +288,6 @@ export const channels: LandingChannel[] = [
     icon: Tag,
     topic: 'Pricing’s still taking shape — get on the list',
     members: ['you', 'korde'],
-    composerPlaceholder: 'Send here your email to join the waitlist',
     messages: [
       {
         id: 'pr1',

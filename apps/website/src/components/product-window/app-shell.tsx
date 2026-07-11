@@ -12,6 +12,7 @@ import { ArrowRight, Home, type LucideIcon, Sparkles } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
 import { CollabPrompt } from '#components/collab-prompt';
 import { subscribe } from '#lib/subscribe';
+import { setVisitorEmail, useVisitorEmail } from '#lib/visitor-email';
 import {
   addDynamicChannel,
   ChannelSlug,
@@ -32,6 +33,10 @@ import { PreviewContent } from './preview-content';
 const EMAIL_PATTERN = /[^\s@]+@[^\s@]+\.[^\s@]+/;
 const KORDE_REPLY_DELAY_MS = 700;
 
+// Every message bar invites the waitlist the same way — the placeholder drops
+// (reverting to the plain `Message #slug…`) once the visitor has joined.
+const WAITLIST_PLACEHOLDER = 'Send your email to join the waitlist, or just send a message';
+
 // Korde's ad-libs when a visitor sends something that isn't an email.
 const NO_EMAIL_REPLIES = [
   'Ha — love the energy. But I run on email addresses, not vibes. Drop yours and you’re on the early-access list. 📮',
@@ -49,25 +54,37 @@ const kordeReply = (text: string): Message => ({
   text,
 });
 
-// The #pricing thread captures the waitlist through the chat itself: a visitor replies
-// with their email, Korde stores it (D1, via the subscribe server function) and confirms —
-// or ribs them into sending a real address.
-async function handlePricingReply(value: { text: string }): Promise<VisitorReply> {
-  await sleep(KORDE_REPLY_DELAY_MS);
-  const email = value.text.match(EMAIL_PATTERN)?.[0];
+// Every channel captures the waitlist through the chat: a visitor who sends an
+// email is subscribed (D1, via the subscribe server function) and remembered
+// (localStorage, so the sidebar identity and the composer prompt pick it up).
+// `rib` is set only on the dedicated waitlist channel, where a message without
+// an email gets needled instead of landing in silence.
+async function handleVisitorReply({
+  text,
+  rib,
+}: {
+  text: string;
+  rib: boolean;
+}): Promise<VisitorReply> {
+  const email = text.match(EMAIL_PATTERN)?.[0];
   if (!email) {
+    if (!rib) {
+      return { replies: [] };
+    }
+    await sleep(KORDE_REPLY_DELAY_MS);
     const index = Math.floor(Math.random() * NO_EMAIL_REPLIES.length);
     return { replies: [kordeReply(NO_EMAIL_REPLIES[index] ?? NO_EMAIL_REPLIES[0])] };
   }
+  await sleep(KORDE_REPLY_DELAY_MS);
   try {
     await subscribe({ data: email });
+    setVisitorEmail(email);
     return {
       replies: [
         kordeReply(
           `You’re in — I’ve got ${email} on the early-access list. I’ll reach out the moment pricing lands. 🎉`,
         ),
       ],
-      resolved: true,
     };
   } catch (error) {
     const reason = error instanceof Error ? error.message : 'that didn’t go through.';
@@ -100,6 +117,11 @@ const renderMessageExtra = (message: Message) =>
   message.id === OPEN_SOURCE_STAR_MESSAGE_ID ? <GithubStar /> : null;
 
 export function AppShell({ activeSlug }: { activeSlug: string }) {
+  // The visitor's waitlist email, if they've sent one. Drives the composer
+  // placeholder (ask until joined) and the sidebar identity (name + email).
+  const visitorEmail = useVisitorEmail();
+  const askPlaceholder = visitorEmail ? undefined : WAITLIST_PLACEHOLDER;
+
   // Visitor-created channels are appended to the seeded list; they live only in
   // this session (see the dynamic registry in ./data).
   const dynamicChannels = useSyncExternalStore(
@@ -126,11 +148,14 @@ export function AppShell({ activeSlug }: { activeSlug: string }) {
             activeSlug={activeSlug}
             renderIcon={renderChannelIcon}
             onCreateChannel={handleCreateChannel}
+            email={visitorEmail ?? undefined}
           />
         }
       >
         {allChannels.map((channel) => {
-          const isPricing = channel.slug === ChannelSlug.Pricing;
+          // Only the dedicated waitlist channel ribs a message that isn't an
+          // email; everywhere else such a message just lands in silence.
+          const rib = channel.slug === ChannelSlug.Pricing;
           return (
             <Thread
               key={channel.slug}
@@ -140,8 +165,9 @@ export function AppShell({ activeSlug }: { activeSlug: string }) {
               renderComposerPrompt={renderComposerPrompt}
               renderIcon={renderChannelIcon}
               renderMessageExtra={renderMessageExtra}
-              onVisitorReply={isPricing ? handlePricingReply : undefined}
-              responderId={isPricing ? 'korde' : undefined}
+              onVisitorReply={(value) => handleVisitorReply({ text: value.text, rib })}
+              responderId="korde"
+              placeholder={askPlaceholder}
             />
           );
         })}
