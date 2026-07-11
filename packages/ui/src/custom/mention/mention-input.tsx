@@ -5,23 +5,11 @@ import { cn } from '@repo/ui/lib/utils';
 import { useEffect, useRef, useState } from 'react';
 import { TRIGGER_KINDS } from './constants';
 import { DatePicker } from './date-picker';
-import { formatInZone, relativeDateInputValue, systemTimeZone, zonedToInstant } from './dates';
+import { relativeDateInputValue, systemTimeZone } from './dates';
 import { MentionMenu } from './mention-menu';
 import { type ActiveTrigger, buildChip, readActiveTrigger, serialize } from './serialize';
+import { timeTagFromValue } from './time-tag';
 import type { MentionSuggestion } from './types';
-
-// Builds a time tag from a wall-clock value: the pill shows the viewer's time,
-// the tooltip the source time + zone. Centralised so inserting and in-place
-// editing produce the same tag.
-function timeTagFromValue(value: TimeTagValue): MentionTagData {
-  const instant = zonedToInstant(value);
-  return {
-    kind: 'time',
-    token: formatInZone({ instant }),
-    tooltip: `${formatInZone({ instant, timeZone: value.timeZone })} — shown in your time`,
-    date: value,
-  };
-}
 
 // A message input with Notion-style inline tags: `@` mentions a person or agent
 // or picks a time, `#` links another channel. Tags render as inline, read-only

@@ -1,6 +1,6 @@
-import type { Channel, Person } from '@repo/domain/workspace';
+import type { Channel, MentionTagData, Person } from '@repo/domain/workspace';
 import type { MentionSuggestion } from '@repo/ui/custom/mention/types';
-import { AppWindow, Code, Hammer, Home, type LucideIcon, Tag, Users } from 'lucide-react';
+import { AppWindow, Code, Hammer, Home, type LucideIcon, Sparkles, Tag, Users } from 'lucide-react';
 import adaAvatar from '#assets/avatars/ada.svg';
 import kordeAvatar from '#assets/avatars/korde.svg';
 import mayaAvatar from '#assets/avatars/maya.svg';
@@ -64,9 +64,25 @@ export enum ChannelSlug {
   Collaborate = 'collaborate',
   Build = 'build',
   LivePreview = 'live-preview',
+  Details = 'the-details',
   OpenSource = 'open-source',
   Pricing = 'pricing',
 }
+
+// The seeded date chip in #the-details. `token`/`tooltip` are literal strings —
+// the source-zone rendering of KICKOFF_VALUE, kept as constants (not computed via
+// Intl at module load) so the prerender and client agree byte-for-byte, exactly
+// like the relative labels below. Once mounted, MentionTag re-renders the chip in
+// the reader's own timezone from `date`: that flip *is* the feature. Keep the
+// literals in sync with KICKOFF_VALUE (15:00 America/Los_Angeles = 3:00 PM PDT).
+const KICKOFF_VALUE = { date: '2026-08-14', time: '15:00', timeZone: 'America/Los_Angeles' };
+const KICKOFF_TOKEN = 'Aug 14, 3:00 PM PDT';
+const KICKOFF_TAG: MentionTagData = {
+  kind: 'time',
+  token: KICKOFF_TOKEN,
+  tooltip: `${KICKOFF_TOKEN} — shown in your time`,
+  date: KICKOFF_VALUE,
+};
 
 // A landing channel satisfies the domain `Channel` shape and carries a purpose
 // icon: cold visitors can't decode the git-status metaphor, so the rail shows
@@ -258,6 +274,45 @@ export const channels: LandingChannel[] = [
         kind: 'msg',
         from: 'you',
         text: 'Ship it — and yes, do the breakdown.',
+      },
+    ],
+  },
+  {
+    slug: ChannelSlug.Details,
+    status: 'main',
+    icon: Sparkles,
+    topic: 'The little things other chat apps skip',
+    members: ['you', 'maya', 'ada', 'korde'],
+    messages: [
+      {
+        id: 'td1',
+        kind: 'msg',
+        from: 'korde',
+        text: 'A few things we sweat that most chat apps skip. Exhibit A: a date in a message isn’t plain text — it’s a real, timezone-aware chip.',
+      },
+      {
+        id: 'td2',
+        kind: 'msg',
+        from: 'maya',
+        text: `Kickoff’s locked for ${KICKOFF_TOKEN}. Works for everyone?`,
+        segments: [
+          { type: 'text', text: 'Kickoff’s locked for ' },
+          { type: 'tag', tag: KICKOFF_TAG },
+          { type: 'text', text: '. Works for everyone?' },
+        ],
+      },
+      {
+        id: 'td3',
+        kind: 'msg',
+        from: 'ada',
+        text: 'Perfect — and it’s already showing in my timezone, no mental math.',
+        reactions: [{ emoji: '🙌', by: ['maya', 'you'] }],
+      },
+      {
+        id: 'td4',
+        kind: 'msg',
+        from: 'korde',
+        text: 'Every date works like this: hover to read it in your time, click to change it. Your turn — type @ in the box below and pick a date. It’ll land in your timezone.',
       },
     ],
   },
