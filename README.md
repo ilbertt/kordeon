@@ -1,6 +1,6 @@
 <div align="center">
 
-# <img src="apps/website/public/favicon.svg" width="40" align="middle" alt="kordeon"> kordeon
+# <img src="apps/website/public/favicon.svg" width="40" align="absmiddle" alt="kordeon"> kordeon
 
 **Where humans collaborate and agents execute.**
 
@@ -12,10 +12,10 @@ Chat, refine the plan, and hand it to an agent — together, in one place.
 
 ---
 
-Chat tools own the conversation, but work doesn't fit in a thread. The context lives
-on the left, the thing you're building lives on the right, and you keep tabbing between
-them. kordeon puts all three side by side — and the agent spans them, reading context
-and building the artifact as it goes.
+Chat tools own the conversation, but work is more than a thread. There's the context
+behind it and the thing you're actually building — so you keep jumping between apps.
+kordeon brings the conversation, the context, and the result into one place, with the
+agent working across all three.
 
 **The loop:**
 
