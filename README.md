@@ -1,10 +1,12 @@
 <div align="center">
 
-# <img src="docs/brand/kordeon-mark.svg" width="28" alt="kordeon"> kordeon
+# <img src="apps/website/public/favicon.svg" width="40" alt="kordeon"> kordeon
 
 **Where humans collaborate and agents execute.**
 
 Chat, refine the plan, and hand it to an agent — together, in one place.
+
+**[kordeon.com](https://kordeon.com)**
 
 </div>
 
@@ -47,6 +49,6 @@ bun install
 
 <div align="center">
 
-**[★ Star on GitHub](https://github.com/ilbertt/kordeon)** · **[Join the waitlist](https://kordeon.com)**
+**[Join the waitlist](https://kordeon.com)**
 
 </div>
