@@ -49,6 +49,10 @@ export function DatePicker({
           defaultMonth={instant}
           selected={instant}
           onSelect={onDayPick}
+          // Keep today's cell rounded when it's the selected day. shadcn squares it
+          // off (data-[selected=true]:rounded-none) for range selection, which here
+          // just draws a square frame around the round pill.
+          classNames={{ today: 'rounded-(--cell-radius) bg-muted text-foreground' }}
         />
         <div className="flex w-40 flex-col gap-2">
           <Input
