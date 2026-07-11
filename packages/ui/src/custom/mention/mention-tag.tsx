@@ -3,6 +3,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@repo/ui/components/too
 import { cn } from '@repo/ui/lib/utils';
 import { useEffect, useState } from 'react';
 import { MENTION_CHIP_CLASS } from './constants';
+import { relativeDateLabel } from './dates';
 import { timeTagFromValue } from './time-tag';
 
 // Rendered-message counterpart of the composer's chips (styling stays in sync via
@@ -31,11 +32,11 @@ export function MentionTag({ tag }: { tag: MentionTagData }) {
   return <TimeTag tag={tag} />;
 }
 
-// A date chip belongs to whoever reads it, not whoever sent it. A tag carrying a
-// source value (date + zone) re-renders in the reader's timezone once mounted;
-// the stored token/tooltip is the SSR-safe first paint, so hydration matches and
-// only then does the pill flip to the reader's own time. Relative labels (Today,
-// …) carry no source value and stay inert.
+// A date chip belongs to whoever reads it, not whoever sent it. The stored
+// token/tooltip is the SSR-safe first paint; once mounted it resolves for the
+// reader: a custom date (date + zone) re-renders in the reader's own timezone,
+// and a relative label (Today/Tomorrow) gains a tooltip naming the day it points
+// to — so every date chip reads the same on hover, not just custom ones.
 function TimeTag({ tag }: { tag: MentionTagData }) {
   const [display, setDisplay] = useState<{ token: string; tooltip?: string }>({
     token: tag.token,
@@ -43,12 +44,13 @@ function TimeTag({ tag }: { tag: MentionTagData }) {
   });
 
   useEffect(() => {
-    if (!tag.date) {
+    if (tag.date) {
+      const local = timeTagFromValue(tag.date);
+      setDisplay({ token: local.token, tooltip: local.tooltip });
       return;
     }
-    const local = timeTagFromValue(tag.date);
-    setDisplay({ token: local.token, tooltip: local.tooltip });
-  }, [tag.date]);
+    setDisplay({ token: tag.token, tooltip: relativeDateLabel(tag.token) });
+  }, [tag.date, tag.token]);
 
   if (!display.tooltip) {
     return <span className={MENTION_CHIP_CLASS.time}>{display.token}</span>;
