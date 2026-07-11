@@ -12,17 +12,11 @@ Chat, refine the plan, and hand it to an agent — together, in one place.
 
 ---
 
-Chat tools own the conversation, but work is more than a thread. There's the context
-behind it and the thing you're actually building — so you keep jumping between apps.
-kordeon brings the conversation, the context, and the result into one place, with the
-agent working across all three.
+**If Slack, Cursor, and Google Docs had a baby.**
 
-**The loop:**
-
-1. **Chat** an idea with your team and the agent.
-2. **Refine the plan** — edit, reorder, or add steps before anything runs.
-3. **Hand it off** to the agent, which pulls the context, builds it, and opens a PR.
-4. **Preview** the result, live as each step ships.
+Team chat like Slack. An AI agent that actually builds the work like Cursor. A plan you
+edit together, live, like Google Docs. Talk an idea through, shape the plan with your
+team, then hand it to the agent — and watch the result render as it ships.
 
 ## The agent is a teammate, not a tool
 
