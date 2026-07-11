@@ -82,6 +82,33 @@ export function zonedToInstant({
   return new Date(naiveUtc - zoneOffset({ instant: new Date(naiveUtc), timeZone }));
 }
 
+// The inverse of zonedToInstant: a wall-clock {date,time} in a zone, from an
+// instant. Drives the calendar grid back into the source-of-truth strings when a
+// day is picked.
+export function zonedFromInstant({ instant, timeZone }: { instant: Date; timeZone: string }): {
+  date: string;
+  time: string;
+} {
+  const at: Partial<Record<Intl.DateTimeFormatPartTypes, string>> = {};
+  for (const part of new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).formatToParts(instant)) {
+    if (part.type !== 'literal') {
+      at[part.type] = part.value;
+    }
+  }
+  return {
+    date: `${at.year}-${at.month}-${at.day}`,
+    time: `${at.hour}:${at.minute}`,
+  };
+}
+
 export function formatInZone({ instant, timeZone }: { instant: Date; timeZone?: string }): string {
   return new Intl.DateTimeFormat(undefined, {
     month: 'short',
@@ -93,10 +120,22 @@ export function formatInZone({ instant, timeZone }: { instant: Date; timeZone?: 
   }).format(instant);
 }
 
-export function todayInputValue(): string {
+function dateInputValue(date: Date): string {
   return new Intl.DateTimeFormat('en-CA', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  }).format(new Date());
+  }).format(date);
+}
+
+export function todayInputValue(): string {
+  return dateInputValue(new Date());
+}
+
+// A relative label ("Today", "Tomorrow") carries no stored date, so reopening
+// the picker should land on the day it names rather than always on today.
+export function relativeDateInputValue(label: string): string {
+  const offsetDays = label.trim().toLowerCase() === 'tomorrow' ? 1 : 0;
+  const now = new Date();
+  return dateInputValue(new Date(now.getFullYear(), now.getMonth(), now.getDate() + offsetDays));
 }

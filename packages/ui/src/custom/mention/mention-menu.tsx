@@ -5,14 +5,23 @@ import { Calendar, Clock, Hash } from 'lucide-react';
 import { KIND_HEADING } from './constants';
 import type { MentionSuggestion } from './types';
 
+// Attached to whichever row is currently active, so it scrolls into view the
+// moment arrow-key navigation makes it active (the scrollable list itself
+// doesn't follow `activeId`).
+const scrollActiveIntoView = (node: HTMLElement | null) => {
+  node?.scrollIntoView({ block: 'nearest' });
+};
+
 export function MentionMenu({
   items,
   activeId,
+  dateActive,
   onPick,
   onPickDate,
 }: {
   items: MentionSuggestion[];
   activeId?: string;
+  dateActive?: boolean;
   onPick: (item: MentionSuggestion) => void;
   onPickDate?: () => void;
 }) {
@@ -23,7 +32,7 @@ export function MentionMenu({
         const heading = item.kind === lastKind ? null : KIND_HEADING[item.kind];
         lastKind = item.kind;
         return (
-          <div key={item.id}>
+          <div key={item.id} ref={item.id === activeId ? scrollActiveIntoView : undefined}>
             {heading ? (
               <div className="px-2 pt-1.5 pb-1 font-medium text-[0.65rem] text-muted-foreground uppercase tracking-wide">
                 {heading}
@@ -57,24 +66,28 @@ export function MentionMenu({
         );
       })}
       {onPickDate ? (
-        <Item
-          size="xs"
-          render={
-            <button
-              type="button"
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={onPickDate}
-            />
-          }
-          className="text-muted-foreground hover:bg-muted"
-        >
-          <ItemMedia variant="icon">
-            <Calendar className="size-3.5" />
-          </ItemMedia>
-          <ItemContent>
-            <ItemTitle className="font-normal">Pick a date…</ItemTitle>
-          </ItemContent>
-        </Item>
+        <div ref={dateActive ? scrollActiveIntoView : undefined}>
+          <Item
+            size="xs"
+            render={
+              <button
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={onPickDate}
+              />
+            }
+            className={cn(
+              dateActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted',
+            )}
+          >
+            <ItemMedia variant="icon">
+              <Calendar className="size-3.5" />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle className="font-normal">Pick a date…</ItemTitle>
+            </ItemContent>
+          </Item>
+        </div>
       ) : null}
     </div>
   );

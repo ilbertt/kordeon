@@ -324,7 +324,7 @@ export const OPEN_SOURCE_STAR_MESSAGE_ID = 'os2';
 
 // Relative time tags, Notion-style. Kept as labels (not computed dates) so the
 // prerender and client agree and there's no date math to drift.
-export const TIME_MENTIONS = ['Today', 'Tomorrow', 'This afternoon', 'Next Monday', 'In two weeks'];
+export const TIME_MENTIONS = ['Today', 'Tomorrow'];
 
 export const MENTION_SUGGESTIONS: MentionSuggestion[] = [
   ...Object.values(PEOPLE)

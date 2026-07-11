@@ -1,14 +1,27 @@
 // biome-ignore-all lint/style/noMagicNumbers: caret math
 
-import type { MentionTagData, MessageSegment } from '@repo/domain/workspace';
+import type { MentionTagData, MessageSegment, TimeTagValue } from '@repo/domain/workspace';
 import { cn } from '@repo/ui/lib/utils';
 import { useEffect, useRef, useState } from 'react';
 import { TRIGGER_KINDS } from './constants';
 import { DatePicker } from './date-picker';
-import { formatInZone, zonedToInstant } from './dates';
+import { formatInZone, relativeDateInputValue, systemTimeZone, zonedToInstant } from './dates';
 import { MentionMenu } from './mention-menu';
 import { type ActiveTrigger, buildChip, readActiveTrigger, serialize } from './serialize';
 import type { MentionSuggestion } from './types';
+
+// Builds a time tag from a wall-clock value: the pill shows the viewer's time,
+// the tooltip the source time + zone. Centralised so inserting and in-place
+// editing produce the same tag.
+function timeTagFromValue(value: TimeTagValue): MentionTagData {
+  const instant = zonedToInstant(value);
+  return {
+    kind: 'time',
+    token: formatInZone({ instant }),
+    tooltip: `${formatInZone({ instant, timeZone: value.timeZone })} — shown in your time`,
+    date: value,
+  };
+}
 
 // A message input with Notion-style inline tags: `@` mentions a person or agent
 // or picks a time, `#` links another channel. Tags render as inline, read-only
@@ -40,10 +53,13 @@ export function MentionInput({
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
   const savedRange = useRef<{ range: Range; runLength: number } | null>(null);
+  // A chip being edited in place (vs. a freshly opened picker) — set on click.
+  const editingChip = useRef<HTMLSpanElement | null>(null);
   const [empty, setEmpty] = useState(true);
   const [trigger, setTrigger] = useState<ActiveTrigger | null>(null);
   const [active, setActive] = useState(0);
   const [pickingDate, setPickingDate] = useState(false);
+  const [pickerInitial, setPickerInitial] = useState<TimeTagValue>();
 
   useEffect(() => {
     if (autoFocus) {
@@ -61,7 +77,10 @@ export function MentionInput({
         );
   const offersTime = trigger !== null && (TRIGGER_KINDS[trigger.char]?.includes('time') ?? false);
   const showCustomDate = allowCustomDate && offersTime;
-  const open = !pickingDate && (matches.length > 0 || showCustomDate);
+  // The custom-date row sits after the matches, so it owns index `matches.length`.
+  const optionCount = matches.length + (showCustomDate ? 1 : 0);
+  const dateActive = showCustomDate && active === matches.length;
+  const open = !pickingDate && optionCount > 0;
 
   const emit = () => {
     const root = editorRef.current;
@@ -135,29 +154,47 @@ export function MentionInput({
         runLength: 1 + (trigger?.query.length ?? 0),
       };
     }
+    setPickerInitial(undefined);
     setPickingDate(true);
   };
 
   const closePicker = () => {
     setPickingDate(false);
+    setPickerInitial(undefined);
+    editingChip.current = null;
     setTrigger(null);
     editorRef.current?.focus();
   };
 
-  const addCustomDate = (value: { date: string; time: string; timeZone: string }) => {
-    const saved = savedRange.current;
-    if (saved) {
-      const instant = zonedToInstant(value);
-      insertAt({
-        tag: {
-          kind: 'time',
-          token: formatInZone({ instant }),
-          tooltip: `${formatInZone({ instant, timeZone: value.timeZone })} — shown in your time`,
-        },
-        range: saved.range,
-        runLength: saved.runLength,
-      });
+  const editChip = (chip: HTMLSpanElement) => {
+    editingChip.current = chip;
+    setPickerInitial({
+      date:
+        chip.dataset.date ?? relativeDateInputValue(chip.dataset.token ?? chip.textContent ?? ''),
+      time: chip.dataset.time ?? '09:00',
+      timeZone: chip.dataset.timeZone ?? systemTimeZone(),
+    });
+    setPickingDate(true);
+  };
+
+  const addCustomDate = (value: TimeTagValue) => {
+    const editing = editingChip.current;
+    if (editing) {
+      editing.replaceWith(buildChip(timeTagFromValue(value)));
+      editingChip.current = null;
+      editorRef.current?.focus();
+      emit();
+    } else {
+      const saved = savedRange.current;
+      if (saved) {
+        insertAt({
+          tag: timeTagFromValue(value),
+          range: saved.range,
+          runLength: saved.runLength,
+        });
+      }
     }
+    setPickerInitial(undefined);
     setPickingDate(false);
   };
 
@@ -165,12 +202,12 @@ export function MentionInput({
     if (open) {
       if (event.key === 'ArrowDown') {
         event.preventDefault();
-        setActive((index) => (index + 1) % matches.length);
+        setActive((index) => (index + 1) % optionCount);
         return;
       }
       if (event.key === 'ArrowUp') {
         event.preventDefault();
-        setActive((index) => (index - 1 + matches.length) % matches.length);
+        setActive((index) => (index - 1 + optionCount) % optionCount);
         return;
       }
       if (event.key === 'Enter' || event.key === 'Tab') {
@@ -197,11 +234,14 @@ export function MentionInput({
 
   return (
     <div className={cn('relative flex-1', className)}>
-      {pickingDate ? <DatePicker onAdd={addCustomDate} onCancel={closePicker} /> : null}
+      {pickingDate ? (
+        <DatePicker initialValue={pickerInitial} onAdd={addCustomDate} onCancel={closePicker} />
+      ) : null}
       {open ? (
         <MentionMenu
           items={matches}
           activeId={matches[active]?.id}
+          dateActive={dateActive}
           onPick={insert}
           onPickDate={showCustomDate ? openPicker : undefined}
         />
@@ -223,9 +263,26 @@ export function MentionInput({
         onInput={() => {
           emit();
           syncTrigger();
+          // If the chip being edited was removed (e.g. backspaced), drop the
+          // picker too — otherwise it floats over a chip that no longer exists.
+          if (editingChip.current && !editingChip.current.isConnected) {
+            closePicker();
+          }
         }}
         onKeyDown={onKeyDown}
-        onClick={syncTrigger}
+        onClick={(event) => {
+          // A time chip reopens the picker prefilled — custom dates with their
+          // stored value, relative labels (Today, Tomorrow) with the day they
+          // name so they can be refined into a concrete date.
+          const chip = (event.target as HTMLElement).closest<HTMLSpanElement>(
+            '[data-mention="time"]',
+          );
+          if (chip) {
+            editChip(chip);
+            return;
+          }
+          syncTrigger();
+        }}
         onBlur={() => {
           if (!pickingDate) {
             setTrigger(null);

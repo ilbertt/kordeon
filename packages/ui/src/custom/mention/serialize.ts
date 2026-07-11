@@ -40,17 +40,30 @@ export function buildChip(tag: MentionTagData): HTMLSpanElement {
     chip.dataset.tooltip = tag.tooltip;
     chip.title = tag.tooltip;
   }
+  if (tag.date) {
+    chip.dataset.date = tag.date.date;
+    chip.dataset.time = tag.date.time;
+    chip.dataset.timeZone = tag.date.timeZone;
+  }
   chip.appendChild(document.createTextNode(tag.token));
   return chip;
 }
 
 function tagFromChip(element: HTMLElement): MentionTagData {
+  const date = element.dataset.date;
   return {
     kind: element.dataset.mention as MentionKind,
     token: element.dataset.token ?? element.textContent ?? '',
     color: element.dataset.color,
     avatar: element.dataset.avatar,
     tooltip: element.dataset.tooltip,
+    date: date
+      ? {
+          date,
+          time: element.dataset.time ?? '',
+          timeZone: element.dataset.timeZone ?? '',
+        }
+      : undefined,
   };
 }
 

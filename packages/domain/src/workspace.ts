@@ -4,6 +4,10 @@
 
 export type MentionKind = 'person' | 'channel' | 'time';
 
+// A wall-clock time in a zone — the editable source a time tag reopens the
+// picker with (so clicking the chip in the composer edits it in place).
+export type TimeTagValue = { date: string; time: string; timeZone: string };
+
 // The minimal data a tag needs to render as a pill, both inside the field (as a
 // contentEditable chip) and in a sent message (as MentionTag).
 export type MentionTagData = {
@@ -13,6 +17,8 @@ export type MentionTagData = {
   avatar?: string;
   // Time tags: the source time + zone, shown on hover ("… in your time").
   tooltip?: string;
+  // Time tags: the editable wall-clock value the chip/picker round-trips.
+  date?: TimeTagValue;
 };
 
 // A sent message is a list of plain-text runs and tags, so the tags survive as
