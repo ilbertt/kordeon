@@ -13,8 +13,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 const TYPE_MIN_MS = 700;
 const TYPE_MAX_MS = 2600;
 const TYPE_PER_CHAR_MS = 20;
-// The reading beat after a message lands, before the next author starts typing —
-// generous so each message is actually readable before the thread moves on.
+// The reading beat after a message lands, during which the next author already
+// shows as composing — generous so each message stays readable before it lands.
 const READ_MIN_MS = 1000;
 const READ_MAX_MS = 3800;
 const READ_PER_CHAR_MS = 30;
@@ -120,7 +120,7 @@ export function useThreadPlayback({
       timers.push(window.setTimeout(fn, delay));
     };
 
-    const revealFrom = ({ index, preTyping }: { index: number; preTyping: boolean }) => {
+    const revealFrom = (index: number) => {
       if (cancelled) {
         return;
       }
@@ -132,10 +132,11 @@ export function useThreadPlayback({
         return;
       }
       const list = messagesRef.current;
-      // No reading pause when this author was already co-typing the previous
-      // message — their "is typing" carries straight over instead of blinking out.
+      // The reading pause before this author "sends". Their indicator is already
+      // on screen — handed over the instant the previous message landed — so the
+      // pause reads as them composing, never as a blank gap that blinks back.
       push({
-        delay: preTyping ? 0 : readBeat(list[index - 1]!),
+        delay: readBeat(list[index - 1]!),
         fn: () => {
           if (cancelled) {
             return;
@@ -162,11 +163,11 @@ export function useThreadPlayback({
                 return;
               }
               setRevealCount(index + 1);
-              // Hand the indicator straight to the next author when they were
-              // co-typing, so it never blanks between back-to-back authors.
-              const handoff = Boolean(author && nextAuthor && nextAuthor !== author);
-              setTyping(handoff ? { ids: [nextAuthor!] } : null);
-              revealFrom({ index: index + 1, preTyping: handoff });
+              // Hand the row straight to the next author as this message lands —
+              // never a blank frame between messages. It clears only at a system
+              // note (no author) or the end of the thread.
+              setTyping(nextAuthor ? { ids: [nextAuthor] } : null);
+              revealFrom(index + 1);
             },
           });
         },
@@ -179,7 +180,7 @@ export function useThreadPlayback({
           if (!started && entry.isIntersecting && entry.intersectionRatio >= IN_VIEW_RATIO) {
             started = true;
             observer.disconnect();
-            revealFrom({ index: 1, preTyping: false });
+            revealFrom(1);
             break;
           }
         }
