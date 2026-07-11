@@ -120,10 +120,22 @@ export function formatInZone({ instant, timeZone }: { instant: Date; timeZone?: 
   }).format(instant);
 }
 
-export function todayInputValue(): string {
+function dateInputValue(date: Date): string {
   return new Intl.DateTimeFormat('en-CA', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  }).format(new Date());
+  }).format(date);
+}
+
+export function todayInputValue(): string {
+  return dateInputValue(new Date());
+}
+
+// A relative label ("Today", "Tomorrow") carries no stored date, so reopening
+// the picker should land on the day it names rather than always on today.
+export function relativeDateInputValue(label: string): string {
+  const offsetDays = label.trim().toLowerCase() === 'tomorrow' ? 1 : 0;
+  const now = new Date();
+  return dateInputValue(new Date(now.getFullYear(), now.getMonth(), now.getDate() + offsetDays));
 }

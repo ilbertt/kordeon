@@ -5,7 +5,7 @@ import { cn } from '@repo/ui/lib/utils';
 import { useEffect, useRef, useState } from 'react';
 import { TRIGGER_KINDS } from './constants';
 import { DatePicker } from './date-picker';
-import { formatInZone, systemTimeZone, todayInputValue, zonedToInstant } from './dates';
+import { formatInZone, relativeDateInputValue, systemTimeZone, zonedToInstant } from './dates';
 import { MentionMenu } from './mention-menu';
 import { type ActiveTrigger, buildChip, readActiveTrigger, serialize } from './serialize';
 import type { MentionSuggestion } from './types';
@@ -169,7 +169,8 @@ export function MentionInput({
   const editChip = (chip: HTMLSpanElement) => {
     editingChip.current = chip;
     setPickerInitial({
-      date: chip.dataset.date ?? todayInputValue(),
+      date:
+        chip.dataset.date ?? relativeDateInputValue(chip.dataset.token ?? chip.textContent ?? ''),
       time: chip.dataset.time ?? '09:00',
       timeZone: chip.dataset.timeZone ?? systemTimeZone(),
     });
@@ -271,8 +272,8 @@ export function MentionInput({
         onKeyDown={onKeyDown}
         onClick={(event) => {
           // A time chip reopens the picker prefilled — custom dates with their
-          // stored value, relative labels (Today, …) with today so they can be
-          // refined into a concrete date.
+          // stored value, relative labels (Today, Tomorrow) with the day they
+          // name so they can be refined into a concrete date.
           const chip = (event.target as HTMLElement).closest<HTMLSpanElement>(
             '[data-mention="time"]',
           );
