@@ -12,24 +12,17 @@ Chat, refine the plan, and hand it to an agent — together, in one place.
 
 ---
 
-Every serious app is converging on the same three panels — an explorer on the left, a
-chat in the middle, a preview on the right — because that's how work happens: you talk
-about the work, you navigate the work, you look at the result.
+Chat tools own the conversation, but work doesn't fit in a thread. The context lives
+on the left, the thing you're building lives on the right, and you keep tabbing between
+them. kordeon puts all three side by side — and the agent spans them, reading context
+and building the artifact as it goes.
 
-Chat tools own the middle panel. But real work spills out of the conversation into two
-places a thread can't hold: **context** (the structured work itself) and **the artifact**
-(the running product). So you tab away. Bolting an agent into a chat makes the
-conversation smarter but leaves the tabbing intact.
-
-**kordeon is all three panels at once.** The agent isn't a guest in the thread — it spans
-the panels, pulling context on the left and building the artifact on the right.
-
-## The loop, in one surface
+**The loop:**
 
 1. **Chat** an idea with your team and the agent.
-2. **Refine the plan** together — edit any step, reorder, or add your own.
+2. **Refine the plan** — edit, reorder, or add steps before anything runs.
 3. **Hand it off** to the agent, which pulls the context, builds it, and opens a PR.
-4. **Preview** the result — it renders live as each step ships.
+4. **Preview** the result, live as each step ships.
 
 ## The agent is a teammate, not a tool
 
