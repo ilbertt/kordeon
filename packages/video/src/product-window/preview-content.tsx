@@ -1,5 +1,6 @@
 // biome-ignore-all lint/style/noMagicNumbers: preview chart display tuning
-import { TrendingUp } from 'lucide-react';
+import { Spinner } from '@repo/ui/components/spinner';
+import { GitPullRequest, TrendingUp } from 'lucide-react';
 
 const COHORTS = [
   { week: 'W1', height: 34 },
@@ -71,8 +72,32 @@ export function DashboardPreview({ reveal = 1 }: { reveal?: number }) {
 
 export function PreviewPlaceholder() {
   return (
-    <div className="flex h-full items-center justify-center text-center text-muted-foreground text-sm">
+    <div className="flex h-full items-center justify-center px-6 text-center text-muted-foreground text-sm">
       The running product renders here as the work is built.
+    </div>
+  );
+}
+
+const SKELETON_WIDTHS = ['92%', '78%', '85%', '64%'];
+
+// The preview while the agent works: it picks up the handed-off plan, builds, and
+// opens a PR — the same "compose is locked, agent is on it" state the product shows.
+export function BuildingPreview() {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
+        <Spinner className="size-4 text-primary" />
+        <span className="font-medium text-sm">Building the dashboard…</span>
+      </div>
+      <div className="flex items-center gap-2 text-muted-foreground text-xs">
+        <GitPullRequest className="size-3.5 text-primary" />
+        Opened PR #128 · activation-dashboard
+      </div>
+      <div className="space-y-2 pt-1">
+        {SKELETON_WIDTHS.map((width) => (
+          <div key={width} className="h-3 rounded bg-muted" style={{ width }} />
+        ))}
+      </div>
     </div>
   );
 }

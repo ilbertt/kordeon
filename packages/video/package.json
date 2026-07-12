@@ -9,15 +9,16 @@
     "#*": "./src/*"
   },
   "scripts": {
-    "dev": "remotion studio",
-    "render": "remotion render",
-    "bundle": "remotion bundle",
-    "still": "remotion still",
+    "dev": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts",
+    "bundle": "remotion bundle src/index.ts",
+    "still": "remotion still src/index.ts",
     "check:types": "tsc"
   },
   "dependencies": {
     "@remotion/cli": "4.0.488",
     "@remotion/tailwind-v4": "4.0.488",
+    "@remotion/transitions": "4.0.488",
     "@repo/domain": "workspace:*",
     "@repo/ui": "workspace:*",
     "lucide-react": "^1.23.0",
