@@ -1,0 +1,16 @@
+{
+  "extends": "@repo/typescript-config/react.json",
+  "compilerOptions": {
+    // Set explicitly (not just via `extends`): Remotion's esbuild-loader reads
+    // this file raw and does NOT resolve `extends`, so it needs `jsx` here to
+    // transpile @repo/ui's import-less TSX with the automatic runtime.
+    "jsx": "react-jsx",
+    "types": ["react", "react-dom"],
+    "paths": {
+      "#*": ["./src/*"],
+      "@repo/ui/*": ["../ui/src/*"]
+    }
+  },
+  "include": ["src", "remotion.config.ts"],
+  "exclude": ["node_modules", "dist", "out"]
+}

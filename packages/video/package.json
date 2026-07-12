@@ -1,0 +1,35 @@
+{
+  "name": "@repo/video",
+  "private": true,
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "imports": {
+    "#*": "./src/*"
+  },
+  "scripts": {
+    "dev": "remotion studio",
+    "render": "remotion render",
+    "bundle": "remotion bundle",
+    "still": "remotion still",
+    "check:types": "tsc"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.488",
+    "@remotion/tailwind-v4": "4.0.488",
+    "@repo/domain": "workspace:*",
+    "@repo/ui": "workspace:*",
+    "lucide-react": "^1.23.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "remotion": "4.0.488",
+    "tailwindcss": "^4.3.2"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "catalog:"
+  }
+}

@@ -1,0 +1,3 @@
+# Remotion render output + bundler cache
+out/
+.remotion/
