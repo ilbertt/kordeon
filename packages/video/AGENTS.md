@@ -29,3 +29,15 @@ Non-obvious conventions and rationale:
   (`src/scenes/main.tsx`) derives every prop (`visibleCount`, `previewState`, `planDone`, camera
   shot, captions) from the local frame, so the window stays mounted across the whole loop with no
   cuts. Reuse product components; don't re-implement them here.
+
+- **Studio-editable, per the Remotion markup/interactivity skills:** `LaunchVideo` takes a zod
+  `schema` + `defaultProps` (all on-screen copy), so text can be edited in Studio Visual Mode and
+  written back to `launchDefaultProps`. Animated elements are `Interactive.Div` with a `name`;
+  keyframes are inline `interpolate()` (prefer it over `spring()`) with `Easing.bezier`; motion uses
+  the individual `translate`/`scale` CSS props, not `transform` strings. Type is a pinned Google
+  Font (`src/lib/fonts.ts`) for deterministic renders.
+
+- **Known tradeoff:** reusing the real `@repo/ui` window pulls in a few of its Tailwind
+  `animate-*` / `transition-*` classes (typing dots, button hovers). The markup skill forbids CSS
+  animations because they don't render deterministically — these render as static frames (fine
+  here) and can't be stripped without editing shared product components.

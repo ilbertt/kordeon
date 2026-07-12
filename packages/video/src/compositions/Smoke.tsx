@@ -2,22 +2,30 @@
 import { Button } from '@repo/ui/components/button';
 import { KordeonMark } from '@repo/ui/custom/kordeon-mark';
 import { ArrowRight } from 'lucide-react';
-import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from 'remotion';
+import { fontStyle } from '#lib/fonts';
+
+const EASE = Easing.bezier(0.16, 1, 0.3, 1);
 
 // Phase-0 smoke test: proves the real @repo/ui theme + components render, fully
 // styled, inside Remotion's bundler. Not a final scene — just the integration probe.
 export function Smoke() {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-
-  const enter = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 30 });
-  const opacity = interpolate(frame, [0, 15], [0, 1], { extrapolateRight: 'clamp' });
-  const lift = interpolate(enter, [0, 1], [24, 0]);
 
   return (
-    <AbsoluteFill className="dark items-center justify-center bg-background text-foreground">
+    <AbsoluteFill
+      className="dark items-center justify-center bg-background text-foreground"
+      style={fontStyle}
+    >
       <div
-        style={{ opacity, transform: `translateY(${lift}px)` }}
+        style={{
+          opacity: interpolate(frame, [0, 15], [0, 1], { extrapolateRight: 'clamp' }),
+          translate: `0 ${interpolate(frame, [0, 30], [24, 0], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+            easing: EASE,
+          })}px`,
+        }}
         className="flex flex-col items-center gap-8"
       >
         <span className="flex size-20 items-center justify-center rounded-2xl bg-foreground">

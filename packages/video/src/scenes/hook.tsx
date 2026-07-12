@@ -1,6 +1,8 @@
 // biome-ignore-all lint/style/noMagicNumbers: intro motion + layout tuning
 import { KordeonMark } from '@repo/ui/custom/kordeon-mark';
-import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Easing, Interactive, interpolate, useCurrentFrame } from 'remotion';
+
+const EASE = Easing.bezier(0.16, 1, 0.3, 1);
 
 // The three panels the whole product is — explorer · chat · preview — the shape
 // the vision opens on. Each is a labelled silhouette; the preview carries the
@@ -13,23 +15,23 @@ const PANELS = [
 
 function Panel({ panel, index }: { panel: (typeof PANELS)[number]; index: number }) {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const enter = spring({
-    frame,
-    fps,
-    delay: index * 8,
-    config: { damping: 200 },
-    durationInFrames: 26,
-  });
-  const y = interpolate(enter, [0, 1], [40, 0]);
-
+  const start = index * 8;
   return (
-    <div
+    <Interactive.Div
+      name={`Panel ${panel.label}`}
       style={{
         width: panel.width,
         height: panel.height,
-        opacity: enter,
-        transform: `translateY(${y}px)`,
+        opacity: interpolate(frame, [start, start + 26], [0, 1], {
+          extrapolateLeft: 'clamp',
+          extrapolateRight: 'clamp',
+          easing: EASE,
+        }),
+        translate: `0 ${interpolate(frame, [start, start + 26], [40, 0], {
+          extrapolateLeft: 'clamp',
+          extrapolateRight: 'clamp',
+          easing: EASE,
+        })}px`,
       }}
       className={`flex flex-col gap-3 rounded-2xl border bg-muted/20 p-4 ${panel.accent ? 'border-primary/60' : 'border-border'}`}
     >
@@ -39,15 +41,12 @@ function Panel({ panel, index }: { panel: (typeof PANELS)[number]; index: number
       <div className="h-2 w-3/4 rounded-full bg-muted-foreground/20" />
       <div className="h-2 w-2/3 rounded-full bg-muted-foreground/20" />
       <div className="mt-auto font-medium text-muted-foreground text-sm">{panel.label}</div>
-    </div>
+    </Interactive.Div>
   );
 }
 
-export function Hook() {
+export function Hook({ tagline }: { tagline: string }) {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const brand = spring({ frame, fps, delay: 30, config: { damping: 200 }, durationInFrames: 24 });
-
   return (
     <AbsoluteFill className="dark items-center justify-center gap-12 bg-background text-foreground">
       <div className="flex items-end gap-4">
@@ -55,17 +54,25 @@ export function Hook() {
           <Panel key={panel.label} panel={panel} index={index} />
         ))}
       </div>
-      <div style={{ opacity: brand }} className="flex flex-col items-center gap-4">
+      <Interactive.Div
+        name="Hook brand"
+        className="flex flex-col items-center gap-4"
+        style={{
+          opacity: interpolate(frame, [30, 54], [0, 1], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+            easing: EASE,
+          }),
+        }}
+      >
         <div className="flex items-center gap-3">
           <span className="flex size-9 items-center justify-center rounded-lg bg-foreground">
             <KordeonMark className="size-5" />
           </span>
           <span className="font-semibold text-2xl tracking-tight">kordeon</span>
         </div>
-        <p className="font-medium text-muted-foreground text-xl">
-          One surface: explorer · chat · live preview
-        </p>
-      </div>
+        <p className="font-medium text-muted-foreground text-xl">{tagline}</p>
+      </Interactive.Div>
     </AbsoluteFill>
   );
 }

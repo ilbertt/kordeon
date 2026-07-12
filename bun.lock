@@ -92,6 +92,7 @@
       "name": "@repo/video",
       "dependencies": {
         "@remotion/cli": "4.0.488",
+        "@remotion/google-fonts": "4.0.488",
         "@remotion/tailwind-v4": "4.0.488",
         "@remotion/transitions": "4.0.488",
         "@repo/domain": "workspace:*",
@@ -101,6 +102,7 @@
         "react-dom": "^19.2.7",
         "remotion": "4.0.488",
         "tailwindcss": "^4.3.2",
+        "zod": "^3.25.76",
       },
       "devDependencies": {
         "@repo/typescript-config": "workspace:*",
@@ -453,6 +455,8 @@
     "@remotion/compositor-linux-x64-musl": ["@remotion/compositor-linux-x64-musl@4.0.488", "", { "os": "linux", "cpu": "x64" }, "sha512-bu2JPr0UTufzYpMzt8jBmC93RxKI9iqOVSzISW7bUDDZzuUMdcUJNDeauWuI9b6B17bn3j3VoDbOrZ/kKeb4/w=="],
 
     "@remotion/compositor-win32-x64-msvc": ["@remotion/compositor-win32-x64-msvc@4.0.488", "", { "os": "win32", "cpu": "x64" }, "sha512-iljgUki6NBoTIfxRyOEhMhyVBbo0Yot2sb6El8qeUBDrNc3Ctl3ixBT2lZZJmdq3gaY46gKH9lYENvE2kGQALA=="],
+
+    "@remotion/google-fonts": ["@remotion/google-fonts@4.0.488", "", { "dependencies": { "remotion": "4.0.488" } }, "sha512-01nE6HaJWwphnmLDlsZv5n5Rvk+nRFD/DHsIqcf8pNdD0sVI93caABqUwJzQVdxnOcD7btjgAE3i8hJDREAqug=="],
 
     "@remotion/licensing": ["@remotion/licensing@4.0.488", "", {}, "sha512-5jVmxoOzpeZMnLX7qLQUteOA0vbj+uPYHH8G3nuD87xnPPWDGMy/t8bA8GuImfLn55aM6jaNLP4ngi3IorlvgA=="],
 

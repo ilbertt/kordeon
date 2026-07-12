@@ -2,7 +2,12 @@
 // the same stylesheet the landing page uses, scanned across apps/** + packages/**.
 import '@repo/ui/globals.css';
 import { Composition } from 'remotion';
-import { LAUNCH_DURATION, LaunchVideo } from '#compositions/LaunchVideo';
+import {
+  LAUNCH_DURATION,
+  LaunchVideo,
+  launchDefaultProps,
+  launchSchema,
+} from '#compositions/LaunchVideo';
 import { Smoke } from '#compositions/Smoke';
 import { Window } from '#compositions/Window';
 
@@ -20,6 +25,8 @@ export function RemotionRoot() {
         fps={FPS}
         width={WIDTH}
         height={HEIGHT}
+        schema={launchSchema}
+        defaultProps={launchDefaultProps}
       />
       {/* Debug probes for the pieces the launch film is built from. */}
       <Composition

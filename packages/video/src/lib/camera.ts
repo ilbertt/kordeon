@@ -4,6 +4,9 @@
 // clear focal point (video is watched from the whole frame, not read up close).
 export type CameraShot = { focusX: number; focusY: number; scale: number };
 
+// Returns individual `translate` + `scale` CSS values (not a `transform` string),
+// which the markup skill prefers — they stay editable in Studio and compose the
+// same as `translate() scale()` (scale is applied first, then translate).
 export function cameraTransform({
   shot,
   width,
@@ -12,10 +15,10 @@ export function cameraTransform({
   shot: CameraShot;
   width: number;
   height: number;
-}): string {
+}): { translate: string; scale: number } {
   const tx = width / 2 - shot.focusX * shot.scale;
   const ty = height / 2 - shot.focusY * shot.scale;
-  return `translate(${tx}px, ${ty}px) scale(${shot.scale})`;
+  return { translate: `${tx}px ${ty}px`, scale: shot.scale };
 }
 
 export function lerpShot({

@@ -1,5 +1,6 @@
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
 import { channelBySlug, HERO_SLUG } from '#data/channels';
+import { fontStyle } from '#lib/fonts';
 import { threadStateAt } from '#lib/thread-timeline';
 import { ProductWindow } from '#product-window/product-window';
 
@@ -17,7 +18,7 @@ export function Window() {
   });
 
   return (
-    <AbsoluteFill className="dark bg-background">
+    <AbsoluteFill className="dark bg-background" style={fontStyle}>
       <ProductWindow activeSlug={HERO_SLUG} visibleCount={visibleCount} typingId={typingId} />
     </AbsoluteFill>
   );

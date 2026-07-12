@@ -2,6 +2,7 @@
 import {
   AbsoluteFill,
   Easing,
+  Interactive,
   interpolate,
   Sequence,
   useCurrentFrame,
@@ -15,6 +16,14 @@ import { ProductWindow } from '#product-window/product-window';
 
 const WIDTH = 1920;
 const HEIGHT = 1080;
+
+export type MainCaptions = {
+  shape: string;
+  teammate: string;
+  refine: string;
+  handoff: string;
+  ship: string;
+};
 
 // Named shots over the window's own pixel grid (tuned against rendered stills).
 const WIDE: CameraShot = { focusX: 960, focusY: 540, scale: 1.0 };
@@ -53,7 +62,7 @@ function shotAt(frame: number): CameraShot {
 // The continuous product-window shot spanning shape → refine → hand off → ship.
 // Everything is a pure function of the local frame, so the window stays mounted
 // while the camera moves and the state evolves — no cuts inside the loop.
-export function Main() {
+export function Main({ captions }: { captions: MainCaptions }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const hero = channelBySlug(HERO_SLUG);
@@ -74,16 +83,18 @@ export function Main() {
   });
   const previewState = frame < 470 ? 'placeholder' : frame < 660 ? 'building' : 'dashboard';
 
-  const shot = shotAt(frame);
+  const camera = cameraTransform({ shot: shotAt(frame), width: WIDTH, height: HEIGHT });
 
   return (
     <AbsoluteFill className="dark overflow-hidden bg-background">
-      <div
+      <Interactive.Div
+        name="Camera"
         style={{
           width: WIDTH,
           height: HEIGHT,
           transformOrigin: '0 0',
-          transform: cameraTransform({ shot, width: WIDTH, height: HEIGHT }),
+          translate: camera.translate,
+          scale: camera.scale,
         }}
       >
         <ProductWindow
@@ -94,28 +105,22 @@ export function Main() {
           previewState={previewState}
           previewReveal={previewReveal}
         />
-      </div>
+      </Interactive.Div>
 
-      <Sequence from={8} durationInFrames={150}>
-        <Caption durationInFrames={150}>
-          Your team and your agent talk through the work — in one thread
-        </Caption>
+      <Sequence name="Caption: shape" from={8} durationInFrames={150}>
+        <Caption durationInFrames={150}>{captions.shape}</Caption>
       </Sequence>
-      <Sequence from={170} durationInFrames={130}>
-        <Caption durationInFrames={130}>
-          @mention the agent like any teammate — it replies, it has a face
-        </Caption>
+      <Sequence name="Caption: teammate" from={170} durationInFrames={130}>
+        <Caption durationInFrames={130}>{captions.teammate}</Caption>
       </Sequence>
-      <Sequence from={312} durationInFrames={150}>
-        <Caption durationInFrames={150}>Shape the plan together before anything runs</Caption>
+      <Sequence name="Caption: refine" from={312} durationInFrames={150}>
+        <Caption durationInFrames={150}>{captions.refine}</Caption>
       </Sequence>
-      <Sequence from={474} durationInFrames={150}>
-        <Caption durationInFrames={150}>Hand it off — the agent builds it and opens a PR</Caption>
+      <Sequence name="Caption: hand off" from={474} durationInFrames={150}>
+        <Caption durationInFrames={150}>{captions.handoff}</Caption>
       </Sequence>
-      <Sequence from={636} durationInFrames={200}>
-        <Caption durationInFrames={200}>
-          The running product renders live, right beside the chat
-        </Caption>
+      <Sequence name="Caption: ship" from={636} durationInFrames={200}>
+        <Caption durationInFrames={200}>{captions.ship}</Caption>
       </Sequence>
     </AbsoluteFill>
   );
