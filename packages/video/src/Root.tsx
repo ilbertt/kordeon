@@ -2,6 +2,7 @@
 // the same stylesheet the landing page uses, scanned across apps/** + packages/**.
 import '@repo/ui/globals.css';
 import { Composition } from 'remotion';
+import { FILM_DURATION, filmDefaultProps, filmSchema, LaunchFilm } from '#compositions/LaunchFilm';
 import {
   LAUNCH_DURATION,
   LaunchVideo,
@@ -27,6 +28,17 @@ export function RemotionRoot() {
         height={HEIGHT}
         schema={launchSchema}
         defaultProps={launchDefaultProps}
+      />
+      {/* The sharper second cut — kinetic animation + word-by-word captions. */}
+      <Composition
+        id="LaunchFilm"
+        component={LaunchFilm}
+        durationInFrames={FILM_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        schema={filmSchema}
+        defaultProps={filmDefaultProps}
       />
       {/* Debug probes for the pieces the launch film is built from. */}
       <Composition
