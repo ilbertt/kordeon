@@ -4,8 +4,8 @@ import { z } from 'zod';
 import { fadeScale } from '#lib/film-transitions';
 import { fontStyle } from '#lib/fonts';
 import { ColdOpen } from '#scenes/film/cold-open';
-import { Cta } from '#scenes/film/cta';
 import { DraftPlan } from '#scenes/film/draft-plan';
+import { Finale } from '#scenes/film/finale';
 import { HandOff } from '#scenes/film/hand-off';
 import { PullBack } from '#scenes/film/pull-back';
 import { ShapeIdea } from '#scenes/film/shape-idea';
@@ -23,7 +23,7 @@ const BEATS = {
   handoff: 150,
   ship: 180,
   pullback: 168,
-  cta: 150,
+  finale: 180,
 } as const;
 
 const CROSSFADE_FRAMES = 18;
@@ -35,7 +35,7 @@ const BEATS_TOTAL =
   BEATS.handoff +
   BEATS.ship +
   BEATS.pullback +
-  BEATS.cta;
+  BEATS.finale;
 
 // Total = sum(beats) − sum(transitions); each fade-scale overlaps its neighbours.
 // Kept in sync with the composition's durationInFrames in Root.
@@ -52,7 +52,6 @@ export const filmSchema = z.object({
   handoffSubtitle: z.string(),
   shipSubtitle: z.string(),
   loopSubtitle: z.string(),
-  loopSteps: z.array(z.string()),
   wordmark: z.string(),
   ctaTagline: z.string(),
   ctaButton: z.string(),
@@ -67,7 +66,6 @@ export const filmDefaultProps: z.infer<typeof filmSchema> = {
   handoffSubtitle: 'Hand it off — the agent builds it and opens a PR.',
   shipSubtitle: 'The running product renders live — right beside the chat.',
   loopSubtitle: 'One surface. Nothing tabs away.',
-  loopSteps: ['chat', 'refine the plan', 'hand off', 'preview'],
   wordmark: 'kordeon',
   ctaTagline: 'Where humans collaborate and agents execute.',
   ctaButton: 'Get started — free',
@@ -117,15 +115,11 @@ export function LaunchFilm(props: z.infer<typeof filmSchema>) {
         </TransitionSeries.Sequence>
         {crossfade()}
         <TransitionSeries.Sequence durationInFrames={BEATS.pullback}>
-          <PullBack
-            subtitle={props.loopSubtitle}
-            steps={props.loopSteps}
-            durationInFrames={BEATS.pullback}
-          />
+          <PullBack subtitle={props.loopSubtitle} durationInFrames={BEATS.pullback} />
         </TransitionSeries.Sequence>
         {crossfade()}
-        <TransitionSeries.Sequence durationInFrames={BEATS.cta}>
-          <Cta
+        <TransitionSeries.Sequence durationInFrames={BEATS.finale}>
+          <Finale
             wordmark={props.wordmark}
             tagline={props.ctaTagline}
             button={props.ctaButton}

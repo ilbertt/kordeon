@@ -5,7 +5,7 @@ import { Sidebar } from '@repo/ui/custom/workspace/sidebar';
 import { Thread } from '@repo/ui/custom/workspace/thread';
 import { WorkspaceLayout } from '@repo/ui/custom/workspace/workspace-layout';
 import type { ReactNode } from 'react';
-import { CHANNELS, channelBySlug, type SceneChannel } from '#data/channels';
+import { CHANNELS, channelBySlug, HERO_SLUG, type SceneChannel } from '#data/channels';
 import { MENTION_SUGGESTIONS, PEOPLE } from '#data/people';
 import {
   BuildingPreview,
@@ -77,7 +77,7 @@ function renderPreview({
   state: PreviewState;
   reveal: number;
 }): ReactNode {
-  const hasDashboard = channel.slug === 'activation-dashboard' || channel.slug === 'live-preview';
+  const hasDashboard = channel.slug === HERO_SLUG;
   if (!hasDashboard) {
     return <PreviewPlaceholder />;
   }
@@ -90,6 +90,15 @@ function renderPreview({
   return <DashboardPreview reveal={reveal} />;
 }
 
+// The collaborate composer is an opt-in render prop, same as the product/landing
+// pass it: a channel with `compose` set hosts it above the message bar. The film
+// supplies a frame-driven plan here (the real one is tiptap + timer-driven).
+type RenderComposerPrompt = (args: {
+  editable: boolean;
+  onText: (text: string) => void;
+  label?: string;
+}) => ReactNode;
+
 export type ProductWindowProps = {
   activeSlug: string;
   visibleCount?: number;
@@ -98,6 +107,7 @@ export type ProductWindowProps = {
   planDone?: number;
   previewState?: PreviewState;
   previewReveal?: number;
+  renderComposerPrompt?: RenderComposerPrompt;
 };
 
 export function ProductWindow({
@@ -108,6 +118,7 @@ export function ProductWindow({
   planDone,
   previewState = 'dashboard',
   previewReveal = 1,
+  renderComposerPrompt,
 }: ProductWindowProps) {
   return (
     <WorkspaceProvider people={PEOPLE} currentUserId="you" mentionSuggestions={MENTION_SUGGESTIONS}>
@@ -126,6 +137,7 @@ export function ProductWindow({
               active={active}
               animate={false}
               renderIcon={renderChannelIcon}
+              renderComposerPrompt={renderComposerPrompt}
             />
           );
         })}

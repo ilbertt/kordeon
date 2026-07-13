@@ -3,6 +3,7 @@ import { AbsoluteFill, interpolate, Sequence, useCurrentFrame } from 'remotion';
 import { KineticCaption } from '#components/kinetic-caption';
 import { HERO_SLUG } from '#data/channels';
 import { pushShot, SHOTS } from '#lib/motion';
+import { collabPlanPrompt } from '#scenes/film/collab-plan';
 import { ProductStage } from '#scenes/film/product-stage';
 
 // Beat 6 — the differentiator: the running product renders live beside the chat.
@@ -30,9 +31,9 @@ export function WatchShip({
           activeSlug: HERO_SLUG,
           visibleCount: 7,
           compose: 'build',
-          planDone: 4,
           previewState,
           previewReveal,
+          renderComposerPrompt: collabPlanPrompt(false),
         }}
       />
       <Sequence from={24} durationInFrames={durationInFrames - 24}>

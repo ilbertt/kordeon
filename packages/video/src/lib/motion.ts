@@ -13,10 +13,12 @@ export const SHOTS = {
   wide: { focusX: 960, focusY: 540, scale: 1.0 },
   chatTop: { focusX: 730, focusY: 360, scale: 1.16 },
   chatMid: { focusX: 730, focusY: 470, scale: 1.16 },
-  plan: { focusX: 545, focusY: 515, scale: 1.62 },
-  handoff: { focusX: 900, focusY: 540, scale: 1.06 },
+  // The collaborate composer sits at the bottom of the chat panel — this frames
+  // the co-written brief where the team + Korde work it.
+  composer: { focusX: 720, focusY: 858, scale: 1.34 },
+  handoff: { focusX: 900, focusY: 560, scale: 1.06 },
   preview: { focusX: 1744, focusY: 330, scale: 1.66 },
-  pullback: { focusX: 960, focusY: 540, scale: 0.985 },
+  pullback: { focusX: 960, focusY: 540, scale: 1.0 },
 } satisfies Record<string, CameraShot>;
 
 // An eased push from one shot to another over [start, end], clamped outside.

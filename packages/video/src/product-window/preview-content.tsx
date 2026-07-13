@@ -1,6 +1,7 @@
 // biome-ignore-all lint/style/noMagicNumbers: preview chart display tuning
 import { Spinner } from '@repo/ui/components/spinner';
 import { GitPullRequest, TrendingUp } from 'lucide-react';
+import { HERO_SLUG } from '#data/channels';
 
 const COHORTS = [
   { week: 'W1', height: 34 },
@@ -91,7 +92,7 @@ export function BuildingPreview() {
       </div>
       <div className="flex items-center gap-2 text-muted-foreground text-xs">
         <GitPullRequest className="size-3.5 text-primary" />
-        Opened PR #128 · activation-dashboard
+        Opened PR #128 · {HERO_SLUG}
       </div>
       <div className="space-y-2 pt-1">
         {SKELETON_WIDTHS.map((width) => (

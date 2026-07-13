@@ -1,8 +1,9 @@
 // biome-ignore-all lint/style/noMagicNumbers: handoff staging + camera timing
-import { AbsoluteFill, interpolate, Sequence, useCurrentFrame } from 'remotion';
+import { AbsoluteFill, Sequence, useCurrentFrame } from 'remotion';
 import { KineticCaption } from '#components/kinetic-caption';
 import { HERO_SLUG } from '#data/channels';
 import { pushShot, type RevealStep, SHOTS, stagedReveal } from '#lib/motion';
+import { collabPlanPrompt } from '#scenes/film/collab-plan';
 import { ProductStage } from '#scenes/film/product-stage';
 
 // Beat 5 — the deliberate handoff. "Perfect. Hand it off." lands, the preview flips
@@ -22,15 +23,11 @@ export function HandOff({
 }) {
   const frame = useCurrentFrame();
   const { visibleCount, typingId } = stagedReveal({ steps: REVEAL, frame });
-  const shot = pushShot({ from: SHOTS.plan, to: SHOTS.handoff, frame, start: 0, end: 66 });
+  const shot = pushShot({ from: SHOTS.composer, to: SHOTS.handoff, frame, start: 0, end: 70 });
   const previewState = frame < 48 ? 'placeholder' : 'building';
+  // The composer flips from the co-written brief to the locked, building brief —
+  // a real handoff: the same prompt, now read-only with the agent on it.
   const compose = frame < 44 ? 'collab' : 'build';
-  const planDone = Math.round(
-    interpolate(frame, [54, 120], [2, 4], {
-      extrapolateLeft: 'clamp',
-      extrapolateRight: 'clamp',
-    }),
-  );
   return (
     <AbsoluteFill className="dark bg-background">
       <ProductStage
@@ -40,8 +37,8 @@ export function HandOff({
           visibleCount,
           typingId,
           compose,
-          planDone,
           previewState,
+          renderComposerPrompt: collabPlanPrompt(false),
         }}
       />
       <Sequence from={18} durationInFrames={durationInFrames - 18}>
