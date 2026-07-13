@@ -144,18 +144,28 @@ function MorphBar({ bar, index }: { bar: (typeof MARK_BARS)[number]; index: numb
 
 // Beat — "Meet kordeon": the line lands, the logo forms, then its three bars unfold
 // into the product's explorer · chat · preview columns and the real window fills in.
-export function MeetMorph({ meetLine, phase }: { meetLine: string; phase: number }): ReactNode {
+export function MeetMorph({
+  meetLine,
+  phase,
+  channelState,
+}: {
+  meetLine: string;
+  phase: number;
+  channelState?: { slug: string; visibleCount: number; typingId?: string };
+}): ReactNode {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const welcome = channelBySlug(WELCOME_SLUG);
-  // Frame 0 of the welcome thread — the exact state the following home beat opens
-  // on, so their crossfade blends one identical window into the next.
-  const { visibleCount, typingId } = threadStateAt({
+  // Frame 0 of the default welcome thread — the exact state the following home beat
+  // opens on, so their crossfade blends one identical window into the next. A cut can
+  // override this to materialise straight into a feature channel.
+  const welcomeState = threadStateAt({
     messages: welcome?.messages ?? [],
     fps,
     frame: 0,
     currentUserId: 'you',
   });
+  const active = channelState ?? { slug: WELCOME_SLUG, ...welcomeState };
   const windowOpacity = interpolate(frame, [MAT_START, MAT_END], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
@@ -176,9 +186,9 @@ export function MeetMorph({ meetLine, phase }: { meetLine: string; phase: number
           pose={SLAB.wide}
           phase={phase}
           product={{
-            activeSlug: WELCOME_SLUG,
-            visibleCount,
-            typingId,
+            activeSlug: active.slug,
+            visibleCount: active.visibleCount,
+            typingId: active.typingId,
             previewState: 'placeholder',
           }}
         />

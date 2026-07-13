@@ -85,29 +85,42 @@ function SlabBeat({
   );
 }
 
+// Optional override to open the establishing shot on a specific channel + reveal
+// state instead of the default welcome thread — lets a cut jump straight into a
+// feature channel.
+export type HomeChannelState = { slug: string; visibleCount: number; typingId?: string };
+
 export function WorkspaceHome({
   subtitle,
   phase,
   durationInFrames,
+  channelState,
 }: {
   subtitle: string;
   phase: number;
   durationInFrames: number;
+  channelState?: HomeChannelState;
 }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const welcome = channelBySlug(WELCOME_SLUG);
-  const { visibleCount, typingId } = threadStateAt({
+  const welcomeState = threadStateAt({
     messages: welcome?.messages ?? [],
     fps,
     frame,
     currentUserId: 'you',
   });
+  const active = channelState ?? { slug: WELCOME_SLUG, ...welcomeState };
   return (
     <SlabBeat
       pose={SLAB.wide}
       phase={phase}
-      product={{ activeSlug: WELCOME_SLUG, visibleCount, typingId, previewState: 'placeholder' }}
+      product={{
+        activeSlug: active.slug,
+        visibleCount: active.visibleCount,
+        typingId: active.typingId,
+        previewState: 'placeholder',
+      }}
       caption={subtitle}
       captionStart={30}
       durationInFrames={durationInFrames}

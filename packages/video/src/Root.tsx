@@ -36,6 +36,12 @@ import {
   LaunchFilmV9,
 } from '#compositions/LaunchFilmV9';
 import {
+  FILM_V10_DURATION,
+  filmV10DefaultProps,
+  filmV10Schema,
+  LaunchFilmV10,
+} from '#compositions/LaunchFilmV10';
+import {
   LAUNCH_DURATION,
   LaunchVideo,
   launchDefaultProps,
@@ -148,6 +154,17 @@ export function RemotionRoot() {
         height={HEIGHT}
         schema={filmV9Schema}
         defaultProps={filmV9DefaultProps}
+      />
+      {/* Tenth cut — demo opens on the hero feature channel, not #welcome. */}
+      <Composition
+        id="LaunchFilmV10"
+        component={LaunchFilmV10}
+        durationInFrames={FILM_V10_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        schema={filmV10Schema}
+        defaultProps={filmV10DefaultProps}
       />
       {/* Debug probes for the pieces the launch film is built from. */}
       <Composition
