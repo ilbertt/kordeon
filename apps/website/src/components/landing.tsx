@@ -1,17 +1,17 @@
 import { useEffect } from 'react';
+import { LogoMorphStage } from '#components/logo-morph-stage';
 import { AppShell } from '#components/product-window/app-shell';
 import {
   clearActiveChannel,
   hasSectionHash,
   useActiveSlug,
 } from '#components/product-window/use-active-slug';
-import { ScrollStage } from '#components/scroll-stage';
 
 export function Landing() {
   const activeSlug = useActiveSlug();
 
   // Scrolling back up to the headline returns to the intro, so the deep-linked
-  // feature is dropped — the peeking product resets to the default welcome
+  // feature is dropped — the reset product returns to the default welcome
   // instead of keeping whatever channel was last open.
   useEffect(() => {
     const onScroll = () => {
@@ -24,8 +24,8 @@ export function Landing() {
   }, []);
 
   return (
-    <ScrollStage openFullOnLoad={hasSectionHash}>
+    <LogoMorphStage openFullOnLoad={hasSectionHash}>
       <AppShell activeSlug={activeSlug} />
-    </ScrollStage>
+    </LogoMorphStage>
   );
 }
