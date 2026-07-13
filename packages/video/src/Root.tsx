@@ -5,6 +5,12 @@ import { Composition } from 'remotion';
 import { FILM_DURATION, filmDefaultProps, filmSchema, LaunchFilm } from '#compositions/LaunchFilm';
 import { FILM_V3_DURATION, LaunchFilmV3 } from '#compositions/LaunchFilmV3';
 import {
+  FILM_V4_DURATION,
+  filmV4DefaultProps,
+  filmV4Schema,
+  LaunchFilmV4,
+} from '#compositions/LaunchFilmV4';
+import {
   LAUNCH_DURATION,
   LaunchVideo,
   launchDefaultProps,
@@ -51,6 +57,17 @@ export function RemotionRoot() {
         height={HEIGHT}
         schema={filmSchema}
         defaultProps={filmDefaultProps}
+      />
+      {/* Fourth cut — opens on the problem (collaborate-after PR) + tighter zoom. */}
+      <Composition
+        id="LaunchFilmV4"
+        component={LaunchFilmV4}
+        durationInFrames={FILM_V4_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        schema={filmV4Schema}
+        defaultProps={filmV4DefaultProps}
       />
       {/* Debug probes for the pieces the launch film is built from. */}
       <Composition
