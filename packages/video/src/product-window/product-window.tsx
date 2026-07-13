@@ -72,22 +72,37 @@ function renderPreview({
   channel,
   state,
   reveal,
+  prevState,
+  stateMix = 1,
 }: {
   channel: SceneChannel;
   state: PreviewState;
   reveal: number;
+  prevState?: PreviewState;
+  stateMix?: number;
 }): ReactNode {
   const hasDashboard = channel.slug === HERO_SLUG;
-  if (!hasDashboard) {
-    return <PreviewPlaceholder />;
+  const node = (shown: PreviewState): ReactNode => {
+    if (!hasDashboard || shown === 'placeholder') {
+      return <PreviewPlaceholder />;
+    }
+    if (shown === 'building') {
+      return <BuildingPreview />;
+    }
+    return <DashboardPreview reveal={reveal} />;
+  };
+  // Mid-scene state changes crossfade instead of hard-swapping the whole pane on a
+  // single frame (which read as a flash). Both layers stack in one grid cell so
+  // there's no dependence on an absolute-positioned height.
+  if (prevState && prevState !== state && stateMix < 1) {
+    return (
+      <div className="grid h-full w-full">
+        <div style={{ gridArea: '1 / 1', opacity: 1 - stateMix }}>{node(prevState)}</div>
+        <div style={{ gridArea: '1 / 1', opacity: stateMix }}>{node(state)}</div>
+      </div>
+    );
   }
-  if (state === 'placeholder') {
-    return <PreviewPlaceholder />;
-  }
-  if (state === 'building') {
-    return <BuildingPreview />;
-  }
-  return <DashboardPreview reveal={reveal} />;
+  return node(state);
 }
 
 // The collaborate composer is an opt-in render prop, same as the product/landing
@@ -107,6 +122,8 @@ export type ProductWindowProps = {
   planDone?: number;
   previewState?: PreviewState;
   previewReveal?: number;
+  previewPrevState?: PreviewState;
+  previewStateMix?: number;
   renderComposerPrompt?: RenderComposerPrompt;
 };
 
@@ -118,6 +135,8 @@ export function ProductWindow({
   planDone,
   previewState = 'dashboard',
   previewReveal = 1,
+  previewPrevState,
+  previewStateMix,
   renderComposerPrompt,
 }: ProductWindowProps) {
   return (
@@ -143,7 +162,13 @@ export function ProductWindow({
         })}
         {CHANNELS.map((channel) => (
           <PreviewPane key={channel.slug} active={channel.slug === activeSlug}>
-            {renderPreview({ channel, state: previewState, reveal: previewReveal })}
+            {renderPreview({
+              channel,
+              state: previewState,
+              reveal: previewReveal,
+              prevState: previewPrevState,
+              stateMix: previewStateMix,
+            })}
           </PreviewPane>
         ))}
       </WorkspaceLayout>

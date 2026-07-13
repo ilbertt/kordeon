@@ -6,6 +6,12 @@ import { type CameraShot, lerpShot } from '#lib/camera';
 // the film's motion matches the app's motion language.
 export const EASE = Easing.bezier(0.16, 1, 0.3, 1);
 
+// Strong curves from the animation-review standards: a punchy ease-out for
+// entrances/exits (starts fast, feels responsive) and a decisive ease-in-out for
+// things moving/morphing on screen (the slab pushes). Stronger than the built-ins.
+export const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);
+export const EASE_IN_OUT = Easing.bezier(0.77, 0, 0.175, 1);
+
 // Named camera shots over the window's 1920×1080 pixel grid, each a single clear
 // focal point for a beat. Values are the ones tuned against rendered stills of the
 // same ProductWindow in `scenes/main.tsx` — reused so they stay honest.

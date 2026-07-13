@@ -12,6 +12,12 @@ import {
 } from '#compositions/LaunchFilmV4';
 import { FILM_V5_DURATION, LaunchFilmV5 } from '#compositions/LaunchFilmV5';
 import {
+  FILM_V6_DURATION,
+  filmV6DefaultProps,
+  filmV6Schema,
+  LaunchFilmV6,
+} from '#compositions/LaunchFilmV6';
+import {
   LAUNCH_DURATION,
   LaunchVideo,
   launchDefaultProps,
@@ -80,6 +86,17 @@ export function RemotionRoot() {
         height={HEIGHT}
         schema={filmV4Schema}
         defaultProps={filmV4DefaultProps}
+      />
+      {/* Sixth cut — desaturated "collaborate after" open, slower pacing, dip cuts. */}
+      <Composition
+        id="LaunchFilmV6"
+        component={LaunchFilmV6}
+        durationInFrames={FILM_V6_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        schema={filmV6Schema}
+        defaultProps={filmV6DefaultProps}
       />
       {/* Debug probes for the pieces the launch film is built from. */}
       <Composition

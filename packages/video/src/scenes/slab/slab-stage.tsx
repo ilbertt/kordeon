@@ -42,17 +42,19 @@ export function poseAt({
   frame,
   start,
   end,
+  easing = Easing.inOut(Easing.cubic),
 }: {
   from: SlabPose;
   to: SlabPose;
   frame: number;
   start: number;
   end: number;
+  easing?: (t: number) => number;
 }): SlabPose {
   const t = interpolate(frame, [start, end], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
-    easing: Easing.inOut(Easing.cubic),
+    easing,
   });
   return {
     focusX: mix({ from: from.focusX, to: to.focusX, t }),
