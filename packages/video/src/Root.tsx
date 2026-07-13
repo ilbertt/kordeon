@@ -3,6 +3,7 @@
 import '@repo/ui/globals.css';
 import { Composition } from 'remotion';
 import { FILM_DURATION, filmDefaultProps, filmSchema, LaunchFilm } from '#compositions/LaunchFilm';
+import { FILM_V3_DURATION, LaunchFilmV3 } from '#compositions/LaunchFilmV3';
 import {
   LAUNCH_DURATION,
   LaunchVideo,
@@ -34,6 +35,17 @@ export function RemotionRoot() {
         id="LaunchFilm"
         component={LaunchFilm}
         durationInFrames={FILM_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        schema={filmSchema}
+        defaultProps={filmDefaultProps}
+      />
+      {/* Third cut — the product window as a floating 3D slab (shares LaunchFilm's copy). */}
+      <Composition
+        id="LaunchFilmV3"
+        component={LaunchFilmV3}
+        durationInFrames={FILM_V3_DURATION}
         fps={FPS}
         width={WIDTH}
         height={HEIGHT}
