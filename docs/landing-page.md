@@ -7,6 +7,17 @@ components rather than throwaway markup: each is a candidate to graduate into `@
 and power the actual product, so shared behaviour lives in the component, not at the
 call site.
 
+## The reveal is the thesis
+
+The intro isn't a screenshot sliding up — it's the **mark metamorphosing into the
+product** (`LogoMorphStage`). The kordeon mark is three bars in the panel order —
+explorer · chat · the accented preview — so on scroll (or the CTA) each bar grows and
+unfolds, in place, onto the panel it stands for, and the real window fades in over them
+and becomes usable. The three-panel thesis is stated by the logo itself before a word of
+copy is read. The bar → panel geometry mirrors the real workspace layout, so it lives
+next to the maths (`logo-morph-geometry.ts`); keep the two in sync if the window's panel
+widths or breakpoints change.
+
 What it has to teach is the **three-panel shape** (see [`vision.md`](./vision.md)):
 explorer on the left, chat in the middle, preview on the right. The layout already *is*
 those three panels — so the *copy* has to sell the two that set kordeon apart from an
