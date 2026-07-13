@@ -54,11 +54,13 @@ const GROW_END = 0.42; // K0 → K1: the mark grows
 const SPREAD_END = 0.85; // K1 → K2: bars unfold into panels
 const LOGO_FADE_END = 0.06; // the crisp SVG hands off to the tweened bars
 const INTRO_FADE_END = 0.28; // headline + CTA clear as the mark takes over
-// The window surfaces while the bars are still spreading and the bars dissolve
-// into it — overlapping windows so the colour fills with UI rather than a solid
-// slab that then cross-fades.
-const MATERIALIZE_START = 0.68;
-const BARS_FADE_START = 0.74;
+// The colour dissolves *while* the bars are still spreading and the window
+// surfaces underneath at the same time — so the bars thin out into the UI and
+// never fill the viewport as solid teal/orange slabs.
+const BARS_FADE_START = 0.46;
+const BARS_FADE_END = 0.72;
+const MATERIALIZE_START = 0.48;
+const MATERIALIZE_END = 0.82;
 const PRODUCT_SETTLE = 0.015; // scale the window settles by as it lands
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
@@ -146,11 +148,13 @@ export function barGeometry({
 }
 
 export function morphPhases({ progress }: { progress: number }) {
-  const materialize = smoothstep((progress - MATERIALIZE_START) / (1 - MATERIALIZE_START));
+  const materialize = smoothstep(
+    (progress - MATERIALIZE_START) / (MATERIALIZE_END - MATERIALIZE_START),
+  );
   return {
     logoOpacity: 1 - smoothstep(progress / LOGO_FADE_END),
     introOpacity: 1 - smoothstep(progress / INTRO_FADE_END),
-    barsOpacity: 1 - smoothstep((progress - BARS_FADE_START) / (1 - BARS_FADE_START)),
+    barsOpacity: 1 - smoothstep((progress - BARS_FADE_START) / (BARS_FADE_END - BARS_FADE_START)),
     productOpacity: materialize,
     productScale: 1 - PRODUCT_SETTLE * (1 - materialize),
   };

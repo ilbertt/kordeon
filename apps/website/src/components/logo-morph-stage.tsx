@@ -28,17 +28,47 @@ export function LogoMorphStage({
   const barRefs = useRef<Array<HTMLDivElement | null>>([]);
   const frameRef = useRef<HTMLDivElement>(null);
 
-  // Runs the scroll to the end of the track, so the mark finishes its
+  // Drives the scroll to the end of the track, so the mark finishes its
   // metamorphosis and the product becomes interactive — the CTA does what
-  // scrolling down does.
+  // scrolling down does. Native `behavior: 'smooth'` is too quick to read the
+  // transition, so this eases over ~1.8s (and yields the moment the visitor
+  // takes the wheel).
   const revealProduct = () => {
     const wrap = wrapRef.current;
-    if (wrap) {
-      window.scrollTo({
-        top: Math.max(0, wrap.offsetHeight - window.innerHeight),
-        behavior: 'smooth',
-      });
+    if (!wrap) {
+      return;
     }
+    const start = window.scrollY;
+    const distance = Math.max(0, wrap.offsetHeight - window.innerHeight) - start;
+    if (distance <= 0) {
+      return;
+    }
+    let cancelled = false;
+    const cancel = () => {
+      cancelled = true;
+    };
+    window.addEventListener('wheel', cancel, { passive: true });
+    window.addEventListener('touchstart', cancel, { passive: true });
+    const durationMs = 1800;
+    let startedAt = 0;
+    const step = (now: number) => {
+      if (cancelled) {
+        window.removeEventListener('wheel', cancel);
+        window.removeEventListener('touchstart', cancel);
+        return;
+      }
+      startedAt = startedAt || now;
+      const t = Math.min(1, (now - startedAt) / durationMs);
+      const eased = t * t * (3 - 2 * t);
+      window.scrollTo(0, start + distance * eased);
+      if (t < 1) {
+        requestAnimationFrame(step);
+      } else {
+        window.removeEventListener('wheel', cancel);
+        window.removeEventListener('touchstart', cancel);
+      }
+    };
+    requestAnimationFrame(step);
   };
 
   useEffect(() => {
