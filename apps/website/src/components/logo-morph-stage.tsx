@@ -81,13 +81,17 @@ export function LogoMorphStage({
       return;
     }
 
-    // Reduced motion: skip the metamorphosis and present the usable window.
+    // Reduced motion: drop the metamorphosis (all the movement) but still fade
+    // the window in rather than hard-cutting — fewer and gentler, not zero.
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       intro.style.display = 'none';
       bars.style.display = 'none';
-      frame.style.opacity = '1';
       frame.style.transform = 'none';
       frame.style.pointerEvents = 'auto';
+      requestAnimationFrame(() => {
+        frame.style.transition = 'opacity 260ms ease-out';
+        frame.style.opacity = '1';
+      });
       return;
     }
 
