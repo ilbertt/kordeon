@@ -4,7 +4,7 @@ import { channelBySlug, DEFAULT_SLUG } from './data';
 // On load, a URL that deep-links to a real section (e.g. `#refine-the-plan`)
 // should present the product already full at that section, skipping the
 // scroll-in intro. A missing or unknown hash keeps the intro. Module-scope so
-// its identity is stable — ScrollStage runs it once on mount.
+// its identity is stable — LogoMorphStage runs it once on mount.
 export function hasSectionHash(): boolean {
   return channelBySlug(window.location.hash.slice(1)) !== undefined;
 }
