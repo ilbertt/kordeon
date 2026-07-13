@@ -62,10 +62,12 @@ const BARS_WASH = 0.38; // opacity held while overlapping the columns
 const BARS_WASH_START = 0.32; // full opacity until the mark is clearly grown
 const BARS_WASH_BY = 0.62; // thinned to the wash by the time it has spread
 const BARS_CLEAR_START = 0.92; // held over the columns, then dissolved at the end
-// The window surfaces under the wash while the bars are still spreading, so the
-// real columns are already there to receive them.
-const MATERIALIZE_START = 0.48;
-const MATERIALIZE_END = 0.82;
+// The window only surfaces once the bars have reached their columns — otherwise
+// the UI (text, avatars) shows through before the shapes have finished
+// expanding. So it starts near the end of the spread and fills in under the
+// wash, reading as the panels themselves being painted with the real product.
+const MATERIALIZE_START = 0.74;
+const MATERIALIZE_END = 0.96;
 const PRODUCT_SETTLE = 0.015; // scale the window settles by as it lands
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
