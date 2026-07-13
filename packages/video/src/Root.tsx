@@ -18,6 +18,12 @@ import {
   LaunchFilmV6,
 } from '#compositions/LaunchFilmV6';
 import {
+  FILM_V7_DURATION,
+  filmV7DefaultProps,
+  filmV7Schema,
+  LaunchFilmV7,
+} from '#compositions/LaunchFilmV7';
+import {
   LAUNCH_DURATION,
   LaunchVideo,
   launchDefaultProps,
@@ -97,6 +103,17 @@ export function RemotionRoot() {
         height={HEIGHT}
         schema={filmV6Schema}
         defaultProps={filmV6DefaultProps}
+      />
+      {/* Seventh cut — abstract PR review by a generic agent (changes requested). */}
+      <Composition
+        id="LaunchFilmV7"
+        component={LaunchFilmV7}
+        durationInFrames={FILM_V7_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        schema={filmV7Schema}
+        defaultProps={filmV7DefaultProps}
       />
       {/* Debug probes for the pieces the launch film is built from. */}
       <Composition
