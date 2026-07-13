@@ -54,11 +54,16 @@ const GROW_END = 0.42; // K0 → K1: the mark grows
 const SPREAD_END = 0.85; // K1 → K2: bars unfold into panels
 const LOGO_FADE_END = 0.06; // the crisp SVG hands off to the tweened bars
 const INTRO_FADE_END = 0.28; // headline + CTA clear as the mark takes over
-// The colour dissolves *while* the bars are still spreading and the window
-// surfaces underneath at the same time — so the bars thin out into the UI and
-// never fill the viewport as solid teal/orange slabs.
-const BARS_FADE_START = 0.46;
-const BARS_FADE_END = 0.72;
+// The bars thin to a translucent wash as they grow — so the colour never floods
+// the screen as solid slabs — but they hold that wash all the way onto the real
+// product columns (you watch the mark land on the panels it becomes) and only
+// clear at the very end, leaving the clean, usable window.
+const BARS_WASH = 0.38; // opacity held while overlapping the columns
+const BARS_WASH_START = 0.32; // full opacity until the mark is clearly grown
+const BARS_WASH_BY = 0.62; // thinned to the wash by the time it has spread
+const BARS_CLEAR_START = 0.92; // held over the columns, then dissolved at the end
+// The window surfaces under the wash while the bars are still spreading, so the
+// real columns are already there to receive them.
 const MATERIALIZE_START = 0.48;
 const MATERIALIZE_END = 0.82;
 const PRODUCT_SETTLE = 0.015; // scale the window settles by as it lands
@@ -147,6 +152,21 @@ export function barGeometry({
   return k2;
 }
 
+const barWash = ({ progress }: { progress: number }): number => {
+  if (progress <= BARS_WASH_START) {
+    return 1;
+  }
+  if (progress <= BARS_WASH_BY) {
+    const t = smoothstep((progress - BARS_WASH_START) / (BARS_WASH_BY - BARS_WASH_START));
+    return mix({ a: 1, b: BARS_WASH, t });
+  }
+  if (progress <= BARS_CLEAR_START) {
+    return BARS_WASH;
+  }
+  const t = smoothstep((progress - BARS_CLEAR_START) / (1 - BARS_CLEAR_START));
+  return mix({ a: BARS_WASH, b: 0, t });
+};
+
 export function morphPhases({ progress }: { progress: number }) {
   const materialize = smoothstep(
     (progress - MATERIALIZE_START) / (MATERIALIZE_END - MATERIALIZE_START),
@@ -154,7 +174,7 @@ export function morphPhases({ progress }: { progress: number }) {
   return {
     logoOpacity: 1 - smoothstep(progress / LOGO_FADE_END),
     introOpacity: 1 - smoothstep(progress / INTRO_FADE_END),
-    barsOpacity: 1 - smoothstep((progress - BARS_FADE_START) / (BARS_FADE_END - BARS_FADE_START)),
+    barsOpacity: barWash({ progress }),
     productOpacity: materialize,
     productScale: 1 - PRODUCT_SETTLE * (1 - materialize),
   };
