@@ -143,13 +143,16 @@ export function barGeometry({
   const bar = MORPH_BARS[index]!;
   const k0 = restingRect({ bar, slot });
   const k1 = bigRect({ bar, stage });
+  // Interpolate the keyframes linearly and let the scroll carry the easing (the
+  // CTA's eased scroll tween, or the visitor's own scroll). Easing each segment
+  // with its own smoothstep would flatten the bars' velocity to zero at K1 — a
+  // visible hitch exactly where the grown mark starts folding into the panels.
   if (progress <= GROW_END) {
-    return mixRect({ a: k0, b: k1, t: smoothstep(progress / GROW_END) });
+    return mixRect({ a: k0, b: k1, t: progress / GROW_END });
   }
   const k2 = panelRect({ index, stage });
   if (progress <= SPREAD_END) {
-    const t = smoothstep((progress - GROW_END) / (SPREAD_END - GROW_END));
-    return mixRect({ a: k1, b: k2, t });
+    return mixRect({ a: k1, b: k2, t: (progress - GROW_END) / (SPREAD_END - GROW_END) });
   }
   return k2;
 }
