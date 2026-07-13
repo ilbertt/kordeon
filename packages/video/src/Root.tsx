@@ -30,6 +30,12 @@ import {
   LaunchFilmV8,
 } from '#compositions/LaunchFilmV8';
 import {
+  FILM_V9_DURATION,
+  filmV9DefaultProps,
+  filmV9Schema,
+  LaunchFilmV9,
+} from '#compositions/LaunchFilmV9';
+import {
   LAUNCH_DURATION,
   LaunchVideo,
   launchDefaultProps,
@@ -131,6 +137,17 @@ export function RemotionRoot() {
         height={HEIGHT}
         schema={filmV8Schema}
         defaultProps={filmV8DefaultProps}
+      />
+      {/* Ninth cut — reversed-morph finale: real product panels fold back into the logo. */}
+      <Composition
+        id="LaunchFilmV9"
+        component={LaunchFilmV9}
+        durationInFrames={FILM_V9_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        schema={filmV9Schema}
+        defaultProps={filmV9DefaultProps}
       />
       {/* Debug probes for the pieces the launch film is built from. */}
       <Composition
