@@ -3,16 +3,23 @@ import { buttonVariants } from '@repo/ui/components/button';
 import { KordeonMark } from '@repo/ui/custom/kordeon-mark';
 import { cn } from '@repo/ui/lib/utils';
 import { ArrowDown } from 'lucide-react';
-import { useEffect, useRef } from 'react';
-import { barBase, barGeometry, MORPH_BARS, morphPhases } from './logo-morph-geometry';
+import { useRef } from 'react';
+import { useIsomorphicLayoutEffect } from '#hooks/use-isomorphic-layout-effect';
+import { barBase, barGeometry, MORPH_BARS, morphPhases, SIDEBAR_BP } from './logo-morph-geometry';
 
 const LOGO_SLOT_PX = 132;
 
 /**
- * The hero is the kordeon mark. Scroll (or hit "Try it now") and the three bars
- * grow, then unfold into the product's three panels while the real window fades
- * in over them and becomes usable — the logo metamorphosing into the app rather
- * than a screenshot sliding up. The maths lives in `logo-morph-geometry`.
+ * The hero is the kordeon mark. On desktop, scroll (or hit "Try it now") and the
+ * three bars grow, then unfold into the product's three panels while the real
+ * window fades in over them and becomes usable — the logo metamorphosing into
+ * the app. The maths lives in `logo-morph-geometry`.
+ *
+ * On mobile the window's side panels are drawers, so there are no three columns
+ * for the bars to become and the mark-into-panels reading falls apart. Below the
+ * sidebar breakpoint we drop the morph and keep the pre-#34 reveal: the window
+ * scales up from a peek at the bottom, like a screenshot sliding into view. Both
+ * are scroll-driven off the same track, so the CTA and deep-links work either way.
  */
 export function LogoMorphStage({
   children,
@@ -28,11 +35,10 @@ export function LogoMorphStage({
   const barRefs = useRef<Array<HTMLDivElement | null>>([]);
   const frameRef = useRef<HTMLDivElement>(null);
 
-  // Drives the scroll to the end of the track, so the mark finishes its
-  // metamorphosis and the product becomes interactive — the CTA does what
-  // scrolling down does. Native `behavior: 'smooth'` is too quick to read the
-  // transition, so this eases over ~1.8s (and yields the moment the visitor
-  // takes the wheel).
+  // Drives the scroll to the end of the track, so the reveal finishes and the
+  // product becomes interactive — the CTA does what scrolling down does. Native
+  // `behavior: 'smooth'` is too quick to read the transition, so this eases over
+  // ~1.8s (and yields the moment the visitor takes the wheel).
   const revealProduct = () => {
     const wrap = wrapRef.current;
     if (!wrap) {
@@ -71,7 +77,7 @@ export function LogoMorphStage({
     requestAnimationFrame(step);
   };
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const wrap = wrapRef.current;
     const intro = introRef.current;
     const slot = slotRef.current;
@@ -81,8 +87,8 @@ export function LogoMorphStage({
       return;
     }
 
-    // Reduced motion: drop the metamorphosis (all the movement) but still fade
-    // the window in rather than hard-cutting — fewer and gentler, not zero.
+    // Reduced motion: drop the movement (morph or slide) but still fade the
+    // window in rather than hard-cutting — fewer and gentler, not zero.
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       intro.style.display = 'none';
       bars.style.display = 'none';
@@ -107,9 +113,9 @@ export function LogoMorphStage({
     // Everything that only changes on resize is measured once here (and on
     // resize), so the per-frame loop does zero forced layout: it reads
     // `window.scrollY` — which doesn't flush layout — and writes only compositor
-    // transforms. Each bar's width/height is pinned to its resting size; the
-    // scroll then drives a `translate() scale()` off that base instead of
-    // relaying out the box every frame.
+    // transforms. The viewport also picks which reveal runs; crossing the
+    // breakpoint on resize re-measures and hands off cleanly.
+    let mobile = false;
     let total = 0;
     let wrapTop = 0;
     let stage = { width: 0, height: 0 };
@@ -119,6 +125,21 @@ export function LogoMorphStage({
       stage = { width: window.innerWidth, height: window.innerHeight };
       total = Math.max(0, wrap.offsetHeight - window.innerHeight);
       wrapTop = wrap.getBoundingClientRect().top + window.scrollY;
+      mobile = stage.width < SIDEBAR_BP;
+      // The mark and its tweened bars only belong to the morph; the slide-up
+      // grows the window off its top edge.
+      slot.style.display = mobile ? 'none' : '';
+      bars.style.display = mobile ? 'none' : '';
+      frame.style.transformOrigin = mobile ? 'top center' : 'center';
+      if (mobile) {
+        return;
+      }
+      // Back on desktop: clear any slide-up residue before the morph resumes, and
+      // re-pin each bar's resting size so the scroll drives a pure `scale()` off
+      // it instead of relaying out the box every frame.
+      frame.style.borderRadius = '';
+      frame.style.boxShadow = '';
+      intro.style.transform = '';
       const box = slot.getBoundingClientRect();
       slotRect = { left: box.left, top: box.top, width: box.width };
       for (const [index] of MORPH_BARS.entries()) {
@@ -134,10 +155,7 @@ export function LogoMorphStage({
     };
 
     let raf = 0;
-    const update = () => {
-      raf = 0;
-      const progress = total > 0 ? Math.min(1, Math.max(0, (window.scrollY - wrapTop) / total)) : 1;
-
+    const updateMorph = (progress: number) => {
       for (const [index] of MORPH_BARS.entries()) {
         const el = barRefs.current[index];
         const base = bases[index];
@@ -163,6 +181,35 @@ export function LogoMorphStage({
       frame.style.transform = `scale(${phases.productScale})`;
       frame.style.pointerEvents = phases.productOpacity > 0.99 ? 'auto' : 'none';
     };
+
+    // The pre-#34 reveal, kept for mobile: the product scales up from a peek at
+    // the bottom to full-bleed as the headline clears. `rest` is the inverse of
+    // the eased progress, so the offset, rounding and shadow all relax to 0 as
+    // the window lands.
+    const updateSlide = (progress: number) => {
+      const ease = progress * progress * (3 - 2 * progress);
+      const rest = 1 - ease;
+      const startScale = 0.92;
+      const scale = startScale + (1 - startScale) * ease;
+      frame.style.opacity = '1';
+      frame.style.transform = `translateY(${85 * rest}vh) scale(${scale})`;
+      frame.style.borderRadius = `${22 * rest}px`;
+      frame.style.boxShadow = `0 ${6 * rest}px ${50 * rest}px rgb(0 0 0 / ${0.18 * rest})`;
+      frame.style.pointerEvents = ease > 0.99 ? 'auto' : 'none';
+      intro.style.opacity = `${Math.max(0, 1 - ease * 2.2)}`;
+      intro.style.transform = `translateY(${-20 * ease}px)`;
+      intro.style.pointerEvents = ease > 0.15 ? 'none' : 'auto';
+    };
+
+    const update = () => {
+      raf = 0;
+      const progress = total > 0 ? Math.min(1, Math.max(0, (window.scrollY - wrapTop) / total)) : 1;
+      if (mobile) {
+        updateSlide(progress);
+      } else {
+        updateMorph(progress);
+      }
+    };
     const onScroll = () => {
       if (!raf) {
         raf = requestAnimationFrame(update);
@@ -170,7 +217,7 @@ export function LogoMorphStage({
     };
     const onResize = () => {
       measure();
-      onScroll();
+      update();
     };
 
     measure();
@@ -201,7 +248,8 @@ export function LogoMorphStage({
           className="absolute inset-0 z-10 flex flex-col items-center justify-center px-4 text-center"
         >
           {/* The resting mark lives here; the tweened bars start exactly on it and
-              take over on the first scroll (see `logoOpacity`). */}
+              take over on the first scroll (see `logoOpacity`). Hidden on mobile,
+              where the mark doesn't morph. */}
           <div ref={slotRef} aria-hidden style={{ width: LOGO_SLOT_PX, height: LOGO_SLOT_PX }}>
             <KordeonMark className="size-full" />
           </div>

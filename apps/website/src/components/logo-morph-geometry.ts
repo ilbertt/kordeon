@@ -38,7 +38,10 @@ const VIEWBOX = 24;
 const SIDEBAR_W = 256;
 const PREVIEW_W = 352;
 const TOPBAR_H = 56;
-const SIDEBAR_BP = 768;
+// Below this the explorer drops to a drawer — and so does the preview — leaving
+// the window a single column. With no three panels to unfold onto, the mobile
+// hero drops the morph for a plain slide-up reveal (see `LogoMorphStage`).
+export const SIDEBAR_BP = 768;
 const PREVIEW_BP = 1280;
 // A seam between the panels so the two teal bars (explorer + chat) stay read as
 // two, not one block — the product's own borders take over once it materializes.
