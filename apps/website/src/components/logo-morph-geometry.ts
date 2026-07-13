@@ -97,6 +97,21 @@ const restingRect = ({ bar, slot }: { bar: Bar; slot: Slot }): Rect => {
   };
 };
 
+// The bar's resting footprint in the hero lockup — the fixed base the scroll
+// then drives via `transform: scale()`, so the tween stays on the compositor
+// instead of relaying out width/height every frame. At rest the scale is exactly
+// 1, so the mark renders pixel-true where the visitor first — and longest —
+// sees it. `barGeometry` still returns the absolute target rect; the stage just
+// expresses it as (target ÷ base) scale.
+export function barBase({ index, slot }: { index: number; slot: Slot }): {
+  width: number;
+  height: number;
+} {
+  const bar = MORPH_BARS[index]!;
+  const unit = slot.width / VIEWBOX;
+  return { width: bar.w * unit, height: bar.h * unit };
+}
+
 const bigRect = ({ bar, stage }: { bar: Bar; stage: Stage }): Rect => {
   const size = Math.min(stage.width * BIG_LOGO_W_FACTOR, stage.height * BIG_LOGO_H_FACTOR);
   const unit = size / VIEWBOX;

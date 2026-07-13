@@ -4,7 +4,7 @@ import { KordeonMark } from '@repo/ui/custom/kordeon-mark';
 import { cn } from '@repo/ui/lib/utils';
 import { ArrowDown } from 'lucide-react';
 import { useEffect, useRef } from 'react';
-import { barGeometry, MORPH_BARS, morphPhases } from './logo-morph-geometry';
+import { barBase, barGeometry, MORPH_BARS, morphPhases } from './logo-morph-geometry';
 
 const LOGO_SLOT_PX = 132;
 
@@ -104,27 +104,54 @@ export function LogoMorphStage({
       });
     }
 
-    let raf = 0;
-    const update = () => {
-      raf = 0;
-      const total = wrap.offsetHeight - window.innerHeight;
-      const raw = total > 0 ? -wrap.getBoundingClientRect().top / total : 1;
-      const progress = Math.min(1, Math.max(0, raw));
-
-      const stage = { width: window.innerWidth, height: window.innerHeight };
+    // Everything that only changes on resize is measured once here (and on
+    // resize), so the per-frame loop does zero forced layout: it reads
+    // `window.scrollY` — which doesn't flush layout — and writes only compositor
+    // transforms. Each bar's width/height is pinned to its resting size; the
+    // scroll then drives a `translate() scale()` off that base instead of
+    // relaying out the box every frame.
+    let total = 0;
+    let wrapTop = 0;
+    let stage = { width: 0, height: 0 };
+    let slotRect = { left: 0, top: 0, width: 0 };
+    const bases: Array<{ width: number; height: number }> = [];
+    const measure = () => {
+      stage = { width: window.innerWidth, height: window.innerHeight };
+      total = Math.max(0, wrap.offsetHeight - window.innerHeight);
+      wrapTop = wrap.getBoundingClientRect().top + window.scrollY;
       const box = slot.getBoundingClientRect();
-      const slotRect = { left: box.left, top: box.top, width: box.width };
-
+      slotRect = { left: box.left, top: box.top, width: box.width };
       for (const [index] of MORPH_BARS.entries()) {
         const el = barRefs.current[index];
         if (!el) {
           continue;
         }
+        const base = barBase({ index, slot: slotRect });
+        bases[index] = base;
+        el.style.width = `${base.width}px`;
+        el.style.height = `${base.height}px`;
+      }
+    };
+
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const progress = total > 0 ? Math.min(1, Math.max(0, (window.scrollY - wrapTop) / total)) : 1;
+
+      for (const [index] of MORPH_BARS.entries()) {
+        const el = barRefs.current[index];
+        const base = bases[index];
+        if (!(el && base)) {
+          continue;
+        }
         const r = barGeometry({ index, progress, stage, slot: slotRect });
-        el.style.transform = `translate(${r.left}px, ${r.top}px)`;
-        el.style.width = `${r.width}px`;
-        el.style.height = `${r.height}px`;
-        el.style.borderRadius = `${r.radius}px`;
+        const sx = base.width > 0 ? r.width / base.width : 0;
+        const sy = base.height > 0 ? r.height / base.height : 0;
+        // border-radius rides the transform, so author it pre-scale to render
+        // `r.radius` on the (dominant) horizontal axis — exact at rest where the
+        // mark reads, and ≈0 by the panels where corners go sharp anyway.
+        el.style.transform = `translate(${r.left}px, ${r.top}px) scale(${sx}, ${sy})`;
+        el.style.borderRadius = sx > 0 ? `${r.radius / sx}px` : '0px';
       }
 
       const phases = morphPhases({ progress });
@@ -141,13 +168,18 @@ export function LogoMorphStage({
         raf = requestAnimationFrame(update);
       }
     };
+    const onResize = () => {
+      measure();
+      onScroll();
+    };
 
+    measure();
     update();
     window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
+    window.addEventListener('resize', onResize);
     return () => {
       window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
+      window.removeEventListener('resize', onResize);
       if (raf) {
         cancelAnimationFrame(raf);
       }
@@ -197,7 +229,7 @@ export function LogoMorphStage({
                 barRefs.current[index] = el;
               }}
               className={cn(
-                'absolute top-0 left-0 will-change-transform',
+                'absolute top-0 left-0 origin-top-left will-change-transform',
                 bar.tone === 'orange' ? 'bg-[#ff6900]' : 'bg-[#00bba7] dark:bg-[#00786f]',
               )}
             />
