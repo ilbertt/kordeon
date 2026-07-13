@@ -48,6 +48,7 @@ import {
   filmV12Schema,
   LaunchFilmV12,
 } from '#compositions/LaunchFilmV12';
+import { filmV13DefaultProps } from '#compositions/LaunchFilmV13';
 import {
   LAUNCH_DURATION,
   LaunchVideo,
@@ -194,6 +195,17 @@ export function RemotionRoot() {
         height={HEIGHT}
         schema={filmV12Schema}
         defaultProps={filmV12DefaultProps}
+      />
+      {/* Thirteenth cut — cut 12's animation; chat + problem-PR copy tweaks. */}
+      <Composition
+        id="LaunchFilmV13"
+        component={LaunchFilmV12}
+        durationInFrames={FILM_V12_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        schema={filmV12Schema}
+        defaultProps={filmV13DefaultProps}
       />
       {/* Debug probes for the pieces the launch film is built from. */}
       <Composition
