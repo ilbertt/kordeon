@@ -18,6 +18,13 @@ copy is read. The bar → panel geometry mirrors the real workspace layout, so i
 next to the maths (`logo-morph-geometry.ts`); keep the two in sync if the window's panel
 widths or breakpoints change.
 
+The morph only reads on **desktop**, where the three panels are actually on screen. Below
+the sidebar breakpoint (`SIDEBAR_BP`) both side panels collapse to drawers, so there are no
+columns for the bars to become — the metamorphosis would land on a single-column window and
+say nothing. There, `LogoMorphStage` drops the morph and keeps the pre-#34 reveal: the
+window scales up from a peek at the bottom, like a screenshot sliding into view. Both are
+scroll-driven off the same track, so the CTA and section deep-links behave identically.
+
 What it has to teach is the **three-panel shape** (see [`vision.md`](./vision.md)):
 explorer on the left, chat in the middle, preview on the right. The layout already *is*
 those three panels — so the *copy* has to sell the two that set kordeon apart from an
