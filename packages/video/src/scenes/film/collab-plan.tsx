@@ -10,6 +10,16 @@ import { PEOPLE } from '#data/people';
 
 const EASE = Easing.inOut(Easing.cubic);
 
+// Where each teammate's presence cursor comes to rest once the plan is worked —
+// percentages of the brief box. Shared so the hand-off beat can seat the same
+// cursors at these exact spots, letting the plan→hand-off crossfade blend
+// cursor→cursor instead of popping them away.
+export const REST = {
+  theo: { x: 40, y: 15 },
+  maya: { x: 14, y: 61 },
+  ada: { x: 44, y: 82 },
+} as const;
+
 // The brief the team co-writes with Korde — the content of the collaborate
 // composer (`compose: 'collab'`), mirroring the product's PromptEditor. It's a
 // frame-driven port: the real editor is tiptap and its presence cursors run on a
@@ -126,6 +136,7 @@ export function CollabPlan({
   animate = false,
   onText,
   label,
+  overlay,
 }: {
   editable: boolean;
   // Play the co-writing choreography (cursors travelling, a requirement ticked).
@@ -133,6 +144,10 @@ export function CollabPlan({
   animate?: boolean;
   onText?: (text: string) => void;
   label?: string;
+  // Extra cursor layer drawn inside the brief box (same %-of-box space as the
+  // co-writing cursors) — the hand-off beat seats resting teammates + the You
+  // cursor here so they align with, and take over from, the plan choreography.
+  overlay?: ReactNode;
 }) {
   const frame = useCurrentFrame();
   useEffect(() => {
@@ -176,26 +191,27 @@ export function CollabPlan({
             <Mate
               person={PEOPLE.theo}
               from={{ x: 86, y: 46 }}
-              to={{ x: 40, y: 15 }}
+              to={REST.theo}
               enter={24}
               arrive={64}
             />
             <Mate
               person={PEOPLE.maya}
               from={{ x: 74, y: 8 }}
-              to={{ x: 14, y: 61 }}
+              to={REST.maya}
               enter={10}
               arrive={50}
             />
             <Mate
               person={PEOPLE.ada}
               from={{ x: 20, y: 92 }}
-              to={{ x: 44, y: 82 }}
+              to={REST.ada}
               enter={44}
               arrive={86}
             />
           </>
         ) : null}
+        {overlay}
       </div>
     </div>
   );
