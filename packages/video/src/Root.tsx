@@ -24,6 +24,12 @@ import {
   LaunchFilmV7,
 } from '#compositions/LaunchFilmV7';
 import {
+  FILM_V8_DURATION,
+  filmV8DefaultProps,
+  filmV8Schema,
+  LaunchFilmV8,
+} from '#compositions/LaunchFilmV8';
+import {
   LAUNCH_DURATION,
   LaunchVideo,
   launchDefaultProps,
@@ -114,6 +120,17 @@ export function RemotionRoot() {
         height={HEIGHT}
         schema={filmV7Schema}
         defaultProps={filmV7DefaultProps}
+      />
+      {/* Eighth cut — longer caption holds + a Meet-kordeon logo→product morph. */}
+      <Composition
+        id="LaunchFilmV8"
+        component={LaunchFilmV8}
+        durationInFrames={FILM_V8_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        schema={filmV8Schema}
+        defaultProps={filmV8DefaultProps}
       />
       {/* Debug probes for the pieces the launch film is built from. */}
       <Composition
