@@ -43,6 +43,12 @@ import {
 } from '#compositions/LaunchFilmV10';
 import { filmV11DefaultProps } from '#compositions/LaunchFilmV11';
 import {
+  FILM_V12_DURATION,
+  filmV12DefaultProps,
+  filmV12Schema,
+  LaunchFilmV12,
+} from '#compositions/LaunchFilmV12';
+import {
   LAUNCH_DURATION,
   LaunchVideo,
   launchDefaultProps,
@@ -177,6 +183,17 @@ export function RemotionRoot() {
         height={HEIGHT}
         schema={filmV10Schema}
         defaultProps={filmV11DefaultProps}
+      />
+      {/* Twelfth cut — channels-as-threads caption, self-hostable + waitlist ending. */}
+      <Composition
+        id="LaunchFilmV12"
+        component={LaunchFilmV12}
+        durationInFrames={FILM_V12_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        schema={filmV12Schema}
+        defaultProps={filmV12DefaultProps}
       />
       {/* Debug probes for the pieces the launch film is built from. */}
       <Composition
