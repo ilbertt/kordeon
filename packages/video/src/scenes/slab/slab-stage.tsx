@@ -75,10 +75,20 @@ function floatAt(frame: number) {
 
 // Presents the real ProductWindow as a rounded, shadowed, perspective-tilted slab
 // floating on the dark background. The pose positions/sizes it; the float adds a
-// continuous drift on top.
-export function SlabStage({ pose, product }: { pose: SlabPose; product: ProductWindowProps }) {
+// continuous drift on top. `phase` offsets the float onto the global timeline so
+// the drift stays continuous across a cut (a beat's local frame resets to 0, which
+// would otherwise snap the slab's tilt at every scene boundary).
+export function SlabStage({
+  pose,
+  product,
+  phase = 0,
+}: {
+  pose: SlabPose;
+  product: ProductWindowProps;
+  phase?: number;
+}) {
   const frame = useCurrentFrame();
-  const drift = floatAt(frame);
+  const drift = floatAt(frame + phase);
   const x = (FRAME_W / 2 - pose.focusX) * pose.scale;
   const y = (FRAME_H / 2 - pose.focusY) * pose.scale + drift.y;
   const scale = pose.scale + drift.breath;

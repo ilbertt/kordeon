@@ -10,6 +10,7 @@ import {
   filmV4Schema,
   LaunchFilmV4,
 } from '#compositions/LaunchFilmV4';
+import { FILM_V5_DURATION, LaunchFilmV5 } from '#compositions/LaunchFilmV5';
 import {
   LAUNCH_DURATION,
   LaunchVideo,
@@ -63,6 +64,17 @@ export function RemotionRoot() {
         id="LaunchFilmV4"
         component={LaunchFilmV4}
         durationInFrames={FILM_V4_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        schema={filmV4Schema}
+        defaultProps={filmV4DefaultProps}
+      />
+      {/* Fifth cut — cut 4 with smooth, non-jumping scene transitions. */}
+      <Composition
+        id="LaunchFilmV5"
+        component={LaunchFilmV5}
+        durationInFrames={FILM_V5_DURATION}
         fps={FPS}
         width={WIDTH}
         height={HEIGHT}
