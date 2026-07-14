@@ -19,18 +19,6 @@ export type SlabPose = {
   rotateY: number;
 };
 
-// Named poses. Scales are capped so the slab never fills the frame edge-to-edge;
-// panning to a side panel lets the far edge leave while the near rounded edge +
-// shadow stay, so it always reads as a floating slab, never a flat crop.
-export const SLAB = {
-  wide: { focusX: 960, focusY: 540, scale: 0.72, rotateX: 6, rotateY: 0 },
-  chat: { focusX: 800, focusY: 470, scale: 0.82, rotateX: 5, rotateY: 3 },
-  composer: { focusX: 780, focusY: 815, scale: 0.85, rotateX: 4, rotateY: 1 },
-  handoff: { focusX: 1040, focusY: 560, scale: 0.78, rotateX: 5, rotateY: -4 },
-  preview: { focusX: 1730, focusY: 360, scale: 0.83, rotateX: 5, rotateY: -7 },
-  pullback: { focusX: 960, focusY: 540, scale: 0.72, rotateX: 6, rotateY: 0 },
-} satisfies Record<string, SlabPose>;
-
 function mix({ from, to, t }: { from: number; to: number; t: number }): number {
   return from + (to - from) * t;
 }

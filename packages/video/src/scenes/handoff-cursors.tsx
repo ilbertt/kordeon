@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 import { interpolate, useCurrentFrame } from 'remotion';
 import { PEOPLE } from '#data/people';
 import { EASE_OUT } from '#lib/motion';
-import { CollabPlan, REST } from '#scenes/film/collab-plan';
+import { CollabPlan, REST } from '#scenes/collab-plan';
 
 // The Build button in the composer footer, expressed in the same %-of-brief-box
 // space the teammate cursors use (tuned against stills). The You cursor drives to

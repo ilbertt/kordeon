@@ -10,12 +10,9 @@ import {
   useVideoConfig,
 } from 'remotion';
 import { KineticCaption } from '#components/kinetic-caption';
-import { channelBySlug } from '#data/channels';
 import { EASE, EASE_IN_OUT } from '#lib/motion';
-import { threadStateAt } from '#lib/thread-timeline';
-import { SLAB, SlabStage } from '#scenes/slab/slab-stage';
-
-const WELCOME_SLUG = 'welcome';
+import { SLAB } from '#scenes/slab-beat';
+import { SlabStage } from '#scenes/slab-stage';
 
 type Rect = { left: number; top: number; width: number; height: number; radius: number };
 
@@ -86,37 +83,25 @@ function mixRect({ from, to, t }: { from: Rect; to: Rect; t: number }): Rect {
   };
 }
 
-// Stage timings, local frames: meet line lands and clears → the bars strike up as
-// the mark → the mark unfolds into the three columns → the real window materialises
-// where they landed. The window is fully solid before the crossfade to the first
-// product beat, so that seam dissolves one identical window into the next.
-const MEET_OUT = 58;
-const LOGO_IN = 58;
+// Stage timings, local frames: the meet line lands → ~0.5s later the mark strikes up
+// above it (LOGO_IN), so the two share the frame; the line holds (MEET_OUT) then fades
+// → the mark unfolds into the three columns → the real window materialises where they
+// landed. The line sits below the mark via CAPTION_OFFSET. The window is fully solid
+// before the crossfade to the first product beat, so that seam dissolves one identical
+// window into the next.
+const LOGO_IN = 16;
+const MEET_OUT = 86;
+const CAPTION_OFFSET = 150;
 const MORPH_START = 104;
 const MORPH_END = 156;
 const MAT_START = 150;
 const MAT_END = 182;
 
-// `logoOverText` variant: the mark strikes up ~0.5s after the line (LOGO_IN_OVER),
-// so the two share the frame — the line sits below the logo (CAPTION_OFFSET_OVER) and
-// holds longer (MEET_OUT_OVER) before fading, then the same morph runs unchanged.
-const MEET_OUT_OVER = 86;
-const LOGO_IN_OVER = 16;
-const CAPTION_OFFSET_OVER = 150;
-
-function MorphBar({
-  bar,
-  index,
-  logoIn,
-}: {
-  bar: (typeof MARK_BARS)[number];
-  index: number;
-  logoIn: number;
-}) {
+function MorphBar({ bar, index }: { bar: (typeof MARK_BARS)[number]; index: number }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const strike = spring({
-    frame: frame - logoIn - index * 5,
+    frame: frame - LOGO_IN - index * 5,
     fps,
     config: { damping: 15, mass: 0.7, stiffness: 150 },
     durationInFrames: 20,
@@ -157,36 +142,20 @@ function MorphBar({
   );
 }
 
-// Beat — "Meet kordeon": the line lands, the logo forms, then its three bars unfold
-// into the product's explorer · chat · preview columns and the real window fills in.
+// Beat — "Meet kordeon": the line lands, the logo strikes up above it, the line
+// fades, then its three bars unfold into the product's explorer · chat · preview
+// columns and the real window fills in — opening on `channelState` (held identical to
+// the following home beat's first frame, so their crossfade blends one window).
 export function MeetMorph({
   meetLine,
   phase,
   channelState,
-  logoOverText = false,
 }: {
   meetLine: string;
   phase: number;
-  channelState?: { slug: string; visibleCount: number; typingId?: string };
-  // Show the logo above the line before the line clears (vs. the line clearing first).
-  logoOverText?: boolean;
+  channelState: { slug: string; visibleCount: number; typingId?: string };
 }): ReactNode {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const logoIn = logoOverText ? LOGO_IN_OVER : LOGO_IN;
-  const meetOut = logoOverText ? MEET_OUT_OVER : MEET_OUT;
-  const captionOffset = logoOverText ? CAPTION_OFFSET_OVER : 0;
-  const welcome = channelBySlug(WELCOME_SLUG);
-  // Frame 0 of the default welcome thread — the exact state the following home beat
-  // opens on, so their crossfade blends one identical window into the next. A cut can
-  // override this to materialise straight into a feature channel.
-  const welcomeState = threadStateAt({
-    messages: welcome?.messages ?? [],
-    fps,
-    frame: 0,
-    currentUserId: 'you',
-  });
-  const active = channelState ?? { slug: WELCOME_SLUG, ...welcomeState };
   const windowOpacity = interpolate(frame, [MAT_START, MAT_END], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
@@ -194,17 +163,17 @@ export function MeetMorph({
   });
   return (
     <AbsoluteFill className="dark bg-background text-foreground">
-      <Sequence durationInFrames={meetOut}>
+      <Sequence durationInFrames={MEET_OUT}>
         <KineticCaption
           text={meetLine}
-          durationInFrames={meetOut}
+          durationInFrames={MEET_OUT}
           variant="hero"
-          offsetY={captionOffset}
+          offsetY={CAPTION_OFFSET}
         />
       </Sequence>
       <AbsoluteFill>
         {[...MARK_BARS.entries()].map(([index, bar]) => (
-          <MorphBar key={bar.key} bar={bar} index={index} logoIn={logoIn} />
+          <MorphBar key={bar.key} bar={bar} index={index} />
         ))}
       </AbsoluteFill>
       <AbsoluteFill style={{ opacity: windowOpacity }}>
@@ -212,9 +181,9 @@ export function MeetMorph({
           pose={SLAB.wide}
           phase={phase}
           product={{
-            activeSlug: active.slug,
-            visibleCount: active.visibleCount,
-            typingId: active.typingId,
+            activeSlug: channelState.slug,
+            visibleCount: channelState.visibleCount,
+            typingId: channelState.typingId,
             previewState: 'placeholder',
           }}
         />

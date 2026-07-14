@@ -14,8 +14,8 @@ Non-obvious, learned the hard way:
 
 - **Animate from `useCurrentFrame()`, never timers or CSS transitions** — a render seeks each
   frame in isolation. The product's own `Thread` playback is timer-driven, so we pass
-  `animate={false}` and reveal messages by frame-slicing `channel.messages` (the pure port is
-  `src/lib/thread-timeline.ts`). Reusing the real window still drags in a few `@repo/ui`
+  `animate={false}` and reveal messages by frame-slicing `channel.messages` (the per-beat reveal
+  schedule is `stagedReveal` in `src/lib/motion.ts`). Reusing the real window still drags in a few `@repo/ui`
   `animate-*` / `transition-*` classes (typing dots, hovers); they render as static frames and
   can't be stripped without editing shared components.
 

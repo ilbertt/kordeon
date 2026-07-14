@@ -1,18 +1,14 @@
 // biome-ignore-all lint/style/noMagicNumbers: per-beat reveal + pose timing
-import { interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
-import { channelBySlug, HERO_SLUG } from '#data/channels';
+import { interpolate, useCurrentFrame } from 'remotion';
+import { HERO_SLUG } from '#data/channels';
 import { EASE_IN_OUT, type RevealStep, stagedReveal } from '#lib/motion';
-import { threadStateAt } from '#lib/thread-timeline';
-import { collabPlanPrompt } from '#scenes/film/collab-plan';
-import { handoffPlanPrompt } from '#scenes/film/handoff-cursors';
-import { poseAt } from '#scenes/slab/slab-stage';
-import { homePanPose, move, SLAB, SlabBeat, swapMix } from '#scenes/v6/slab-beat';
+import { collabPlanPrompt } from '#scenes/collab-plan';
+import { handoffPlanPrompt } from '#scenes/handoff-cursors';
+import { homePanPose, move, SLAB, SlabBeat, swapMix } from '#scenes/slab-beat';
+import { poseAt } from '#scenes/slab-stage';
 
-const WELCOME_SLUG = 'welcome';
-
-// Optional override to open the establishing shot on a specific channel + reveal
-// state instead of the default welcome thread — lets a cut jump straight into a
-// feature channel.
+// Which channel + reveal state the establishing shot opens on, held identical to the
+// meet beat's final frame so their crossfade blends one window into the next.
 export type HomeChannelState = { slug: string; visibleCount: number; typingId?: string };
 
 export function WorkspaceHome({
@@ -20,34 +16,22 @@ export function WorkspaceHome({
   phase,
   durationInFrames,
   channelState,
-  panLeftDown = false,
 }: {
   subtitle: string;
   phase: number;
   durationInFrames: number;
-  channelState?: HomeChannelState;
-  // Opt-in: gently push into the left channel-list panel and crane down it, then
-  // return to wide. Off by default so earlier cuts keep the static establishing shot.
-  panLeftDown?: boolean;
+  channelState: HomeChannelState;
 }) {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const welcome = channelBySlug(WELCOME_SLUG);
-  const welcomeState = threadStateAt({
-    messages: welcome?.messages ?? [],
-    fps,
-    frame,
-    currentUserId: 'you',
-  });
-  const active = channelState ?? { slug: WELCOME_SLUG, ...welcomeState };
   return (
     <SlabBeat
-      pose={panLeftDown ? homePanPose(frame) : SLAB.wide}
+      // Push into the left channel-list panel and crane down it, then return to wide.
+      pose={homePanPose(frame)}
       phase={phase}
       product={{
-        activeSlug: active.slug,
-        visibleCount: active.visibleCount,
-        typingId: active.typingId,
+        activeSlug: channelState.slug,
+        visibleCount: channelState.visibleCount,
+        typingId: channelState.typingId,
         previewState: 'placeholder',
       }}
       caption={subtitle}
@@ -130,9 +114,9 @@ const HANDOFF_REVEAL: RevealStep[] = [
 // reads as one change; the preview crossfades placeholder → building over SWAP_FADE.
 const HANDOFF_SWAP = 52;
 
-// `clickToBuild` variant: hold on the composer so the Build button and the
-// collaboration cursors are both framed for the You-cursor press, then move to the
-// hand-off pose (ship's start) so the beat still hands cleanly into the preview.
+// Hold on the composer so the Build button and the collaboration cursors are both
+// framed for the You-cursor press, then move to the hand-off pose (ship's start) so
+// the beat still hands cleanly into the preview.
 const HANDOFF_HOLD = 60;
 const HANDOFF_MOVE_END = 150;
 
@@ -150,25 +134,21 @@ export function HandOff({
   subtitle,
   phase,
   durationInFrames,
-  clickToBuild = false,
 }: {
   subtitle: string;
   phase: number;
   durationInFrames: number;
-  clickToBuild?: boolean;
 }) {
   const frame = useCurrentFrame();
   const { visibleCount, typingId } = stagedReveal({ steps: HANDOFF_REVEAL, frame });
-  const pose = clickToBuild
-    ? poseAt({
-        from: SLAB.composer,
-        to: SLAB.handoff,
-        frame,
-        start: HANDOFF_HOLD,
-        end: HANDOFF_MOVE_END,
-        easing: EASE_IN_OUT,
-      })
-    : move({ from: SLAB.composer, to: SLAB.handoff, frame, end: 90 });
+  const pose = poseAt({
+    from: SLAB.composer,
+    to: SLAB.handoff,
+    frame,
+    start: HANDOFF_HOLD,
+    end: HANDOFF_MOVE_END,
+    easing: EASE_IN_OUT,
+  });
   return (
     <SlabBeat
       pose={pose}
@@ -181,9 +161,7 @@ export function HandOff({
         previewState: frame < HANDOFF_SWAP ? 'placeholder' : 'building',
         previewPrevState: 'placeholder',
         previewStateMix: swapMix({ frame, at: HANDOFF_SWAP }),
-        renderComposerPrompt: clickToBuild
-          ? handoffPlanPrompt(HANDOFF_SPEC)
-          : collabPlanPrompt(false),
+        renderComposerPrompt: handoffPlanPrompt(HANDOFF_SPEC),
       }}
       caption={subtitle}
       captionStart={30}

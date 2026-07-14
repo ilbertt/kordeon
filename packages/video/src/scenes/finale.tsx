@@ -13,8 +13,8 @@ import {
 import { KineticCaption } from '#components/kinetic-caption';
 import { HERO_SLUG } from '#data/channels';
 import { EASE, EASE_IN_OUT } from '#lib/motion';
-import { collabPlanPrompt } from '#scenes/film/collab-plan';
-import { type SlabPose, SlabStage } from '#scenes/slab/slab-stage';
+import { collabPlanPrompt } from '#scenes/collab-plan';
+import { type SlabPose, SlabStage } from '#scenes/slab-stage';
 
 type Rect = { left: number; top: number; width: number; height: number; radius: number };
 
@@ -90,46 +90,35 @@ function mixRect({ from, to, t }: { from: Rect; to: Rect; t: number }): Rect {
   };
 }
 
-// hold the window → panels fold panel → mark → the mark holds (a caption can land
-// here) → it shrinks onto the tile as the wordmark, promise + waitlist resolve. Every
-// post-fold beat below is shifted later by `holdExtra`, so a cut can hold the formed
-// mark longer (e.g. to read a caption) without touching the fold itself.
+// hold the window → panels fold panel → mark → the mark holds while the closing
+// caption lands (it waits for the bars to reach the mark, so the hold runs long) → it
+// shrinks onto the tile as the wordmark, promise + waitlist resolve.
 const PANEL_IN_START = 42;
 const WIN_OUT_START = 52;
 const WIN_OUT_END = 84;
 const FOLD_START = 76;
 const FOLD_END = 140;
-const SHRINK_START = 180;
-const SHRINK_END = 222;
-const TILE_IN = 196;
-const TILE_END = 220;
-const LOCKUP_AT = 216;
-const CTA_AT = 242;
+const SHRINK_START = 220;
+const SHRINK_END = 262;
+const TILE_IN = 236;
+const TILE_END = 260;
+const LOCKUP_AT = 256;
+const CTA_AT = 282;
 
-// An opt-in caption over the recomposition. Defaults land it during the fold; a cut
-// can pass a later `foldCaptionFrom` (once the bars have folded to the mark) with a
-// matching `holdExtra` so it still reads before the white lockup tile appears.
-const FOLD_CAPTION_FROM = 88;
-const FOLD_CAPTION_DUR = 100;
+// The closing caption over the recomposition: it waits until the bars have folded to
+// the mark (so it doesn't compete with the window-sized panels) and clears before the
+// white lockup tile appears.
+const FOLD_CAPTION_FROM = 134;
+const FOLD_CAPTION_DUR = 92;
 
-function FoldBar({
-  bar,
-  index,
-  shrinkStart,
-  shrinkEnd,
-}: {
-  bar: (typeof MARK_BARS)[number];
-  index: number;
-  shrinkStart: number;
-  shrinkEnd: number;
-}) {
+function FoldBar({ bar, index }: { bar: (typeof MARK_BARS)[number]; index: number }) {
   const frame = useCurrentFrame();
   const fold = interpolate(frame, [FOLD_START, FOLD_END], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: EASE_IN_OUT,
   });
-  const shrink = interpolate(frame, [shrinkStart, shrinkEnd], [0, 1], {
+  const shrink = interpolate(frame, [SHRINK_START, SHRINK_END], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: EASE_IN_OUT,
@@ -170,62 +159,42 @@ function FoldBar({
 type MorphFinaleProps = {
   wordmark: string;
   tagline: string;
-  selfHost: string;
   waitlist: string;
   phase: number;
-  durationInFrames: number;
-  // Opt-in caption over the recomposition, before the white tile lands.
-  foldCaption?: string;
-  foldCaptionFrom?: number;
-  foldCaptionDur?: number;
-  // Hold the formed mark this many frames longer before it shrinks to the lockup.
-  holdExtra?: number;
+  // The closing caption over the recomposition, before the white tile lands.
+  foldCaption: string;
 };
 
 // Finale — the reverse of the opening morph: the product window's panels fold back
-// into the mark, which holds while "self-hostable" lands, then shrinks to the lockup
-// as the wordmark, promise and waitlist line resolve.
+// into the mark, which holds while the closing caption lands, then shrinks to the
+// lockup as the wordmark, promise and waitlist line resolve.
 export function MorphFinale({
   wordmark,
   tagline,
-  selfHost,
   waitlist,
   phase,
   foldCaption,
-  foldCaptionFrom = FOLD_CAPTION_FROM,
-  foldCaptionDur = FOLD_CAPTION_DUR,
-  holdExtra = 0,
 }: MorphFinaleProps): ReactNode {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const shrinkStart = SHRINK_START + holdExtra;
-  const shrinkEnd = SHRINK_END + holdExtra;
   const windowOpacity = interpolate(frame, [WIN_OUT_START, WIN_OUT_END], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: EASE,
   });
-  const selfHostOpacity = Math.min(
-    interpolate(frame, [150, 168], [0, 1], {
-      extrapolateLeft: 'clamp',
-      extrapolateRight: 'clamp',
-      easing: EASE,
-    }),
-    interpolate(frame, [200, 216], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
-  );
-  const tile = interpolate(frame, [TILE_IN + holdExtra, TILE_END + holdExtra], [0, 1], {
+  const tile = interpolate(frame, [TILE_IN, TILE_END], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: EASE,
   });
   const lockup = spring({
-    frame: frame - (LOCKUP_AT + holdExtra),
+    frame: frame - LOCKUP_AT,
     fps,
     config: { damping: 20, mass: 0.8 },
     durationInFrames: 26,
   });
   const cta = spring({
-    frame: frame - (CTA_AT + holdExtra),
+    frame: frame - CTA_AT,
     fps,
     config: { damping: 18, mass: 0.8 },
     durationInFrames: 24,
@@ -255,33 +224,13 @@ export function MorphFinale({
       />
       <AbsoluteFill>
         {[...MARK_BARS.entries()].map(([index, bar]) => (
-          <FoldBar
-            key={bar.key}
-            bar={bar}
-            index={index}
-            shrinkStart={shrinkStart}
-            shrinkEnd={shrinkEnd}
-          />
+          <FoldBar key={bar.key} bar={bar} index={index} />
         ))}
       </AbsoluteFill>
 
-      {foldCaption ? (
-        <Sequence from={foldCaptionFrom} durationInFrames={foldCaptionDur}>
-          <KineticCaption text={foldCaption} durationInFrames={foldCaptionDur} />
-        </Sequence>
-      ) : null}
-
-      {/* Before the lockup: the mark is formed, and the one thing to say about it.
-          Opt-out — an empty `selfHost` drops it (a cut can make the point as its own
-          caption beat before the fold instead of floating it beside the mark). */}
-      {selfHost ? (
-        <div
-          className="absolute inset-x-0 text-center"
-          style={{ top: 640, opacity: selfHostOpacity }}
-        >
-          <span className="font-medium text-3xl text-muted-foreground">{selfHost}</span>
-        </div>
-      ) : null}
+      <Sequence from={FOLD_CAPTION_FROM} durationInFrames={FOLD_CAPTION_DUR}>
+        <KineticCaption text={foldCaption} durationInFrames={FOLD_CAPTION_DUR} />
+      </Sequence>
 
       <Interactive.Div
         name="Finale lockup"

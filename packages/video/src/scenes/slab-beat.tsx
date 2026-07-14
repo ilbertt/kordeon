@@ -4,7 +4,7 @@ import { AbsoluteFill, interpolate, Sequence } from 'remotion';
 import { KineticCaption } from '#components/kinetic-caption';
 import { EASE_IN_OUT } from '#lib/motion';
 import type { ProductWindowProps } from '#product-window/product-window';
-import { poseAt, type SlabPose, SlabStage } from '#scenes/slab/slab-stage';
+import { poseAt, type SlabPose, SlabStage } from '#scenes/slab-stage';
 
 // The pose only starts moving once the crossfade is over, so the incoming beat
 // holds its start pose for the whole transition. With a continuous float (`phase`)
