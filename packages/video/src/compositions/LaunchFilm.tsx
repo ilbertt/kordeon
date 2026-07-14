@@ -1,6 +1,6 @@
 import { linearTiming, TransitionSeries } from '@remotion/transitions';
 import { fade } from '@remotion/transitions/fade';
-import { AbsoluteFill, Audio, interpolate, staticFile } from 'remotion';
+import { AbsoluteFill, Audio, interpolate, Sequence, staticFile } from 'remotion';
 import { z } from 'zod';
 import { HERO_SLUG } from '#data/channels';
 import { dipToBackground } from '#lib/film-transitions';
@@ -129,10 +129,16 @@ export const FILM_DURATION = BEATS_TOTAL - (ORDER.length - 1) * CROSSFADE_FRAMES
 // the captions). The 164s track is longer than the cut; we play its opening, fade in
 // off the desaturated problem, and fade out under the finale lockup. NB: Uppbeat's
 // free licence needs the attribution in the *published post's* description, not here.
+//
+// The track's drop lands at 9.2s (frame 276); we delay the audio by MUSIC_DELAY so it
+// hits at frame 293 — the black beat where "What if you could plan together first?" has
+// dipped out, right before "Meet kordeon" fades in.
 const MUSIC_SRC = 'music/better-together-bastian.mp3';
 const MUSIC_PEAK = 0.9;
 const MUSIC_FADE_IN = 20;
 const MUSIC_FADE_OUT = 36;
+const MUSIC_DELAY = 17;
+const MUSIC_DURATION = FILM_DURATION - MUSIC_DELAY;
 
 // Matched slab-to-slab cuts crossfade opacity; brand↔product mismatches (problem →
 // pivot → meet) dip through the opaque background so they don't ghost as a double
@@ -154,17 +160,19 @@ const dipCut = () => (
 export function LaunchFilm(props: z.infer<typeof launchFilmSchema>) {
   return (
     <AbsoluteFill className="dark bg-background" style={fontStyle}>
-      <Audio
-        src={staticFile(MUSIC_SRC)}
-        volume={(f) =>
-          interpolate(
-            f,
-            [0, MUSIC_FADE_IN, FILM_DURATION - MUSIC_FADE_OUT, FILM_DURATION],
-            [0, MUSIC_PEAK, MUSIC_PEAK, 0],
-            { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
-          )
-        }
-      />
+      <Sequence from={MUSIC_DELAY} name="Music">
+        <Audio
+          src={staticFile(MUSIC_SRC)}
+          volume={(f) =>
+            interpolate(
+              f,
+              [0, MUSIC_FADE_IN, MUSIC_DURATION - MUSIC_FADE_OUT, MUSIC_DURATION],
+              [0, MUSIC_PEAK, MUSIC_PEAK, 0],
+              { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+            )
+          }
+        />
+      </Sequence>
       <TransitionSeries>
         <TransitionSeries.Sequence durationInFrames={BEATS.problem}>
           <CollaborateAfter
