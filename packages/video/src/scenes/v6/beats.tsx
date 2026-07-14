@@ -6,7 +6,7 @@ import { threadStateAt } from '#lib/thread-timeline';
 import { collabPlanPrompt } from '#scenes/film/collab-plan';
 import { handoffPlanPrompt } from '#scenes/film/handoff-cursors';
 import { poseAt } from '#scenes/slab/slab-stage';
-import { move, SLAB, SlabBeat, swapMix } from '#scenes/v6/slab-beat';
+import { homePanPose, move, SLAB, SlabBeat, swapMix } from '#scenes/v6/slab-beat';
 
 const WELCOME_SLUG = 'welcome';
 
@@ -20,11 +20,15 @@ export function WorkspaceHome({
   phase,
   durationInFrames,
   channelState,
+  panLeftDown = false,
 }: {
   subtitle: string;
   phase: number;
   durationInFrames: number;
   channelState?: HomeChannelState;
+  // Opt-in: gently push into the left channel-list panel and crane down it, then
+  // return to wide. Off by default so earlier cuts keep the static establishing shot.
+  panLeftDown?: boolean;
 }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -38,7 +42,7 @@ export function WorkspaceHome({
   const active = channelState ?? { slug: WELCOME_SLUG, ...welcomeState };
   return (
     <SlabBeat
-      pose={SLAB.wide}
+      pose={panLeftDown ? homePanPose(frame) : SLAB.wide}
       phase={phase}
       product={{
         activeSlug: active.slug,

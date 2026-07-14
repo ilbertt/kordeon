@@ -63,6 +63,12 @@ import {
 } from '#compositions/LaunchFilmV15';
 import { filmV16DefaultProps } from '#compositions/LaunchFilmV16';
 import {
+  FILM_V17_DURATION,
+  filmV17DefaultProps,
+  filmV17Schema,
+  LaunchFilmV17,
+} from '#compositions/LaunchFilmV17';
+import {
   LAUNCH_DURATION,
   LaunchVideo,
   launchDefaultProps,
@@ -252,6 +258,17 @@ export function RemotionRoot() {
         height={HEIGHT}
         schema={filmV15Schema}
         defaultProps={filmV16DefaultProps}
+      />
+      {/* Seventeenth cut — establishing shot cranes down the left channel-list panel. */}
+      <Composition
+        id="LaunchFilmV17"
+        component={LaunchFilmV17}
+        durationInFrames={FILM_V17_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        schema={filmV17Schema}
+        defaultProps={filmV17DefaultProps}
       />
       {/* Debug probes for the pieces the launch film is built from. */}
       <Composition

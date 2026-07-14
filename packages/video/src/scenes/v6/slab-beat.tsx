@@ -54,6 +54,49 @@ export function swapMix({ frame, at }: { frame: number; at: number }): number {
   });
 }
 
+// The establishing "home" push: hold the shared wide slab through the crossfade,
+// ease gently into the left channel-list panel, then crane slowly *down* the
+// threads before pulling back to wide — so the beat still enters and leaves its
+// crossfades on the same wide pose (no seam), while the middle scans the channels.
+const HOME_PANEL = {
+  top: { focusX: 470, focusY: 400, scale: 0.84, rotateX: 6, rotateY: 4 },
+  bottom: { focusX: 470, focusY: 540, scale: 0.92, rotateX: 6, rotateY: 4 },
+} satisfies Record<string, SlabPose>;
+
+const HOME_PUSH_END = 60;
+const HOME_CRANE_END = 122;
+const HOME_RETURN_END = 158;
+
+export function homePanPose(frame: number): SlabPose {
+  if (frame < HOME_PUSH_END) {
+    return poseAt({
+      from: SLAB.wide,
+      to: HOME_PANEL.top,
+      frame,
+      start: MOVE_START,
+      end: HOME_PUSH_END,
+      easing: EASE_IN_OUT,
+    });
+  }
+  if (frame < HOME_CRANE_END) {
+    return poseAt({
+      from: HOME_PANEL.top,
+      to: HOME_PANEL.bottom,
+      frame,
+      start: HOME_PUSH_END,
+      end: HOME_CRANE_END,
+    });
+  }
+  return poseAt({
+    from: HOME_PANEL.bottom,
+    to: SLAB.wide,
+    frame,
+    start: HOME_CRANE_END,
+    end: HOME_RETURN_END,
+    easing: EASE_IN_OUT,
+  });
+}
+
 export function SlabBeat({
   pose,
   product,
