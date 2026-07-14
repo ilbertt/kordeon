@@ -5,10 +5,12 @@ import {
   AbsoluteFill,
   Interactive,
   interpolate,
+  Sequence,
   spring,
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
+import { KineticCaption } from '#components/kinetic-caption';
 import { HERO_SLUG } from '#data/channels';
 import { EASE, EASE_IN_OUT } from '#lib/motion';
 import { collabPlanPrompt } from '#scenes/film/collab-plan';
@@ -98,6 +100,12 @@ const FOLD_END = 140;
 const SHRINK_START = 180;
 const SHRINK_END = 222;
 
+// An opt-in caption that lands while the window recomposes into the mark and clears
+// before the white lockup tile appears (frame 196) — so a cut can make its closing
+// point over the fold itself instead of floating a word beside the finished mark.
+const FOLD_CAPTION_FROM = 88;
+const FOLD_CAPTION_DUR = 100;
+
 function FoldBar({ bar, index }: { bar: (typeof MARK_BARS)[number]; index: number }) {
   const frame = useCurrentFrame();
   const fold = interpolate(frame, [FOLD_START, FOLD_END], [0, 1], {
@@ -150,6 +158,8 @@ type MorphFinaleProps = {
   waitlist: string;
   phase: number;
   durationInFrames: number;
+  // Opt-in caption over the recomposition, before the white tile lands.
+  foldCaption?: string;
 };
 
 // Finale — the reverse of the opening morph: the product window's panels fold back
@@ -161,6 +171,7 @@ export function MorphFinale({
   selfHost,
   waitlist,
   phase,
+  foldCaption,
 }: MorphFinaleProps): ReactNode {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -222,6 +233,12 @@ export function MorphFinale({
           <FoldBar key={bar.key} bar={bar} index={index} />
         ))}
       </AbsoluteFill>
+
+      {foldCaption ? (
+        <Sequence from={FOLD_CAPTION_FROM} durationInFrames={FOLD_CAPTION_DUR}>
+          <KineticCaption text={foldCaption} durationInFrames={FOLD_CAPTION_DUR} />
+        </Sequence>
+      ) : null}
 
       {/* Before the lockup: the mark is formed, and the one thing to say about it.
           Opt-out — an empty `selfHost` drops it (a cut can make the point as its own

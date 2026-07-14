@@ -75,6 +75,12 @@ import {
   LaunchFilmV18,
 } from '#compositions/LaunchFilmV18';
 import {
+  FILM_V19_DURATION,
+  filmV19DefaultProps,
+  filmV19Schema,
+  LaunchFilmV19,
+} from '#compositions/LaunchFilmV19';
+import {
   LAUNCH_DURATION,
   LaunchVideo,
   launchDefaultProps,
@@ -286,6 +292,17 @@ export function RemotionRoot() {
         height={HEIGHT}
         schema={filmV18Schema}
         defaultProps={filmV18DefaultProps}
+      />
+      {/* Nineteenth cut — that caption moves onto the fold, as the logo recomposes. */}
+      <Composition
+        id="LaunchFilmV19"
+        component={LaunchFilmV19}
+        durationInFrames={FILM_V19_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        schema={filmV19Schema}
+        defaultProps={filmV19DefaultProps}
       />
       {/* Debug probes for the pieces the launch film is built from. */}
       <Composition
