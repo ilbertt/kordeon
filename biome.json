@@ -10,7 +10,9 @@
     "includes": [
       "**",
       "!**/node_modules",
+      "!**/.claude",
       "!**/dist",
+      "!**/out",
       "!**/bun.lock",
       "!**/*.lock",
       "!**/*.svg",
