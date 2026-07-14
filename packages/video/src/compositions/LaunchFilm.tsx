@@ -48,20 +48,20 @@ export const launchFilmSchema = z.object({
 });
 
 export const launchFilmDefaultProps: z.infer<typeof launchFilmSchema> = {
-  problemCaption: 'Today, collaboration comes after the code.',
+  problemCaption: 'today, collaboration waits for review.',
   problemTitle: 'The next feature',
   problemStatus: 'Changes requested',
-  pivotLine: 'What if you could plan together first?',
-  meetLine: 'Meet kordeon.',
-  homeSubtitle: 'Every channel is a thread for one piece of work.',
-  chatSubtitle: 'Agents are present from the first message.',
-  planSubtitle: 'Shape the plan together first.',
-  handoffSubtitle: 'Hand off. The agent executes.',
-  shipSubtitle: 'See the work take shape — beside the chat.',
-  pullbackSubtitle: 'One surface. Nothing tabs away.',
+  pivotLine: 'what if you planned it together first?',
+  meetLine: 'meet kordeon.',
+  homeSubtitle: 'every channel is one piece of work.',
+  chatSubtitle: 'not a bot. a teammate.',
+  planSubtitle: 'shape the plan together.',
+  handoffSubtitle: 'hand off. it builds.',
+  shipSubtitle: 'watch it take shape, beside the chat.',
+  pullbackSubtitle: 'one surface. nothing tabs away.',
   wordmark: 'kordeon',
   tagline: 'Where humans collaborate and agents execute.',
-  closingLines: ['Open source.', 'Self-hostable.', 'Bring your own agents.'],
+  closingLines: ['open source.', 'self-hostable.', 'bring your own agents.'],
   waitlist: 'Join the waitlist at kordeon.com',
 };
 
