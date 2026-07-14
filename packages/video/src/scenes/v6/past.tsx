@@ -155,15 +155,16 @@ export function CollaborateAfter({
   );
 }
 
-// Beat past-2 — the pivot: two hero lines cross-dissolve as the desaturation lifts,
-// priming the full-colour Meet kordeon the crossfade hands off to.
+// Beat past-2 — the pivot: hero copy cross-dissolves as the desaturation lifts,
+// priming the full-colour Meet kordeon the crossfade hands off to. `line2` is
+// optional — with a single line it simply owns the whole beat.
 export function ThePivot({
   line1,
   line2,
   durationInFrames,
 }: {
   line1: string;
-  line2: string;
+  line2?: string;
   durationInFrames: number;
 }) {
   const frame = useCurrentFrame();
@@ -172,7 +173,7 @@ export function ThePivot({
     extrapolateRight: 'clamp',
     easing: EASE,
   });
-  const line1Dur = Math.round(durationInFrames * 0.52);
+  const line1Dur = line2 ? Math.round(durationInFrames * 0.52) : durationInFrames;
   const line2From = line1Dur - 6;
   return (
     <AbsoluteFill
@@ -182,9 +183,11 @@ export function ThePivot({
       <Sequence durationInFrames={line1Dur}>
         <KineticCaption text={line1} durationInFrames={line1Dur} variant="hero" />
       </Sequence>
-      <Sequence from={line2From}>
-        <KineticCaption text={line2} durationInFrames={durationInFrames} variant="hero" />
-      </Sequence>
+      {line2 ? (
+        <Sequence from={line2From}>
+          <KineticCaption text={line2} durationInFrames={durationInFrames} variant="hero" />
+        </Sequence>
+      ) : null}
     </AbsoluteFill>
   );
 }

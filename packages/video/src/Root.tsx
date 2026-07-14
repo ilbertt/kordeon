@@ -56,6 +56,12 @@ import {
   LaunchFilmV14,
 } from '#compositions/LaunchFilmV14';
 import {
+  FILM_V15_DURATION,
+  filmV15DefaultProps,
+  filmV15Schema,
+  LaunchFilmV15,
+} from '#compositions/LaunchFilmV15';
+import {
   LAUNCH_DURATION,
   LaunchVideo,
   launchDefaultProps,
@@ -223,6 +229,17 @@ export function RemotionRoot() {
         height={HEIGHT}
         schema={filmV14Schema}
         defaultProps={filmV14DefaultProps}
+      />
+      {/* Fifteenth cut — single-line pivot: "Involving agents." dropped, beat trimmed. */}
+      <Composition
+        id="LaunchFilmV15"
+        component={LaunchFilmV15}
+        durationInFrames={FILM_V15_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        schema={filmV15Schema}
+        defaultProps={filmV15DefaultProps}
       />
       {/* Debug probes for the pieces the launch film is built from. */}
       <Composition
