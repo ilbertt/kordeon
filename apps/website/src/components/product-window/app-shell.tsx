@@ -29,6 +29,7 @@ import {
 } from './data';
 import { GithubStar } from './github-star';
 import { PreviewContent } from './preview-content';
+import { clearActiveChannel } from './use-active-slug';
 
 const EMAIL_PATTERN = /[^\s@]+@[^\s@]+\.[^\s@]+/;
 const KORDE_REPLY_DELAY_MS = 700;
@@ -181,15 +182,27 @@ export function AppShell({ activeSlug }: { activeSlug: string }) {
   );
 }
 
+// Clicking the mark returns to the hero: drop the deep-linked channel and scroll
+// the reveal back to the top, so the logo behaves like a "home" everywhere.
+function returnToHero() {
+  clearActiveChannel();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 function TopBar() {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-border border-b px-4">
-      <div className="flex items-center gap-2.5">
+      <button
+        type="button"
+        onClick={returnToHero}
+        aria-label="Back to top"
+        className="-mx-1.5 flex items-center gap-2.5 rounded-md px-1.5 py-1 transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+      >
         <span className="flex size-7 items-center justify-center rounded-md bg-foreground">
           <KordeonMark className="size-4" />
         </span>
         <span className="font-semibold tracking-tight">kordeon</span>
-      </div>
+      </button>
       <div className="flex items-center gap-3">
         {/* A nod to the readers we can't see: agents get a plain-Markdown edition of this
             page (served by content negotiation too — see src/worker.ts). */}
