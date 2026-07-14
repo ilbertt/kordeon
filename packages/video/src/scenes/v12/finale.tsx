@@ -90,8 +90,10 @@ function mixRect({ from, to, t }: { from: Rect; to: Rect; t: number }): Rect {
   };
 }
 
-// hold the window → panels fold panel → mark → the mark holds while "self-hostable"
-// lands → it shrinks onto the tile as the wordmark, promise + waitlist resolve.
+// hold the window → panels fold panel → mark → the mark holds (a caption can land
+// here) → it shrinks onto the tile as the wordmark, promise + waitlist resolve. Every
+// post-fold beat below is shifted later by `holdExtra`, so a cut can hold the formed
+// mark longer (e.g. to read a caption) without touching the fold itself.
 const PANEL_IN_START = 42;
 const WIN_OUT_START = 52;
 const WIN_OUT_END = 84;
@@ -99,21 +101,35 @@ const FOLD_START = 76;
 const FOLD_END = 140;
 const SHRINK_START = 180;
 const SHRINK_END = 222;
+const TILE_IN = 196;
+const TILE_END = 220;
+const LOCKUP_AT = 216;
+const CTA_AT = 242;
 
-// An opt-in caption that lands while the window recomposes into the mark and clears
-// before the white lockup tile appears (frame 196) — so a cut can make its closing
-// point over the fold itself instead of floating a word beside the finished mark.
+// An opt-in caption over the recomposition. Defaults land it during the fold; a cut
+// can pass a later `foldCaptionFrom` (once the bars have folded to the mark) with a
+// matching `holdExtra` so it still reads before the white lockup tile appears.
 const FOLD_CAPTION_FROM = 88;
 const FOLD_CAPTION_DUR = 100;
 
-function FoldBar({ bar, index }: { bar: (typeof MARK_BARS)[number]; index: number }) {
+function FoldBar({
+  bar,
+  index,
+  shrinkStart,
+  shrinkEnd,
+}: {
+  bar: (typeof MARK_BARS)[number];
+  index: number;
+  shrinkStart: number;
+  shrinkEnd: number;
+}) {
   const frame = useCurrentFrame();
   const fold = interpolate(frame, [FOLD_START, FOLD_END], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: EASE_IN_OUT,
   });
-  const shrink = interpolate(frame, [SHRINK_START, SHRINK_END], [0, 1], {
+  const shrink = interpolate(frame, [shrinkStart, shrinkEnd], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: EASE_IN_OUT,
@@ -160,6 +176,10 @@ type MorphFinaleProps = {
   durationInFrames: number;
   // Opt-in caption over the recomposition, before the white tile lands.
   foldCaption?: string;
+  foldCaptionFrom?: number;
+  foldCaptionDur?: number;
+  // Hold the formed mark this many frames longer before it shrinks to the lockup.
+  holdExtra?: number;
 };
 
 // Finale — the reverse of the opening morph: the product window's panels fold back
@@ -172,9 +192,14 @@ export function MorphFinale({
   waitlist,
   phase,
   foldCaption,
+  foldCaptionFrom = FOLD_CAPTION_FROM,
+  foldCaptionDur = FOLD_CAPTION_DUR,
+  holdExtra = 0,
 }: MorphFinaleProps): ReactNode {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const shrinkStart = SHRINK_START + holdExtra;
+  const shrinkEnd = SHRINK_END + holdExtra;
   const windowOpacity = interpolate(frame, [WIN_OUT_START, WIN_OUT_END], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
@@ -188,19 +213,19 @@ export function MorphFinale({
     }),
     interpolate(frame, [200, 216], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
   );
-  const tile = interpolate(frame, [196, 220], [0, 1], {
+  const tile = interpolate(frame, [TILE_IN + holdExtra, TILE_END + holdExtra], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: EASE,
   });
   const lockup = spring({
-    frame: frame - 216,
+    frame: frame - (LOCKUP_AT + holdExtra),
     fps,
     config: { damping: 20, mass: 0.8 },
     durationInFrames: 26,
   });
   const cta = spring({
-    frame: frame - 242,
+    frame: frame - (CTA_AT + holdExtra),
     fps,
     config: { damping: 18, mass: 0.8 },
     durationInFrames: 24,
@@ -230,13 +255,19 @@ export function MorphFinale({
       />
       <AbsoluteFill>
         {[...MARK_BARS.entries()].map(([index, bar]) => (
-          <FoldBar key={bar.key} bar={bar} index={index} />
+          <FoldBar
+            key={bar.key}
+            bar={bar}
+            index={index}
+            shrinkStart={shrinkStart}
+            shrinkEnd={shrinkEnd}
+          />
         ))}
       </AbsoluteFill>
 
       {foldCaption ? (
-        <Sequence from={FOLD_CAPTION_FROM} durationInFrames={FOLD_CAPTION_DUR}>
-          <KineticCaption text={foldCaption} durationInFrames={FOLD_CAPTION_DUR} />
+        <Sequence from={foldCaptionFrom} durationInFrames={foldCaptionDur}>
+          <KineticCaption text={foldCaption} durationInFrames={foldCaptionDur} />
         </Sequence>
       ) : null}
 

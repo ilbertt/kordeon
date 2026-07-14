@@ -97,11 +97,26 @@ const MORPH_END = 156;
 const MAT_START = 150;
 const MAT_END = 182;
 
-function MorphBar({ bar, index }: { bar: (typeof MARK_BARS)[number]; index: number }) {
+// `logoOverText` variant: the mark strikes up ~0.5s after the line (LOGO_IN_OVER),
+// so the two share the frame — the line sits below the logo (CAPTION_OFFSET_OVER) and
+// holds longer (MEET_OUT_OVER) before fading, then the same morph runs unchanged.
+const MEET_OUT_OVER = 86;
+const LOGO_IN_OVER = 16;
+const CAPTION_OFFSET_OVER = 150;
+
+function MorphBar({
+  bar,
+  index,
+  logoIn,
+}: {
+  bar: (typeof MARK_BARS)[number];
+  index: number;
+  logoIn: number;
+}) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const strike = spring({
-    frame: frame - LOGO_IN - index * 5,
+    frame: frame - logoIn - index * 5,
     fps,
     config: { damping: 15, mass: 0.7, stiffness: 150 },
     durationInFrames: 20,
@@ -148,13 +163,19 @@ export function MeetMorph({
   meetLine,
   phase,
   channelState,
+  logoOverText = false,
 }: {
   meetLine: string;
   phase: number;
   channelState?: { slug: string; visibleCount: number; typingId?: string };
+  // Show the logo above the line before the line clears (vs. the line clearing first).
+  logoOverText?: boolean;
 }): ReactNode {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const logoIn = logoOverText ? LOGO_IN_OVER : LOGO_IN;
+  const meetOut = logoOverText ? MEET_OUT_OVER : MEET_OUT;
+  const captionOffset = logoOverText ? CAPTION_OFFSET_OVER : 0;
   const welcome = channelBySlug(WELCOME_SLUG);
   // Frame 0 of the default welcome thread — the exact state the following home beat
   // opens on, so their crossfade blends one identical window into the next. A cut can
@@ -173,12 +194,17 @@ export function MeetMorph({
   });
   return (
     <AbsoluteFill className="dark bg-background text-foreground">
-      <Sequence durationInFrames={MEET_OUT}>
-        <KineticCaption text={meetLine} durationInFrames={MEET_OUT} variant="hero" />
+      <Sequence durationInFrames={meetOut}>
+        <KineticCaption
+          text={meetLine}
+          durationInFrames={meetOut}
+          variant="hero"
+          offsetY={captionOffset}
+        />
       </Sequence>
       <AbsoluteFill>
         {[...MARK_BARS.entries()].map(([index, bar]) => (
-          <MorphBar key={bar.key} bar={bar} index={index} />
+          <MorphBar key={bar.key} bar={bar} index={index} logoIn={logoIn} />
         ))}
       </AbsoluteFill>
       <AbsoluteFill style={{ opacity: windowOpacity }}>

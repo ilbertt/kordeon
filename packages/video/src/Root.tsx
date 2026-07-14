@@ -81,6 +81,12 @@ import {
   LaunchFilmV19,
 } from '#compositions/LaunchFilmV19';
 import {
+  FILM_V20_DURATION,
+  filmV20DefaultProps,
+  filmV20Schema,
+  LaunchFilmV20,
+} from '#compositions/LaunchFilmV20';
+import {
   LAUNCH_DURATION,
   LaunchVideo,
   launchDefaultProps,
@@ -303,6 +309,17 @@ export function RemotionRoot() {
         height={HEIGHT}
         schema={filmV19Schema}
         defaultProps={filmV19DefaultProps}
+      />
+      {/* Twentieth cut — logo over "Meet kordeon"; closing caption waits for the fold. */}
+      <Composition
+        id="LaunchFilmV20"
+        component={LaunchFilmV20}
+        durationInFrames={FILM_V20_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        schema={filmV20Schema}
+        defaultProps={filmV20DefaultProps}
       />
       {/* Debug probes for the pieces the launch film is built from. */}
       <Composition

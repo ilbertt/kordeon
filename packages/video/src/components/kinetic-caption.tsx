@@ -55,12 +55,16 @@ export function KineticCaption({
   text,
   durationInFrames,
   variant = 'caption',
+  offsetY = 0,
 }: {
   text: string;
   durationInFrames: number;
   // 'caption' is the lower-third pill; 'hero' is large centred text with no
   // backdrop, for problem-statement / brand lines that own the frame.
   variant?: 'caption' | 'hero';
+  // Push the text down from its natural (centred / lower-third) position — e.g. so a
+  // hero line can sit *below* a logo sharing the frame.
+  offsetY?: number;
 }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -99,7 +103,7 @@ export function KineticCaption({
             ? 'mx-auto flex max-w-5xl flex-wrap justify-center gap-x-[0.3em] gap-y-2 text-center font-semibold text-6xl leading-[1.1] tracking-tight'
             : 'mx-auto flex max-w-5xl flex-wrap justify-center gap-x-[0.28em] gap-y-1 rounded-2xl border border-border/50 bg-background/70 px-10 py-6 text-center font-semibold text-5xl leading-[1.15] tracking-tight backdrop-blur-md'
         }
-        style={{ opacity, translate: `0 ${rise}px` }}
+        style={{ opacity, translate: `0 ${rise + offsetY}px` }}
       >
         {[...words.entries()].map(([index, word]) => (
           <Word
