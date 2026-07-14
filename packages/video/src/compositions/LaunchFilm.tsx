@@ -126,14 +126,18 @@ const BEATS_TOTAL =
 export const FILM_DURATION = BEATS_TOTAL - (ORDER.length - 1) * CROSSFADE_FRAMES;
 
 // Music bed — an energetic Uppbeat instrumental (no vocals, so it never competes with
-// the captions). The 164s track is longer than the cut; we play its opening, fade in
-// off the desaturated problem, and fade out under the finale lockup. NB: Uppbeat's
-// free licence needs the attribution in the *published post's* description, not here.
+// the captions). NB: Uppbeat's free licence needs the attribution in the *published
+// post's* description, not here.
 //
-// The track's drop lands at 9.2s (frame 276); we delay the audio by MUSIC_DELAY so it
-// hits at frame 293 — the black beat where "What if you could plan together first?" has
-// dipped out, right before "Meet kordeon" fades in.
-const MUSIC_SRC = 'music/better-together-bastian.mp3';
+// The source track is 164s; `*-launch-cut.mp3` is a splice: its opening (through the
+// drop at 9.2s and the demo) equal-power-crossfaded at ~50s into the track's own outro,
+// so the song actually *resolves* — the beats thin out and decay to silence as the
+// window folds back into the logo, instead of chopping the main section mid-phrase.
+//
+// We delay the audio by MUSIC_DELAY so the drop (frame 276 of the mix) hits at frame
+// 293 — the black beat where "What if you could plan together first?" has dipped out,
+// right before "Meet kordeon" fades in.
+const MUSIC_SRC = 'music/better-together-launch-cut.mp3';
 const MUSIC_PEAK = 0.9;
 const MUSIC_FADE_IN = 20;
 const MUSIC_FADE_OUT = 36;
