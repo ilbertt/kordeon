@@ -61,6 +61,7 @@ import {
   filmV15Schema,
   LaunchFilmV15,
 } from '#compositions/LaunchFilmV15';
+import { filmV16DefaultProps } from '#compositions/LaunchFilmV16';
 import {
   LAUNCH_DURATION,
   LaunchVideo,
@@ -240,6 +241,17 @@ export function RemotionRoot() {
         height={HEIGHT}
         schema={filmV15Schema}
         defaultProps={filmV15DefaultProps}
+      />
+      {/* Sixteenth cut — hand-off/ship caption rewrites (no "opens a PR"). */}
+      <Composition
+        id="LaunchFilmV16"
+        component={LaunchFilmV15}
+        durationInFrames={FILM_V15_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        schema={filmV15Schema}
+        defaultProps={filmV16DefaultProps}
       />
       {/* Debug probes for the pieces the launch film is built from. */}
       <Composition
