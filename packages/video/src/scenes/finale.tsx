@@ -90,26 +90,32 @@ function mixRect({ from, to, t }: { from: Rect; to: Rect; t: number }): Rect {
   };
 }
 
-// hold the window → panels fold panel → mark → the mark holds while the closing
-// caption lands (it waits for the bars to reach the mark, so the hold runs long) → it
-// shrinks onto the tile as the wordmark, promise + waitlist resolve.
+// hold the window → panels fold panel → mark → the mark holds while three rapid
+// closing lines fire off → it shrinks onto the tile as the wordmark, promise +
+// waitlist resolve. The whole back half is timed so the music resolves onto the tile.
 const PANEL_IN_START = 42;
 const WIN_OUT_START = 52;
 const WIN_OUT_END = 84;
 const FOLD_START = 76;
 const FOLD_END = 140;
-const SHRINK_START = 220;
-const SHRINK_END = 262;
-const TILE_IN = 236;
-const TILE_END = 260;
-const LOCKUP_AT = 256;
-const CTA_AT = 282;
+const SHRINK_START = 264;
+const SHRINK_END = 306;
+const TILE_IN = 280;
+const TILE_END = 304;
+const LOCKUP_AT = 300;
+const CTA_AT = 326;
 
-// The closing caption over the recomposition: it waits until the bars have folded to
-// the mark (so it doesn't compete with the window-sized panels) and clears before the
-// white lockup tile appears.
-const FOLD_CAPTION_FROM = 134;
-const FOLD_CAPTION_DUR = 92;
+// The wordmark lands here (local frame) — exported so the film can resolve the music
+// onto it (the logo lands as the track ends).
+export const FINALE_LOGO_FRAME = LOCKUP_AT;
+
+// Three rapid closing lines over the formed mark, back-to-back, cleared before the
+// tile: [from, duration] each. The last gets a touch longer (it's four words).
+const CLOSING = [
+  { from: 138, dur: 38 },
+  { from: 178, dur: 38 },
+  { from: 218, dur: 44 },
+] as const;
 
 function FoldBar({ bar, index }: { bar: (typeof MARK_BARS)[number]; index: number }) {
   const frame = useCurrentFrame();
@@ -161,19 +167,19 @@ type MorphFinaleProps = {
   tagline: string;
   waitlist: string;
   phase: number;
-  // The closing caption over the recomposition, before the white tile lands.
-  foldCaption: string;
+  // The rapid closing lines over the recomposition, before the white tile lands.
+  closingLines: string[];
 };
 
 // Finale — the reverse of the opening morph: the product window's panels fold back
-// into the mark, which holds while the closing caption lands, then shrinks to the
-// lockup as the wordmark, promise and waitlist line resolve.
+// into the mark, which holds while the closing lines fire, then shrinks to the lockup
+// as the wordmark, promise and waitlist line resolve.
 export function MorphFinale({
   wordmark,
   tagline,
   waitlist,
   phase,
-  foldCaption,
+  closingLines,
 }: MorphFinaleProps): ReactNode {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -228,9 +234,14 @@ export function MorphFinale({
         ))}
       </AbsoluteFill>
 
-      <Sequence from={FOLD_CAPTION_FROM} durationInFrames={FOLD_CAPTION_DUR}>
-        <KineticCaption text={foldCaption} durationInFrames={FOLD_CAPTION_DUR} />
-      </Sequence>
+      {[...closingLines.entries()].map(([i, text]) => {
+        const c = CLOSING[i];
+        return c ? (
+          <Sequence key={text} from={c.from} durationInFrames={c.dur}>
+            <KineticCaption text={text} durationInFrames={c.dur} />
+          </Sequence>
+        ) : null;
+      })}
 
       <Interactive.Div
         name="Finale lockup"

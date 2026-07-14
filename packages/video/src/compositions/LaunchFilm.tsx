@@ -14,7 +14,7 @@ import {
   WatchShip,
   WorkspaceHome,
 } from '#scenes/beats';
-import { MorphFinale } from '#scenes/finale';
+import { FINALE_LOGO_FRAME, MorphFinale } from '#scenes/finale';
 import { MeetMorph } from '#scenes/meet-morph';
 import { ThePivot } from '#scenes/pivot';
 import { CollaborateAfter } from '#scenes/problem';
@@ -43,7 +43,7 @@ export const launchFilmSchema = z.object({
   pullbackSubtitle: z.string(),
   wordmark: z.string(),
   tagline: z.string(),
-  closingCaption: z.string(),
+  closingLines: z.array(z.string()),
   waitlist: z.string(),
 });
 
@@ -61,7 +61,7 @@ export const launchFilmDefaultProps: z.infer<typeof launchFilmSchema> = {
   pullbackSubtitle: 'One surface. Nothing tabs away.',
   wordmark: 'kordeon',
   tagline: 'Where humans collaborate and agents execute.',
-  closingCaption: 'Self-hostable. Bring your own agents.',
+  closingLines: ['Open source.', 'Self-hostable.', 'Bring your own agents.'],
   waitlist: 'Join the waitlist at kordeon.com',
 };
 
@@ -79,7 +79,7 @@ const BEATS = {
   handoff: 194,
   ship: 212,
   pullback: 194,
-  finale: 310,
+  finale: 356,
 } as const;
 
 const CROSSFADE_FRAMES = 24;
@@ -130,19 +130,20 @@ export const FILM_DURATION = BEATS_TOTAL - (ORDER.length - 1) * CROSSFADE_FRAMES
 // post's* description, not here.
 //
 // The source track is 164s; `*-launch-cut.mp3` is a splice: its opening (through the
-// drop at 9.2s and the demo) equal-power-crossfaded at ~50s into the track's own outro,
-// so the song actually *resolves* — the beats thin out and decay to silence as the
-// window folds back into the logo, instead of chopping the main section mid-phrase.
+// drop at 9.2s and the demo) equal-power-crossfaded at ~58s into the track's own outro,
+// so the song actually *resolves* — the beats thin out as the window folds back into
+// the logo, instead of chopping the main section mid-phrase.
 //
 // We delay the audio by MUSIC_DELAY so the drop (frame 276 of the mix) hits at frame
 // 293 — the black beat where "What if you could plan together first?" has dipped out,
-// right before "Meet kordeon" fades in.
+// right before "Meet kordeon" fades in. And the fade-out is pinned to MUSIC_END so the
+// track resolves to silence exactly as the wordmark lands, not at the video's end.
 const MUSIC_SRC = 'music/better-together-launch-cut.mp3';
 const MUSIC_PEAK = 0.9;
 const MUSIC_FADE_IN = 20;
-const MUSIC_FADE_OUT = 36;
+const MUSIC_FADE_OUT = 44;
 const MUSIC_DELAY = 17;
-const MUSIC_DURATION = FILM_DURATION - MUSIC_DELAY;
+const MUSIC_END = STARTS.finale + FINALE_LOGO_FRAME - MUSIC_DELAY;
 
 // Matched slab-to-slab cuts crossfade opacity; brand↔product mismatches (problem →
 // pivot → meet) dip through the opaque background so they don't ghost as a double
@@ -170,7 +171,7 @@ export function LaunchFilm(props: z.infer<typeof launchFilmSchema>) {
           volume={(f) =>
             interpolate(
               f,
-              [0, MUSIC_FADE_IN, MUSIC_DURATION - MUSIC_FADE_OUT, MUSIC_DURATION],
+              [0, MUSIC_FADE_IN, MUSIC_END - MUSIC_FADE_OUT, MUSIC_END],
               [0, MUSIC_PEAK, MUSIC_PEAK, 0],
               { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
             )
@@ -248,7 +249,7 @@ export function LaunchFilm(props: z.infer<typeof launchFilmSchema>) {
           <MorphFinale
             wordmark={props.wordmark}
             tagline={props.tagline}
-            foldCaption={props.closingCaption}
+            closingLines={props.closingLines}
             waitlist={props.waitlist}
             phase={STARTS.finale}
           />
