@@ -223,13 +223,17 @@ export function MorphFinale({
         ))}
       </AbsoluteFill>
 
-      {/* Before the lockup: the mark is formed, and the one thing to say about it. */}
-      <div
-        className="absolute inset-x-0 text-center"
-        style={{ top: 640, opacity: selfHostOpacity }}
-      >
-        <span className="font-medium text-3xl text-muted-foreground">{selfHost}</span>
-      </div>
+      {/* Before the lockup: the mark is formed, and the one thing to say about it.
+          Opt-out — an empty `selfHost` drops it (a cut can make the point as its own
+          caption beat before the fold instead of floating it beside the mark). */}
+      {selfHost ? (
+        <div
+          className="absolute inset-x-0 text-center"
+          style={{ top: 640, opacity: selfHostOpacity }}
+        >
+          <span className="font-medium text-3xl text-muted-foreground">{selfHost}</span>
+        </div>
+      ) : null}
 
       <Interactive.Div
         name="Finale lockup"

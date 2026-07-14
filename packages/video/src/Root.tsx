@@ -69,6 +69,12 @@ import {
   LaunchFilmV17,
 } from '#compositions/LaunchFilmV17';
 import {
+  FILM_V18_DURATION,
+  filmV18DefaultProps,
+  filmV18Schema,
+  LaunchFilmV18,
+} from '#compositions/LaunchFilmV18';
+import {
   LAUNCH_DURATION,
   LaunchVideo,
   launchDefaultProps,
@@ -269,6 +275,17 @@ export function RemotionRoot() {
         height={HEIGHT}
         schema={filmV17Schema}
         defaultProps={filmV17DefaultProps}
+      />
+      {/* Eighteenth cut — "Self-hostable. Bring your own agents." caption before the fold. */}
+      <Composition
+        id="LaunchFilmV18"
+        component={LaunchFilmV18}
+        durationInFrames={FILM_V18_DURATION}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        schema={filmV18Schema}
+        defaultProps={filmV18DefaultProps}
       />
       {/* Debug probes for the pieces the launch film is built from. */}
       <Composition
