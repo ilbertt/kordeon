@@ -7,31 +7,79 @@ components rather than throwaway markup: each is a candidate to graduate into `@
 and power the actual product, so shared behaviour lives in the component, not at the
 call site.
 
-## The reveal is the thesis
+## The reveal is a window forming, then growing into the product
 
-The intro isn't a screenshot sliding up — it's the **mark metamorphosing into the
-product** (`LogoMorphStage`). The kordeon mark is three bars in the panel order —
-explorer · chat · the accented preview — so on scroll (or the CTA) each bar grows and
-unfolds, in place, onto the panel it stands for, and the real window fades in over them
-and becomes usable. The three-panel thesis is stated by the logo itself before a word of
-copy is read. The bar → panel geometry mirrors the real workspace layout, so it lives
-next to the maths (`logo-morph-geometry.ts`); keep the two in sync if the window's panel
-widths or breakpoints change.
+Scroll doesn't silently zoom a window in — that read as a hijack to first-time
+visitors who couldn't tell what was happening or find their way back. Instead the
+reveal (`LogoMorphStage`) is two acts on one scroll track, following the project's
+animation standards (transform / opacity / clip-path only, ease-in-out for on-screen
+morphing, blur to blend the hand-off — see
+[`.agents/skills/review-animations`](../.agents/skills/review-animations)).
 
-The morph only reads on **desktop**, where the three panels are actually on screen. Below
-the sidebar breakpoint (`SIDEBAR_BP`) both side panels collapse to drawers, so there are no
-columns for the bars to become — the metamorphosis would land on a single-column window and
-say nothing. There, `LogoMorphStage` drops the morph and keeps the pre-#34 reveal: the
-window scales up from a peek at the bottom, like a screenshot sliding into view. Both are
-scroll-driven off the same track, so the CTA and section deep-links behave identically.
+**Act 1 — a window forms around Korde's tour.** The headline doesn't clear — it *stays as
+the title*. On the first scroll it shrinks and rises into a compact caption at the top
+(the mark and CTA fade with it), and a **simple window** — a titled, bordered card —
+forms below it: the chrome fades and scales in as Korde starts talking. The rise is
+staggered *ahead* of the window forming (`HERO_FORM_END` before `WIN_FORM_START`) so the
+headline has cleared the window's top before the card appears, instead of the two crossing
+through each other. Inside, the agent's tour plays out like a real chat — **scroll is the
+clock**. The typing indicator is *pinned at the bottom the whole time* — it never leaves,
+as if Korde is always ready to send the next line (it even previews who's next: "Maya is
+typing" before Maya speaks). Each scroll beat (`PER_MSG_VH`, generous so the reader sets
+the pace) sends the line it's typing: the message opens up from the typing row — its slot
+expands from zero, pushing the history above it up (height and a short lift, no fade) — and
+the row starts on the next one. The conversation is bottom-anchored, so the newest message
+and the typing row sit at the reading line, like a chat scrolled to its latest. A trailing
+beat swaps the typing row for a **"Try it out"** button. The guidance is in-character — the
+agent introducing itself and pitching kordeon *is* the pitch, not chrome bolted on. Because
+the tour plays before the product is in, the copy takes the **broad angle** and can't point
+at panels ("on the left…"): Korde sells the differentiators by concept, not deixis —
+work-as-threads, plan-together-first, build-live, agents-as-teammates. Crucially the tour
+bubbles **are** the `#welcome` thread (rendered with the real `ChatMessage`), so there's one
+source of truth for that copy — reactions included: the pills are live, so a visitor can
+react for fun (nothing persists), same as inside the product.
+
+**Act 2 — the window grows into the product.** Click "Try it out" (or keep scrolling) and
+the same window the visitor was reading *physically grows* into the app — the structure the
+[logo→product morph](../apps/website/src/components/logo-morph-stage.tsx) proved before it:
+**grow the cheap shape first, materialise the real UI over it only once the shape matches.**
+The tour window *is* that shape. Mechanically: its frame expands from the tour rect to
+full-bleed (`open`) while its title bar grows into the product top bar and its two side
+columns unfold to the product's real panel widths (`panels`, tracking the workspace's
+`w-64` / `w-[22rem]` / `h-14` and their breakpoints) — a muted three-panel shell forming
+*around* the still-readable chat. That shape is **complete by `GROW_END`**; only then does
+the live product crossfade in over the now full-size, aligned shell (`materialize`), the
+shell dissolving in lockstep, blurred over the hand-off. Because the tour chat is
+left-aligned + width-capped to **exactly** the product's own chat (`px-5`, `max-w-44rem`,
+and the product shows `#welcome` **statically**, bottom-anchored + width-capped via the
+scoped `.tour-frame` overrides and `animate={false}` in `AppShell`), the two threads sit
+pixel-on-pixel — so the crossfade reads as the same lines *sharpening* into the real thread,
+never a second copy ghosting. `TOUR_FRACTION` splits the track between the two acts.
+
+Three dead ends we backed out of (all in the git history) name the traps. A **crossfade**
+inside the window, and a `clip-path` opening the product from the window's rect, both read
+as "the window fades out and the product appears from a black curtain" — because a clip (or
+fade) onto a *static, full-size* product never appears to enlarge; nothing moves. Playing
+the tour *inside* the clipped product cut the messages off at its bottom edge (the product's
+chat anchors to its composer, below the clip). The fix that finally read as a metamorphosis:
+the window itself is the growing shape, its panels unfold around the chat, and the real UI
+only materialises once that shape already matches — the growth carried by the shell, the
+hand-off hidden by alignment + blur, exactly as the logo bars did.
+
+**Getting back out.** Once inside, the mark in the product's top bar returns you to the
+hero (it scrolls the track back up and resets the deep-linked channel), and the landing
+relaxes the chat scroller's `overscroll-contain` (via the `.tour-frame` override) so
+scrolling up past the top of the messages rewinds the reveal instead of trapping the
+wheel — both were dead ends that left early visitors stuck.
 
 What it has to teach is the **three-panel shape** (see [`vision.md`](./vision.md)):
-explorer on the left, chat in the middle, preview on the right. The layout already *is*
-those three panels — so the *copy* has to sell the two that set kordeon apart from an
-agent-in-a-chat-tool: the explorer (structured work) and the preview (the live
-artifact). Lead with the middle panel alone and the page reads like a Slack bot; the
-opening (the `welcome` channel) exists to name all three and show the agent spanning
-them.
+explorer on the left, chat in the middle, preview on the right. Once the window is in,
+the layout already *is* those three panels — so the *copy* has to sell the two that set
+kordeon apart from an agent-in-a-chat-tool: the explorer (structured work) and the preview
+(the live artifact). Lead with the middle panel alone and the page reads like a Slack bot.
+But the `welcome` copy sells them by *idea*, not by pointing — work lives as threads, and
+the agent builds it live in the open — so the same lines still land during the tour, where
+there are no panels on screen yet to point at.
 
 The explorer's organising metaphor: **each channel is a feature — a branch/PR**, a unit
 of work handed between humans and agents. The domain model still carries a git status per
