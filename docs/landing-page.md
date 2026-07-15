@@ -23,11 +23,14 @@ pushing the history above it up (height and a short lift, no fade) — and the r
 the next one. The conversation is bottom-anchored, so the newest message and the typing row
 sit at the reading line with history above, like a chat scrolled to its latest. A trailing
 beat swaps the typing row for a **"Try it out"** button and holds the finished thread. The
-guidance is in-character — the agent introducing itself and naming the three panels *is* the
-pitch, not chrome bolted on. Crucially the tour bubbles **are** the `#welcome` thread
-(rendered with the real `ChatMessage`), so there's one source of truth for that copy and the
-conversation is continuous into the live product — reactions included: the pills are live, so
-a visitor can react for fun (nothing persists), same as inside the product.
+guidance is in-character — the agent introducing itself and pitching kordeon *is* the pitch,
+not chrome bolted on. Because the tour plays on a bare stage — the product hasn't slid in yet
+— the copy takes the **broad angle** and can't point at panels ("on the left…"): Korde sells
+the differentiators by concept, not deixis — work-as-threads, plan-together-first, build-live,
+agents-as-teammates. Crucially the tour bubbles **are** the `#welcome` thread (rendered with
+the real `ChatMessage`), so there's one source of truth for that copy and the conversation is
+continuous into the live product — reactions included: the pills are live, so a visitor can
+react for fun (nothing persists), same as inside the product.
 
 **Act 2 — the window slides in around the conversation.** Click "Try it out" (or keep
 scrolling) and the product window slides up from below to full-bleed — the pre-#34
@@ -43,12 +46,13 @@ scrolling up past the top of the messages rewinds the reveal instead of trapping
 wheel — both were dead ends that left early visitors stuck.
 
 What it has to teach is the **three-panel shape** (see [`vision.md`](./vision.md)):
-explorer on the left, chat in the middle, preview on the right. The layout already *is*
-those three panels — so the *copy* has to sell the two that set kordeon apart from an
-agent-in-a-chat-tool: the explorer (structured work) and the preview (the live
-artifact). Lead with the middle panel alone and the page reads like a Slack bot; the
-opening (the `welcome` channel) exists to name all three and show the agent spanning
-them.
+explorer on the left, chat in the middle, preview on the right. Once the window is in,
+the layout already *is* those three panels — so the *copy* has to sell the two that set
+kordeon apart from an agent-in-a-chat-tool: the explorer (structured work) and the preview
+(the live artifact). Lead with the middle panel alone and the page reads like a Slack bot.
+But the `welcome` copy sells them by *idea*, not by pointing — work lives as threads, and
+the agent builds it live in the open — so the same lines still land during the tour, where
+there are no panels on screen yet to point at.
 
 The explorer's organising metaphor: **each channel is a feature — a branch/PR**, a unit
 of work handed between humans and agents. The domain model still carries a git status per
