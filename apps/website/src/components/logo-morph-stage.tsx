@@ -41,10 +41,18 @@ const HERO_SCALE = 0.82;
 const HERO_FORM_END = 0.05;
 const WIN_FORM_START = 0.04;
 const WIN_FORM_END = 0.15;
-// In the reveal, the heading clears and the window drifts up and fades out as the
-// product rises over it — the window is gone by this fraction of the reveal.
+// The reveal: the window *grows* into the product. A `clip-path` opens the product from
+// the window's rect to full-bleed while its content resolves in (opacity), and a visible
+// window-frame overlay grows alongside so it reads as the window expanding, not a curtain
+// dropping. `REVEAL_RESOLVE` is the fraction of the reveal over which the product resolves
+// in (the tour chat handing off to the product's, blurred to blend); the frame overlay
+// fades out over the last stretch as it reaches full-bleed (edges = the viewport).
 const REVEAL_RISE_VH = 12;
-const REVEAL_WIN_FADE = 0.5;
+const REVEAL_RESOLVE = 0.6;
+// The tour window fades out ahead of the product resolving in, so its window-specific
+// chrome (title bar, CTA) doesn't linger doubled over the product.
+const REVEAL_WIN_GONE = 0.38;
+const WINDOW_RADIUS_PX = 16;
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 const smoothstep = (value: number) => {
@@ -119,6 +127,7 @@ export function LogoMorphStage({
   const markRef = useRef<HTMLDivElement>(null);
   const heroCtaRef = useRef<HTMLButtonElement>(null);
   const windowRef = useRef<HTMLDivElement>(null);
+  const frameBorderRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
 
   // The tour is client-only: SSR serves the plain hero + full product beneath, so
@@ -181,11 +190,17 @@ export function LogoMorphStage({
       return;
     }
 
+    const frameBorder = frameBorderRef.current;
+
     // Reduced motion: drop the movement (tour forming or reveal) but still fade the
     // window in rather than hard-cutting — fewer and gentler, not zero.
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       intro.style.display = 'none';
       win.style.display = 'none';
+      if (frameBorder) {
+        frameBorder.style.display = 'none';
+      }
+      frame.style.clipPath = 'none';
       frame.style.transform = 'none';
       frame.style.pointerEvents = 'auto';
       requestAnimationFrame(() => {
@@ -206,9 +221,19 @@ export function LogoMorphStage({
 
     let total = 0;
     let wrapTop = 0;
+    // The window's rect in px (matching the card's CSS: top 34vh, bottom 8vh, centred,
+    // width min(760, 92vw)), so the reveal's clip-path and the frame overlay grow from
+    // exactly its edges to full-bleed. Measured on resize only — the loop stays
+    // layout-free.
+    let clip = { top: 0, right: 0, bottom: 0, left: 0 };
     const measure = () => {
       total = Math.max(0, wrap.offsetHeight - window.innerHeight);
       wrapTop = wrap.getBoundingClientRect().top + window.scrollY;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const winW = Math.min(760, vw * 0.92);
+      const side = (vw - winW) / 2;
+      clip = { top: vh * 0.34, right: side, bottom: vh * 0.08, left: side };
     };
 
     const mark = markRef.current;
@@ -231,31 +256,52 @@ export function LogoMorphStage({
       }
     };
 
-    // The simple window forms around the chat: chrome fades and scales in from just
-    // below as Korde starts (`form`), holds through the conversation, then in the reveal
-    // drifts up and fades as the product rises over it. Its fade is faster than the
-    // product's rise (mostly gone by REVEAL_WIN_FADE) so the little card doesn't stick
-    // out above the rising window — the two never show the same chat side by side.
+    // The simple window forms around the chat as Korde starts (`form`), holds through the
+    // conversation, then in the reveal hands its chat to the product's: it stays put
+    // (aligned) and fades — blurred — as the product resolves in over the same rect, so
+    // the messages never jump. Gone by the time the product is opaque.
     const updateWindow = ({ form, reveal }: { form: number; reveal: number }) => {
-      const gone = smoothstep(clamp01(reveal / REVEAL_WIN_FADE));
-      const y = (1 - form) * 3 - REVEAL_RISE_VH * reveal;
-      const scale = 0.96 + 0.04 * form + 0.04 * gone;
+      const gone = smoothstep(clamp01(reveal / REVEAL_WIN_GONE));
       win.style.opacity = `${form * (1 - gone)}`;
-      win.style.transform = `translate(-50%, ${y}vh) scale(${scale})`;
+      win.style.transform = `translate(-50%, ${(1 - form) * 3}vh) scale(${0.96 + 0.04 * form})`;
+      win.style.filter = gone > 0 && gone < 1 ? `blur(${5 * gone}px)` : 'none';
     };
 
-    // The reveal is the pre-#34 slide-in: the full product rises up from below to
-    // full-bleed — opaque, so it *wipes over* the window rather than cross-fading two
-    // copies of the same chat (which ghost). It sheds its rounding + shadow as it lands
-    // and becomes interactive at rest.
+    // The reveal grows the window into the product. The product is full-bleed at final
+    // layout throughout; a `clip-path` opens it from the window's rect to full-bleed with
+    // an ease-in-out (so it never scales or reflows), while its content resolves in
+    // (opacity, blurred over the handoff). The frame overlay is a hollow bordered box
+    // that grows on exactly the same rect — the visible window frame expanding — and
+    // fades out over the last stretch as its edges reach the viewport.
     const updateReveal = (reveal: number) => {
-      const ease = smoothstep(reveal);
-      const rest = 1 - ease;
-      frame.style.opacity = '1';
-      frame.style.transform = `translateY(${100 * rest}vh) scale(${0.96 + 0.04 * ease})`;
-      frame.style.borderRadius = `${20 * rest}px`;
-      frame.style.boxShadow = `0 ${8 * rest}px ${60 * rest}px rgb(0 0 0 / ${0.22 * rest})`;
-      frame.style.pointerEvents = ease > 0.99 ? 'auto' : 'none';
+      const open = smoothstep(reveal);
+      const rest = 1 - open;
+      const resolve = smoothstep(clamp01(reveal / REVEAL_RESOLVE));
+      frame.style.opacity = `${resolve}`;
+      frame.style.filter = resolve > 0 && resolve < 1 ? `blur(${3 * (1 - resolve)}px)` : 'none';
+      if (open >= 1) {
+        frame.style.clipPath = 'none';
+        frame.style.pointerEvents = 'auto';
+      } else {
+        const t = clip.top * rest;
+        const r = clip.right * rest;
+        const b = clip.bottom * rest;
+        const l = clip.left * rest;
+        frame.style.clipPath = `inset(${t}px ${r}px ${b}px ${l}px round ${WINDOW_RADIUS_PX * rest}px)`;
+        frame.style.pointerEvents = 'none';
+      }
+
+      if (frameBorder) {
+        // Fades in with the window's own border as it takes over, out as it hits full-bleed.
+        const shown =
+          smoothstep(clamp01(reveal / 0.06)) * (1 - smoothstep(clamp01((reveal - 0.7) / 0.3)));
+        frameBorder.style.opacity = `${shown}`;
+        frameBorder.style.top = `${clip.top * rest}px`;
+        frameBorder.style.right = `${clip.right * rest}px`;
+        frameBorder.style.bottom = `${clip.bottom * rest}px`;
+        frameBorder.style.left = `${clip.left * rest}px`;
+        frameBorder.style.borderRadius = `${WINDOW_RADIUS_PX * rest}px`;
+      }
     };
 
     let raf = 0;
@@ -316,11 +362,15 @@ export function LogoMorphStage({
 
   return (
     <div ref={wrapRef} className="relative" style={{ height: `${WRAP_VH}vh` }}>
-      {/* On the landing the chat lives inside a scrollable page, so upward scroll
-          past the top of the messages must return to the hero — the shared
-          scroller's `overscroll-contain` (right for the real app) would trap it. */}
+      {/* Landing-only overrides on the shared chat scroller (scoped to `.tour-frame`):
+          relax `overscroll-contain` so scrolling up past the top of the messages rewinds
+          the reveal instead of trapping the wheel, and bottom-anchor + width-cap the
+          messages so the product's #welcome thread sits exactly where the tour's did —
+          same content, same place — for a seamless hand-off as the window grows. */}
       <style>
-        {'.tour-frame [data-slot="message-scroller-viewport"]{overscroll-behavior:auto}'}
+        {
+          '.tour-frame [data-slot="message-scroller-viewport"]{overscroll-behavior:auto}.tour-frame [data-slot="message-scroller-content"]{justify-content:flex-end;max-width:44rem}'
+        }
       </style>
       <div className="sticky top-0 h-svh overflow-hidden bg-background">
         <div
@@ -411,14 +461,38 @@ export function LogoMorphStage({
           </div>
         </div>
 
-        {/* The little window expands into the full product here. */}
+        {/* The product. During the reveal a `clip-path` grows it from the window's rect
+            to full-bleed while its content resolves in — the window growing into the app. */}
         <div
           ref={frameRef}
           className="tour-frame absolute inset-0 z-30 overflow-hidden bg-card"
-          style={{ opacity: 0, transformOrigin: 'center', pointerEvents: 'none' }}
+          style={{
+            opacity: 0,
+            pointerEvents: 'none',
+            clipPath: 'inset(34vh calc((100% - min(760px, 92vw)) / 2) 8vh round 16px)',
+            willChange: 'clip-path, opacity',
+          }}
         >
           {children}
         </div>
+
+        {/* The visible window frame: a hollow bordered box that grows on the same rect as
+            the clip, so the eye reads the window *expanding* to full-screen rather than a
+            curtain dropping. It fades out as its edges reach the viewport. */}
+        <div
+          ref={frameBorderRef}
+          aria-hidden
+          className="pointer-events-none absolute z-40 border border-border/70"
+          style={{
+            opacity: 0,
+            top: '34vh',
+            bottom: '8vh',
+            left: 'calc((100% - min(760px, 92vw)) / 2)',
+            right: 'calc((100% - min(760px, 92vw)) / 2)',
+            borderRadius: '16px',
+            boxShadow: '0 24px 60px rgb(0 0 0 / 0.35)',
+          }}
+        />
       </div>
     </div>
   );

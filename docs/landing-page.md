@@ -7,11 +7,14 @@ components rather than throwaway markup: each is a candidate to graduate into `@
 and power the actual product, so shared behaviour lives in the component, not at the
 call site.
 
-## The reveal is a window forming, then a slide-in
+## The reveal is a window forming, then growing into the product
 
 Scroll doesn't silently zoom a window in — that read as a hijack to first-time
 visitors who couldn't tell what was happening or find their way back. Instead the
-reveal (`LogoMorphStage`) is two acts on one scroll track:
+reveal (`LogoMorphStage`) is two acts on one scroll track, following the project's
+animation standards (transform / opacity / clip-path only, ease-in-out for on-screen
+morphing, blur to blend the hand-off — see
+[`.agents/skills/review-animations`](../.agents/skills/review-animations)).
 
 **Act 1 — a window forms around Korde's tour.** The headline doesn't clear — it *stays as
 the title*. On the first scroll it shrinks and rises into a compact caption at the top
@@ -36,14 +39,26 @@ bubbles **are** the `#welcome` thread (rendered with the real `ChatMessage`), so
 source of truth for that copy — reactions included: the pills are live, so a visitor can
 react for fun (nothing persists), same as inside the product.
 
-**Act 2 — the product rises over the window.** Click "Try it out" (or keep scrolling) and
-the full product slides up from below to full-bleed — the pre-#34 reveal, a screenshot
-sliding into view — into the live thread (the same messages). It's **opaque and rises over**
-the simple window rather than cross-fading into it: two copies of the same chat at different
-positions would ghost, so the product wipes over the window while the window fades out under
-it (`REVEAL_WIN_FADE`, gone before it's fully covered). It starts fully off-screen so it
-stays hidden behind the tour until it's called, and it's the same on every viewport.
-`TOUR_FRACTION` splits the track between the two acts.
+**Act 2 — the window grows into the product.** Click "Try it out" (or keep scrolling) and
+the window *grows* to full-screen while the product **resolves in** — the motion the design
+review settled on (a shared-element grow, not a slide or a crossfade). Mechanically: the
+product is full-bleed at final layout, and a `clip-path` opens it from the window's rect to
+full-bleed with an ease-in-out (so it never scales or reflows) while its content resolves in
+(opacity, blurred over the hand-off). A **hollow bordered overlay grows on the same rect** —
+the *visible* window frame expanding — so the eye reads the window enlarging, not a curtain
+dropping; it fades out as its edges reach the viewport. The tour window stays put and fades
+(blurred, `REVEAL_WIN_GONE`) as the product resolves in over the same rect, and the hand-off
+is seamless only because the product shows `#welcome` **statically** and the landing
+**bottom-anchors + width-caps** the chat (scoped `.tour-frame` overrides, `animate={false}`
+for that channel in `AppShell`) so the product's messages sit exactly where the tour's did —
+same content, same place, no jump. `TOUR_FRACTION` splits the track between the two acts.
+
+Two dead ends we backed out of (both in the git history) name the traps: a **crossfade**
+inside the window read as "the window fades out and the product appears from a black
+curtain"; and playing the tour *inside* the clipped product window cut the messages off at
+its bottom edge (the product's chat anchors to its composer, below the clip) with a dark
+empty expanse above. The working version keeps a **dedicated, readable tour window** and
+only grows-and-resolves in Act 2.
 
 **Getting back out.** Once inside, the mark in the product's top bar returns you to the
 hero (it scrolls the track back up and resets the deep-linked channel), and the landing
