@@ -14,16 +14,20 @@ visitors who couldn't tell what was happening or find their way back. Instead th
 reveal (`LogoMorphStage`) is two acts on one scroll track:
 
 **Act 1 — Korde onboards you.** As you scroll, the hero (mark + headline) scrolls up and
-clears, and the agent's tour plays out like a real chat — **scroll is the clock**. Each
-`#welcome` message owns a generous slice of the track (`PER_MSG_VH`): the first slice shows
-Korde *typing*, then the message lands, climbing up from below (a scroll-triggered entrance,
-not a fade), and the rest of the slice holds it to read — so the reader decides when the
-next one arrives. The conversation is bottom-anchored, so the newest message and the typing
-row sit at the reading line with history above, like a chat scrolled to its latest. It ends
-on a **"Try it out"** beat. The guidance is in-character — the agent introducing itself and
-naming the three panels *is* the pitch, not chrome bolted on. Crucially the tour bubbles
-**are** the `#welcome` thread (rendered with the real `ChatMessage`), so there's one source
-of truth for that copy and the conversation is continuous into the live product.
+clears, and the agent's tour plays out like a real chat — **scroll is the clock**. The
+typing indicator is *pinned at the bottom the whole time* — it never leaves, as if Korde is
+always ready to send the next line (it even previews who's next: "Maya is typing" before
+Maya speaks). Each scroll beat (`PER_MSG_VH`, generous so the reader sets the pace) sends the
+line it's typing: the message opens up from the typing row — its slot expands from zero,
+pushing the history above it up (height and a short lift, no fade) — and the row starts on
+the next one. The conversation is bottom-anchored, so the newest message and the typing row
+sit at the reading line with history above, like a chat scrolled to its latest. A trailing
+beat swaps the typing row for a **"Try it out"** button and holds the finished thread. The
+guidance is in-character — the agent introducing itself and naming the three panels *is* the
+pitch, not chrome bolted on. Crucially the tour bubbles **are** the `#welcome` thread
+(rendered with the real `ChatMessage`), so there's one source of truth for that copy and the
+conversation is continuous into the live product — reactions included: the pills are live, so
+a visitor can react for fun (nothing persists), same as inside the product.
 
 **Act 2 — the window slides in around the conversation.** Click "Try it out" (or keep
 scrolling) and the product window slides up from below to full-bleed — the pre-#34

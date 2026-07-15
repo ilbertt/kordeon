@@ -18,21 +18,23 @@ const TOUR_MESSAGES = channelBySlug(ChannelSlug.Welcome)?.messages ?? [];
 const TOUR_N = TOUR_MESSAGES.length;
 const authorOf = (message: Message) => (message.kind === 'msg' ? message.from : null);
 
-// Scroll-driven playback: the conversation plays out like a real chat — Korde types,
-// the message lands — but *scroll is the clock*. Each message owns a generous slice
-// of the track (`PER_MSG_VH`) so the reader decides when the next one arrives; the
-// first slice of that slice shows the typing indicator, the rest holds the message
-// to read. The wrapper is sized from that, plus the window slide-in.
+// Scroll-driven playback: the conversation plays out like a real chat, but *scroll
+// is the clock*. Korde's typing indicator is pinned at the bottom the whole time — it
+// never leaves, as if the agent is always ready to send the next line. Each scroll
+// beat (`PER_MSG_VH`, generous so the reader sets the pace) sends the message it's
+// typing: it rises into the thread above, and the row starts typing the next one. A
+// trailing beat holds the finished thread with the CTA. The wrapper is sized from all
+// the beats, plus the window slide-in.
 const PER_MSG_VH = 50;
 const SLIDE_VH = 120;
-const TOUR_VH = TOUR_N * PER_MSG_VH;
+// One beat per message, plus a trailing beat that swaps the typing row for the CTA and
+// holds the finished conversation before the window slides in.
+const TOUR_BEATS = TOUR_N + 1;
+const TOUR_VH = TOUR_BEATS * PER_MSG_VH;
 const WRAP_VH = 100 + TOUR_VH + SLIDE_VH;
 const TOUR_FRACTION = TOUR_VH / (TOUR_VH + SLIDE_VH);
-// The typing indicator holds for the first slice of each message's slot, then the
-// message lands.
-const TYPE_FRAC = 0.3;
-// A hair of scroll before the first "typing" shows, so the hero reads clean at rest.
-const START_GATE = 0.03;
+// A hair of scroll before Korde starts typing, so the hero reads clean at rest.
+const START_GATE = 0.02;
 // The hero scrolls up and clears as the first message arrives.
 const HERO_RISE_VH = 42;
 const HERO_FADE_END = 0.12;
@@ -45,22 +47,47 @@ const smoothstep = (value: number) => {
 
 type TourState = { landed: number; typingId: string | null; cta: boolean };
 
-// Where the scroll position lands the playback: how many messages have arrived, who
-// (if anyone) is mid-type, and whether the conversation's done. Discrete — it only
-// changes at the beats, so the scroll loop pushes it to state sparingly.
+// Where the scroll position lands the playback: how many messages have arrived, who's
+// typing the next one (always someone, until the thread is done), and whether the CTA
+// beat is showing. Discrete — it only changes at the beats, so the scroll loop pushes
+// it to state sparingly.
 function playbackAt(tourProgress: number): TourState {
-  if (tourProgress <= START_GATE) {
+  const gated = (tourProgress - START_GATE) / (1 - START_GATE);
+  if (gated <= 0) {
     return { landed: 0, typingId: null, cta: false };
   }
-  const slot = ((tourProgress - START_GATE) / (1 - START_GATE)) * TOUR_N;
-  const current = Math.floor(slot);
-  if (current >= TOUR_N) {
+  const landed = Math.min(Math.floor(gated * TOUR_BEATS), TOUR_N);
+  if (landed >= TOUR_N) {
     return { landed: TOUR_N, typingId: null, cta: true };
   }
-  if (slot - current < TYPE_FRAC) {
-    return { landed: current, typingId: authorOf(TOUR_MESSAGES[current]!), cta: false };
-  }
-  return { landed: current + 1, typingId: null, cta: false };
+  return { landed, typingId: authorOf(TOUR_MESSAGES[landed]!), cta: false };
+}
+
+// Each message opens up from the typing row: its slot expands from zero height,
+// pushing the history above it up while the typing row holds steady at the bottom, so
+// the line rises into the thread from exactly where it was being typed. Height and a
+// short lift, no fade — it arrives, it doesn't materialise.
+function EnteringMessage({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setOpen(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return (
+    <div
+      className="grid transition-[grid-template-rows] duration-500 ease-out"
+      style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
+    >
+      <div className="overflow-hidden">
+        <div
+          className="pb-5 transition-transform duration-500 ease-out"
+          style={{ transform: open ? 'translateY(0)' : 'translateY(1.5rem)' }}
+        >
+          {children}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -303,22 +330,19 @@ export function LogoMorphStage({
               currentUserId="you"
               mentionSuggestions={MENTION_SUGGESTIONS}
             >
-              <div className="flex w-full max-w-2xl flex-col gap-5">
+              {/* Pointer-events on so the reactions and mention tags are live —
+                  visitors can react for fun (nothing persists). */}
+              <div className="pointer-events-auto flex w-full max-w-2xl flex-col">
                 {TOUR_MESSAGES.slice(0, tour.landed).map((message) => (
-                  <div
-                    key={message.id}
-                    className="fill-mode-both animate-in slide-in-from-bottom-4 duration-500"
-                  >
+                  <EnteringMessage key={message.id}>
                     <ChatMessage message={message} />
-                  </div>
+                  </EnteringMessage>
                 ))}
                 {tour.typingId ? (
-                  <div className="fill-mode-both animate-in slide-in-from-bottom-3 duration-300">
-                    <ThreadTypingRow ids={[tour.typingId]} />
-                  </div>
+                  <ThreadTypingRow key={tour.typingId} ids={[tour.typingId]} />
                 ) : null}
                 {tour.cta ? (
-                  <div className="pointer-events-auto fill-mode-both flex animate-in justify-center pt-3 slide-in-from-bottom-3 duration-500">
+                  <div className="flex animate-in justify-center pt-1 slide-in-from-bottom-3 duration-500">
                     <button
                       type="button"
                       onClick={revealProduct}
