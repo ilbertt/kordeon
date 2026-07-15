@@ -14,15 +14,16 @@ visitors who couldn't tell what was happening or find their way back. Instead th
 reveal (`LogoMorphStage`) is two acts on one scroll track:
 
 **Act 1 — Korde onboards you.** As you scroll, the hero (mark + headline) scrolls up and
-clears, and the agent gives you a tour: the `#welcome` messages, **centred on screen** and
-*scrubbed to the wheel* — the column is tied to `window.scrollY`, so each message **rises up
-from below** into a read line as you scroll (no fade-in pop), and messages are spaced far
-enough apart, with a per-message dwell, that each gets its own moment before the next
-climbs in. It ends on a **"Try it out"** beat. The guidance is in-character — the agent
-introducing itself and naming the three panels *is* the pitch, not chrome bolted on.
-Crucially the tour bubbles **are** the `#welcome` thread (rendered with the real
-`ChatMessage`), so there's one source of truth for that copy and the conversation is
-continuous into the live product.
+clears, and the agent's tour plays out like a real chat — **scroll is the clock**. Each
+`#welcome` message owns a generous slice of the track (`PER_MSG_VH`): the first slice shows
+Korde *typing*, then the message lands, climbing up from below (a scroll-triggered entrance,
+not a fade), and the rest of the slice holds it to read — so the reader decides when the
+next one arrives. The conversation is bottom-anchored, so the newest message and the typing
+row sit at the reading line with history above, like a chat scrolled to its latest. It ends
+on a **"Try it out"** beat. The guidance is in-character — the agent introducing itself and
+naming the three panels *is* the pitch, not chrome bolted on. Crucially the tour bubbles
+**are** the `#welcome` thread (rendered with the real `ChatMessage`), so there's one source
+of truth for that copy and the conversation is continuous into the live product.
 
 **Act 2 — the window slides in around the conversation.** Click "Try it out" (or keep
 scrolling) and the product window slides up from below to full-bleed — the pre-#34
