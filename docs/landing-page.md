@@ -7,37 +7,43 @@ components rather than throwaway markup: each is a candidate to graduate into `@
 and power the actual product, so shared behaviour lives in the component, not at the
 call site.
 
-## The reveal is a guided tour, then a slide-in
+## The reveal is a window forming, then a slide-in
 
 Scroll doesn't silently zoom a window in — that read as a hijack to first-time
 visitors who couldn't tell what was happening or find their way back. Instead the
 reveal (`LogoMorphStage`) is two acts on one scroll track:
 
-**Act 1 — Korde onboards you.** As you scroll, the hero (mark + headline) scrolls up and
-clears, and the agent's tour plays out like a real chat — **scroll is the clock**. The
-typing indicator is *pinned at the bottom the whole time* — it never leaves, as if Korde is
-always ready to send the next line (it even previews who's next: "Maya is typing" before
-Maya speaks). Each scroll beat (`PER_MSG_VH`, generous so the reader sets the pace) sends the
-line it's typing: the message opens up from the typing row — its slot expands from zero,
-pushing the history above it up (height and a short lift, no fade) — and the row starts on
-the next one. The conversation is bottom-anchored, so the newest message and the typing row
-sit at the reading line with history above, like a chat scrolled to its latest. A trailing
-beat swaps the typing row for a **"Try it out"** button and holds the finished thread. The
-guidance is in-character — the agent introducing itself and pitching kordeon *is* the pitch,
-not chrome bolted on. Because the tour plays on a bare stage — the product hasn't slid in yet
-— the copy takes the **broad angle** and can't point at panels ("on the left…"): Korde sells
-the differentiators by concept, not deixis — work-as-threads, plan-together-first, build-live,
-agents-as-teammates. Crucially the tour bubbles **are** the `#welcome` thread (rendered with
-the real `ChatMessage`), so there's one source of truth for that copy and the conversation is
-continuous into the live product — reactions included: the pills are live, so a visitor can
+**Act 1 — a window forms around Korde's tour.** The headline doesn't clear — it *stays as
+the title*. On the first scroll it shrinks and rises into a compact caption at the top
+(the mark and CTA fade with it), and a **simple window** — a titled, bordered card —
+forms below it: the chrome fades and scales in as Korde starts talking. The rise is
+staggered *ahead* of the window forming (`HERO_FORM_END` before `WIN_FORM_START`) so the
+headline has cleared the window's top before the card appears, instead of the two crossing
+through each other. Inside, the agent's tour plays out like a real chat — **scroll is the
+clock**. The typing indicator is *pinned at the bottom the whole time* — it never leaves,
+as if Korde is always ready to send the next line (it even previews who's next: "Maya is
+typing" before Maya speaks). Each scroll beat (`PER_MSG_VH`, generous so the reader sets
+the pace) sends the line it's typing: the message opens up from the typing row — its slot
+expands from zero, pushing the history above it up (height and a short lift, no fade) — and
+the row starts on the next one. The conversation is bottom-anchored, so the newest message
+and the typing row sit at the reading line, like a chat scrolled to its latest. A trailing
+beat swaps the typing row for a **"Try it out"** button. The guidance is in-character — the
+agent introducing itself and pitching kordeon *is* the pitch, not chrome bolted on. Because
+the tour plays before the product is in, the copy takes the **broad angle** and can't point
+at panels ("on the left…"): Korde sells the differentiators by concept, not deixis —
+work-as-threads, plan-together-first, build-live, agents-as-teammates. Crucially the tour
+bubbles **are** the `#welcome` thread (rendered with the real `ChatMessage`), so there's one
+source of truth for that copy — reactions included: the pills are live, so a visitor can
 react for fun (nothing persists), same as inside the product.
 
-**Act 2 — the window slides in around the conversation.** Click "Try it out" (or keep
-scrolling) and the product window slides up from below to full-bleed — the pre-#34
-reveal, a screenshot sliding into view — landing around the centred conversation, which
-hands off to the live thread (the same messages) inside it. It starts fully off-screen so
-it stays hidden behind the tour until it's called, and it's the same on every viewport
-(there's no separate desktop morph). `TOUR_FRACTION` splits the track between the two acts.
+**Act 2 — the product rises over the window.** Click "Try it out" (or keep scrolling) and
+the full product slides up from below to full-bleed — the pre-#34 reveal, a screenshot
+sliding into view — into the live thread (the same messages). It's **opaque and rises over**
+the simple window rather than cross-fading into it: two copies of the same chat at different
+positions would ghost, so the product wipes over the window while the window fades out under
+it (`REVEAL_WIN_FADE`, gone before it's fully covered). It starts fully off-screen so it
+stays hidden behind the tour until it's called, and it's the same on every viewport.
+`TOUR_FRACTION` splits the track between the two acts.
 
 **Getting back out.** Once inside, the mark in the product's top bar returns you to the
 hero (it scrolls the track back up and resets the deep-linked channel), and the landing

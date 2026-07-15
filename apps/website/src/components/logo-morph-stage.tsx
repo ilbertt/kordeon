@@ -13,31 +13,38 @@ import { ChannelSlug, channelBySlug, MENTION_SUGGESTIONS, PEOPLE } from './produ
 const LOGO_SLOT_PX = 120;
 
 // The tour is the #welcome thread: the same messages that top the live chat, so the
-// window slides in around the very conversation you just watched arrive.
+// window that forms around them opens straight into the very conversation you watched.
 const TOUR_MESSAGES = channelBySlug(ChannelSlug.Welcome)?.messages ?? [];
 const TOUR_N = TOUR_MESSAGES.length;
 const authorOf = (message: Message) => (message.kind === 'msg' ? message.from : null);
 
-// Scroll-driven playback: the conversation plays out like a real chat, but *scroll
-// is the clock*. Korde's typing indicator is pinned at the bottom the whole time — it
-// never leaves, as if the agent is always ready to send the next line. Each scroll
-// beat (`PER_MSG_VH`, generous so the reader sets the pace) sends the message it's
-// typing: it rises into the thread above, and the row starts typing the next one. A
-// trailing beat holds the finished thread with the CTA. The wrapper is sized from all
-// the beats, plus the window slide-in.
+// Scroll-driven playback: the conversation plays out like a real chat, but *scroll is
+// the clock*. Korde's typing indicator is pinned at the bottom the whole time — as if
+// the agent is always ready to send the next line. Each scroll beat (`PER_MSG_VH`,
+// generous so the reader sets the pace) sends the message it's typing. A trailing beat
+// swaps the typing row for the CTA. The wrapper is sized from all the beats, plus the
+// reveal where the simple window expands into the full product.
 const PER_MSG_VH = 50;
-const SLIDE_VH = 120;
-// One beat per message, plus a trailing beat that swaps the typing row for the CTA and
-// holds the finished conversation before the window slides in.
+const REVEAL_VH = 120;
 const TOUR_BEATS = TOUR_N + 1;
 const TOUR_VH = TOUR_BEATS * PER_MSG_VH;
-const WRAP_VH = 100 + TOUR_VH + SLIDE_VH;
-const TOUR_FRACTION = TOUR_VH / (TOUR_VH + SLIDE_VH);
+const WRAP_VH = 100 + TOUR_VH + REVEAL_VH;
+const TOUR_FRACTION = TOUR_VH / (TOUR_VH + REVEAL_VH);
 // A hair of scroll before Korde starts typing, so the hero reads clean at rest.
 const START_GATE = 0.02;
-// The hero scrolls up and clears as the first message arrives.
-const HERO_RISE_VH = 42;
-const HERO_FADE_END = 0.12;
+// The hero rises and shrinks into a compact title above the window; its mark and CTA
+// fade out. It's *staggered ahead* of the window forming (finishing by `HERO_FORM_END`)
+// so the headline has cleared the window's top before the chrome appears — otherwise
+// the two cross through each other. The window then forms over its own window.
+const HERO_RISE_VH = 34;
+const HERO_SCALE = 0.82;
+const HERO_FORM_END = 0.05;
+const WIN_FORM_START = 0.04;
+const WIN_FORM_END = 0.15;
+// In the reveal, the heading clears and the window drifts up and fades out as the
+// product rises over it — the window is gone by this fraction of the reveal.
+const REVEAL_RISE_VH = 12;
+const REVEAL_WIN_FADE = 0.5;
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 const smoothstep = (value: number) => {
@@ -91,15 +98,14 @@ function EnteringMessage({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * The hero is the kordeon mark and headline. Scroll and it rises out of the way as
- * Korde's tour plays out — the #welcome messages arrive like a real chat (a typing
- * beat, then the message lands, climbing up from below), but scroll is the clock, so
- * the reader decides when the next one comes. At the end a "Try it out" beat, then
- * the product window slides up from below and lands around that conversation, which
- * becomes the live thread — nothing resets.
+ * The hero is the kordeon mark and headline. Scroll and the headline stays as a title
+ * while a simple window *forms around* Korde's tour: the chrome fades and scales in as
+ * the agent starts talking, and the #welcome messages play out inside it like a real
+ * chat (scroll is the clock, the typing row pinned at the bottom). At the end the CTA
+ * shows, then the little window expands and hands off to the full-bleed product — the
+ * same conversation, now live. Nothing resets.
  *
- * The reveal is the pre-#34 slide-in on every viewport (the mark-into-panels morph
- * is gone). Both the CTA and section deep-links drive the same scroll track.
+ * Both the CTA and section deep-links drive the same scroll track.
  */
 export function LogoMorphStage({
   children,
@@ -110,7 +116,9 @@ export function LogoMorphStage({
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const introRef = useRef<HTMLDivElement>(null);
-  const bandRef = useRef<HTMLDivElement>(null);
+  const markRef = useRef<HTMLDivElement>(null);
+  const heroCtaRef = useRef<HTMLButtonElement>(null);
+  const windowRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
 
   // The tour is client-only: SSR serves the plain hero + full product beneath, so
@@ -167,17 +175,17 @@ export function LogoMorphStage({
   useIsomorphicLayoutEffect(() => {
     const wrap = wrapRef.current;
     const intro = introRef.current;
-    const band = bandRef.current;
+    const win = windowRef.current;
     const frame = frameRef.current;
-    if (!(mounted && wrap && intro && band && frame)) {
+    if (!(mounted && wrap && intro && win && frame)) {
       return;
     }
 
-    // Reduced motion: drop the movement (tour playback or slide) but still fade the
+    // Reduced motion: drop the movement (tour forming or reveal) but still fade the
     // window in rather than hard-cutting — fewer and gentler, not zero.
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       intro.style.display = 'none';
-      band.style.display = 'none';
+      win.style.display = 'none';
       frame.style.transform = 'none';
       frame.style.pointerEvents = 'auto';
       requestAnimationFrame(() => {
@@ -203,26 +211,48 @@ export function LogoMorphStage({
       wrapTop = wrap.getBoundingClientRect().top + window.scrollY;
     };
 
-    // The hero scrolls up and fades as the first message arrives, clearing the
-    // centre for the conversation.
-    const updateHero = (tourProgress: number) => {
-      const gone = smoothstep(clamp01(tourProgress / HERO_FADE_END));
-      intro.style.transform = `translateY(${-HERO_RISE_VH * gone}vh)`;
-      intro.style.opacity = `${1 - gone}`;
-      intro.style.pointerEvents = tourProgress > 0.04 ? 'none' : 'auto';
+    const mark = markRef.current;
+    const heroCta = heroCtaRef.current;
+
+    // The headline shrinks and rises into a compact title above the window (and clears
+    // in the reveal); the mark and CTA fade as it goes, leaving just the headline +
+    // tagline. Scaling about the viewport centre keeps it centred as it shrinks.
+    const updateHero = ({ form, reveal }: { form: number; reveal: number }) => {
+      const scale = 1 - (1 - HERO_SCALE) * form;
+      intro.style.transform = `translateY(${-(HERO_RISE_VH * form + REVEAL_RISE_VH * reveal)}vh) scale(${scale})`;
+      intro.style.opacity = `${1 - reveal}`;
+      intro.style.pointerEvents = form > 0.05 ? 'none' : 'auto';
+      if (mark) {
+        mark.style.opacity = `${1 - form}`;
+      }
+      if (heroCta) {
+        heroCta.style.opacity = `${1 - form}`;
+        heroCta.style.pointerEvents = form > 0.05 ? 'none' : 'auto';
+      }
     };
 
-    // The pre-#34 reveal, restored: the product slides up from fully below to
-    // full-bleed, scaling and shedding its rounding + shadow as it lands — a
-    // screenshot sliding into view. Riding above the conversation (z-30), it covers
-    // it from the bottom up as it rises, then holds the real thread (same messages).
-    const updateSlide = (reveal: number) => {
+    // The simple window forms around the chat: chrome fades and scales in from just
+    // below as Korde starts (`form`), holds through the conversation, then in the reveal
+    // drifts up and fades as the product rises over it. Its fade is faster than the
+    // product's rise (mostly gone by REVEAL_WIN_FADE) so the little card doesn't stick
+    // out above the rising window — the two never show the same chat side by side.
+    const updateWindow = ({ form, reveal }: { form: number; reveal: number }) => {
+      const gone = smoothstep(clamp01(reveal / REVEAL_WIN_FADE));
+      const y = (1 - form) * 3 - REVEAL_RISE_VH * reveal;
+      const scale = 0.96 + 0.04 * form + 0.04 * gone;
+      win.style.opacity = `${form * (1 - gone)}`;
+      win.style.transform = `translate(-50%, ${y}vh) scale(${scale})`;
+    };
+
+    // The reveal is the pre-#34 slide-in: the full product rises up from below to
+    // full-bleed — opaque, so it *wipes over* the window rather than cross-fading two
+    // copies of the same chat (which ghost). It sheds its rounding + shadow as it lands
+    // and becomes interactive at rest.
+    const updateReveal = (reveal: number) => {
       const ease = smoothstep(reveal);
       const rest = 1 - ease;
-      const startScale = 0.94;
-      const scale = startScale + (1 - startScale) * ease;
       frame.style.opacity = '1';
-      frame.style.transform = `translateY(${100 * rest}vh) scale(${scale})`;
+      frame.style.transform = `translateY(${100 * rest}vh) scale(${0.96 + 0.04 * ease})`;
       frame.style.borderRadius = `${20 * rest}px`;
       frame.style.boxShadow = `0 ${8 * rest}px ${60 * rest}px rgb(0 0 0 / ${0.22 * rest})`;
       frame.style.pointerEvents = ease > 0.99 ? 'auto' : 'none';
@@ -245,8 +275,14 @@ export function LogoMorphStage({
         tourProgress = 1;
         reveal = clamp01((scrolled - tourEnd) / (total - tourEnd));
       }
-      updateHero(tourProgress);
-      updateSlide(reveal);
+      // The heading rises first, then the window forms — so they never cross.
+      const formHero = smoothstep(clamp01(tourProgress / HERO_FORM_END));
+      const formWin = smoothstep(
+        clamp01((tourProgress - WIN_FORM_START) / (WIN_FORM_END - WIN_FORM_START)),
+      );
+      updateHero({ form: formHero, reveal });
+      updateWindow({ form: formWin, reveal });
+      updateReveal(reveal);
 
       const next = playbackAt(tourProgress);
       const prev = tourStateRef.current;
@@ -298,7 +334,7 @@ export function LogoMorphStage({
           ref={introRef}
           className="absolute inset-0 z-10 flex flex-col items-center justify-center px-4 text-center will-change-transform"
         >
-          <div style={{ width: LOGO_SLOT_PX, height: LOGO_SLOT_PX }}>
+          <div ref={markRef} style={{ width: LOGO_SLOT_PX, height: LOGO_SLOT_PX }}>
             <KordeonMark className="size-full" />
           </div>
           <h1 className="mt-8 text-balance font-semibold text-4xl tracking-tight sm:text-5xl">
@@ -308,6 +344,7 @@ export function LogoMorphStage({
             Chat, refine the plan, and hand it to an agent — together, in one place.
           </p>
           <button
+            ref={heroCtaRef}
             type="button"
             onClick={revealProduct}
             className={cn(buttonVariants({ size: 'lg' }), 'mt-8 gap-2')}
@@ -317,48 +354,64 @@ export function LogoMorphStage({
           </button>
         </div>
 
-        {/* The conversation, bottom-anchored so the newest message and the typing
-            row sit at the reading line with history above — a real chat, played out
-            by scroll. Each message climbs up from below as it lands. */}
+        {/* The simple window that forms around the conversation. It's a plain framed
+            card — a title bar and the chat — so it reads as a window without pretending
+            to be the whole product yet; that arrives when it expands in the reveal. */}
         <div
-          ref={bandRef}
-          className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-end overflow-hidden px-4 pb-[16vh]"
+          ref={windowRef}
+          className="absolute top-[34vh] bottom-[8vh] left-1/2 z-20 flex w-[min(760px,92vw)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
+          style={{
+            opacity: 0,
+            transformOrigin: 'center',
+            transform: 'translate(-50%, 3vh) scale(0.96)',
+          }}
         >
-          {mounted ? (
-            <WorkspaceProvider
-              people={PEOPLE}
-              currentUserId="you"
-              mentionSuggestions={MENTION_SUGGESTIONS}
-            >
-              {/* Pointer-events on so the reactions and mention tags are live —
-                  visitors can react for fun (nothing persists). */}
-              <div className="pointer-events-auto flex w-full max-w-2xl flex-col">
-                {TOUR_MESSAGES.slice(0, tour.landed).map((message) => (
-                  <EnteringMessage key={message.id}>
-                    <ChatMessage message={message} />
-                  </EnteringMessage>
-                ))}
-                {tour.typingId ? (
-                  <ThreadTypingRow key={tour.typingId} ids={[tour.typingId]} />
-                ) : null}
-                {tour.cta ? (
-                  <div className="flex animate-in justify-center pt-1 slide-in-from-bottom-3 duration-500">
-                    <button
-                      type="button"
-                      onClick={revealProduct}
-                      className={cn(buttonVariants({ size: 'lg' }), 'gap-2 shadow-lg')}
-                    >
-                      Try it out
-                      <ArrowDown className="size-4" />
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            </WorkspaceProvider>
-          ) : null}
+          <div className="flex h-9 shrink-0 items-center gap-2 border-border border-b px-4">
+            <span className="flex gap-1.5" aria-hidden>
+              <span className="size-2.5 rounded-full bg-muted-foreground/25" />
+              <span className="size-2.5 rounded-full bg-muted-foreground/25" />
+              <span className="size-2.5 rounded-full bg-muted-foreground/25" />
+            </span>
+            <span className="ml-1 text-muted-foreground text-xs">#welcome</span>
+          </div>
+          {/* The conversation, bottom-anchored so the newest message and the typing
+              row sit at the reading line with history above — a real chat, played by
+              scroll. Pointer-events on so the reactions and mention tags are live. */}
+          <div className="flex min-h-0 flex-1 flex-col justify-end overflow-hidden px-4 pt-4 pb-6">
+            {mounted ? (
+              <WorkspaceProvider
+                people={PEOPLE}
+                currentUserId="you"
+                mentionSuggestions={MENTION_SUGGESTIONS}
+              >
+                <div className="pointer-events-auto flex w-full flex-col">
+                  {TOUR_MESSAGES.slice(0, tour.landed).map((message) => (
+                    <EnteringMessage key={message.id}>
+                      <ChatMessage message={message} />
+                    </EnteringMessage>
+                  ))}
+                  {tour.typingId ? (
+                    <ThreadTypingRow key={tour.typingId} ids={[tour.typingId]} />
+                  ) : null}
+                  {tour.cta ? (
+                    <div className="flex animate-in justify-center pt-1 slide-in-from-bottom-3 duration-500">
+                      <button
+                        type="button"
+                        onClick={revealProduct}
+                        className={cn(buttonVariants({ size: 'lg' }), 'gap-2 shadow-lg')}
+                      >
+                        Try it out
+                        <ArrowDown className="size-4" />
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </WorkspaceProvider>
+            ) : null}
+          </div>
         </div>
 
-        {/* The window slides up from below and lands around the conversation. */}
+        {/* The little window expands into the full product here. */}
         <div
           ref={frameRef}
           className="tour-frame absolute inset-0 z-30 overflow-hidden bg-card"
