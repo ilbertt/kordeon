@@ -7,38 +7,27 @@ components rather than throwaway markup: each is a candidate to graduate into `@
 and power the actual product, so shared behaviour lives in the component, not at the
 call site.
 
-## The reveal is a guided tour, then the thesis
+## The reveal is a guided tour, then a slide-in
 
 Scroll doesn't silently zoom a window in — that read as a hijack to first-time
 visitors who couldn't tell what was happening or find their way back. Instead the
 reveal (`LogoMorphStage`) is two acts on one scroll track:
 
-**Act 1 — Korde onboards you.** As you scroll, the headline and mark clear and the
-agent types you a tour: the `#welcome` messages arrive one by one, *scrubbed to the
-wheel* (each scroll pulls the next message out of Korde), ending on a **"Try it out"**
-beat. The guidance is in-character — the agent introducing itself and naming the three
-panels *is* the pitch, not chrome bolted on. Crucially the tour bubbles **are** the
-`#welcome` thread (rendered with the real `ChatMessage`), so there's one source of
-truth for that copy and the conversation is continuous into the live product.
+**Act 1 — Korde onboards you.** As you scroll, the hero (mark + headline) scrolls up and
+clears, and the agent types you a tour: the `#welcome` messages arrive one by one,
+*scrubbed to the wheel* (each scroll pulls the next message out of Korde), **centred on
+screen**, ending on a **"Try it out"** beat. The guidance is in-character — the agent
+introducing itself and naming the three panels *is* the pitch, not chrome bolted on.
+Crucially the tour bubbles **are** the `#welcome` thread (rendered with the real
+`ChatMessage`), so there's one source of truth for that copy and the conversation is
+continuous into the live product.
 
-**Act 2 — the mark metamorphoses into the product.** Click "Try it out" (or keep
-scrolling) and, on desktop, the three bars of the mark grow and unfold, in place, onto
-the three panels — explorer · chat · the accented preview — while the real window fades
-in over them. Because the tour bubbles sit over the column the **chat panel** lands on,
-the window **forms around the conversation**: the side panels build outward and the real
-thread (the same messages) takes the bubbles' place. The three-panel thesis is still
-stated by the mark itself. The bar → panel geometry mirrors the real workspace layout,
-so it lives next to the maths (`logo-morph-geometry.ts`); keep the two in sync if the
-window's panel widths or breakpoints change. `TOUR_FRACTION` splits the track between
-the two acts.
-
-The morph only reads on **desktop**, where the three panels are actually on screen. Below
-the sidebar breakpoint (`SIDEBAR_BP`) both side panels collapse to drawers, so there are no
-columns for the bars to become — the metamorphosis would land on a single-column window and
-say nothing. There, `LogoMorphStage` keeps the tour but drops the morph: the window slides
-up from fully below (staying out of sight behind the tour) to full-bleed as the conversation
-clears. Both are scroll-driven off the same track, so the CTA and section deep-links behave
-identically.
+**Act 2 — the window slides in around the conversation.** Click "Try it out" (or keep
+scrolling) and the product window slides up from below to full-bleed — the pre-#34
+reveal, a screenshot sliding into view — landing around the centred conversation, which
+hands off to the live thread (the same messages) inside it. It starts fully off-screen so
+it stays hidden behind the tour until it's called, and it's the same on every viewport
+(there's no separate desktop morph). `TOUR_FRACTION` splits the track between the two acts.
 
 **Getting back out.** Once inside, the mark in the product's top bar returns you to the
 hero (it scrolls the track back up and resets the deep-linked channel), and the landing
