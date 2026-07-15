@@ -22,7 +22,7 @@ import { type AnchoredMessage, interleaveMessages } from './interleave-messages'
 import { ChatMessage, ThreadTypingRow } from './message';
 import { Facepile } from './person-avatar';
 import { StatusIcon } from './status-icon';
-import { type TypingState, useThreadPlayback } from './use-thread-playback';
+import { type PlaybackOverride, type TypingState, useThreadPlayback } from './use-thread-playback';
 import { useWorkspacePanels } from './workspace-ui';
 
 type SendValue = { text: string; segments: MessageSegment[] };
@@ -45,6 +45,7 @@ export function Thread({
   channel,
   active,
   animate = false,
+  reveal,
   onSend,
   onVisitorReply,
   responderId,
@@ -59,6 +60,10 @@ export function Thread({
   // arriving one by one) once it scrolls into view. Off by default so the thread
   // renders statically unless a consumer opts in.
   animate?: boolean;
+  // Hands the timeline to an external driver (the landing scrolls the tour): when
+  // set, the thread shows exactly `reveal.count` messages with `reveal.typingIds`
+  // composing, ignoring `animate`. Its own scroll-in timeline never runs.
+  reveal?: PlaybackOverride | null;
   onSend?: (value: SendValue) => void;
   // Lets the data source answer a visitor message in character: it returns the
   // reply message(s) to append (e.g. the agent confirming a waitlist email).
@@ -120,6 +125,7 @@ export function Thread({
     active,
     animate,
     rootRef,
+    override: reveal,
   });
   revealCountRef.current = revealCount;
 
