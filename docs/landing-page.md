@@ -40,25 +40,31 @@ source of truth for that copy — reactions included: the pills are live, so a v
 react for fun (nothing persists), same as inside the product.
 
 **Act 2 — the window grows into the product.** Click "Try it out" (or keep scrolling) and
-the window *grows* to full-screen while the product **resolves in** — the motion the design
-review settled on (a shared-element grow, not a slide or a crossfade). Mechanically: the
-product is full-bleed at final layout, and a `clip-path` opens it from the window's rect to
-full-bleed with an ease-in-out (so it never scales or reflows) while its content resolves in
-(opacity, blurred over the hand-off). A **hollow bordered overlay grows on the same rect** —
-the *visible* window frame expanding — so the eye reads the window enlarging, not a curtain
-dropping; it fades out as its edges reach the viewport. The tour window stays put and fades
-(blurred, `REVEAL_WIN_GONE`) as the product resolves in over the same rect, and the hand-off
-is seamless only because the product shows `#welcome` **statically** and the landing
-**bottom-anchors + width-caps** the chat (scoped `.tour-frame` overrides, `animate={false}`
-for that channel in `AppShell`) so the product's messages sit exactly where the tour's did —
-same content, same place, no jump. `TOUR_FRACTION` splits the track between the two acts.
+the same window the visitor was reading *physically grows* into the app — the structure the
+[logo→product morph](../apps/website/src/components/logo-morph-stage.tsx) proved before it:
+**grow the cheap shape first, materialise the real UI over it only once the shape matches.**
+The tour window *is* that shape. Mechanically: its frame expands from the tour rect to
+full-bleed (`open`) while its title bar grows into the product top bar and its two side
+columns unfold to the product's real panel widths (`panels`, tracking the workspace's
+`w-64` / `w-[22rem]` / `h-14` and their breakpoints) — a muted three-panel shell forming
+*around* the still-readable chat. That shape is **complete by `GROW_END`**; only then does
+the live product crossfade in over the now full-size, aligned shell (`materialize`), the
+shell dissolving in lockstep, blurred over the hand-off. Because the tour chat is
+left-aligned + width-capped to **exactly** the product's own chat (`px-5`, `max-w-44rem`,
+and the product shows `#welcome` **statically**, bottom-anchored + width-capped via the
+scoped `.tour-frame` overrides and `animate={false}` in `AppShell`), the two threads sit
+pixel-on-pixel — so the crossfade reads as the same lines *sharpening* into the real thread,
+never a second copy ghosting. `TOUR_FRACTION` splits the track between the two acts.
 
-Two dead ends we backed out of (both in the git history) name the traps: a **crossfade**
-inside the window read as "the window fades out and the product appears from a black
-curtain"; and playing the tour *inside* the clipped product window cut the messages off at
-its bottom edge (the product's chat anchors to its composer, below the clip) with a dark
-empty expanse above. The working version keeps a **dedicated, readable tour window** and
-only grows-and-resolves in Act 2.
+Three dead ends we backed out of (all in the git history) name the traps. A **crossfade**
+inside the window, and a `clip-path` opening the product from the window's rect, both read
+as "the window fades out and the product appears from a black curtain" — because a clip (or
+fade) onto a *static, full-size* product never appears to enlarge; nothing moves. Playing
+the tour *inside* the clipped product cut the messages off at its bottom edge (the product's
+chat anchors to its composer, below the clip). The fix that finally read as a metamorphosis:
+the window itself is the growing shape, its panels unfold around the chat, and the real UI
+only materialises once that shape already matches — the growth carried by the shell, the
+hand-off hidden by alignment + blur, exactly as the logo bars did.
 
 **Getting back out.** Once inside, the mark in the product's top bar returns you to the
 hero (it scrolls the track back up and resets the deep-linked channel), and the landing

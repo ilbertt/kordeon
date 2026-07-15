@@ -39,26 +39,43 @@ const START_GATE = 0.02;
 const HERO_RISE_VH = 34;
 const HERO_SCALE = 0.82;
 const HERO_FORM_END = 0.05;
+// The headline clears this early into the reveal, before the product materialises.
+const HERO_REVEAL_FADE = 0.4;
 const WIN_FORM_START = 0.04;
 const WIN_FORM_END = 0.15;
-// The reveal: the window *grows* into the product. A `clip-path` opens the product from
-// the window's rect to full-bleed while its content resolves in (opacity), and a visible
-// window-frame overlay grows alongside so it reads as the window expanding, not a curtain
-// dropping. `REVEAL_RESOLVE` is the fraction of the reveal over which the product resolves
-// in (the tour chat handing off to the product's, blurred to blend); the frame overlay
-// fades out over the last stretch as it reaches full-bleed (edges = the viewport).
 const REVEAL_RISE_VH = 12;
-const REVEAL_RESOLVE = 0.6;
-// The tour window fades out ahead of the product resolving in, so its window-specific
-// chrome (title bar, CTA) doesn't linger doubled over the product.
-const REVEAL_WIN_GONE = 0.38;
+
+// The reveal is one continuous metamorphosis, ported from the logo→product morph: the
+// cheap shell *grows* into the product's shape *first*, and only once that shape already
+// matches does the real UI crossfade in over it — never a curtain opening on a static
+// product. The single window the visitor was reading (`win`) is that shell: its frame
+// grows from the tour rect to full-bleed and its side panels unfold (`open` / `panels`,
+// done by `GROW_END`) around the still-readable chat; then the live product materialises
+// over the now full-size, aligned shell (`materialize`), the shell dissolving in lockstep
+// so the same chat lines sharpen into the real thread instead of a second copy ghosting.
+const PANELS_START = 0.06;
+const PANELS_END = 0.6;
+const GROW_END = 0.66;
+const MATERIALIZE_START = 0.66;
+const MATERIALIZE_END = 0.97;
 const WINDOW_RADIUS_PX = 16;
+// The shell's chrome: the tour title bar grows into the product's top bar, and the two
+// side columns open to the product's real panel widths. These track the workspace
+// layout (sidebar `w-64`, preview `w-[22rem]`, top bar `h-14`) and the breakpoints that
+// drop each side panel — off them a column stays collapsed, exactly as the product will.
+const TOUR_TOPBAR_PX = 36;
+const PRODUCT_TOPBAR_PX = 56;
+const SIDEBAR_W = 256;
+const PREVIEW_W = 352;
+const SIDEBAR_BP = 768;
+const PREVIEW_BP = 1280;
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 const smoothstep = (value: number) => {
   const t = clamp01(value);
   return t * t * (3 - 2 * t);
 };
+const mix = ({ a, b, t }: { a: number; b: number; t: number }) => a + (b - a) * t;
 
 type TourState = { landed: number; typingId: string | null; cta: boolean };
 
@@ -110,8 +127,9 @@ function EnteringMessage({ children }: { children: React.ReactNode }) {
  * while a simple window *forms around* Korde's tour: the chrome fades and scales in as
  * the agent starts talking, and the #welcome messages play out inside it like a real
  * chat (scroll is the clock, the typing row pinned at the bottom). At the end the CTA
- * shows, then the little window expands and hands off to the full-bleed product — the
- * same conversation, now live. Nothing resets.
+ * shows, then that same window *grows* into the full product — its frame expanding to
+ * full-bleed and its panels unfolding around the chat you were reading, the real UI
+ * resolving in over the matched shape. Nothing resets.
  *
  * Both the CTA and section deep-links drive the same scroll track.
  */
@@ -127,7 +145,9 @@ export function LogoMorphStage({
   const markRef = useRef<HTMLDivElement>(null);
   const heroCtaRef = useRef<HTMLButtonElement>(null);
   const windowRef = useRef<HTMLDivElement>(null);
-  const frameBorderRef = useRef<HTMLDivElement>(null);
+  const skelTopRef = useRef<HTMLDivElement>(null);
+  const skelLeftRef = useRef<HTMLDivElement>(null);
+  const skelRightRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
 
   // The tour is client-only: SSR serves the plain hero + full product beneath, so
@@ -190,18 +210,15 @@ export function LogoMorphStage({
       return;
     }
 
-    const frameBorder = frameBorderRef.current;
+    const skelTop = skelTopRef.current;
+    const skelLeft = skelLeftRef.current;
+    const skelRight = skelRightRef.current;
 
-    // Reduced motion: drop the movement (tour forming or reveal) but still fade the
-    // window in rather than hard-cutting — fewer and gentler, not zero.
+    // Reduced motion: drop the movement (tour forming or the grow) but still fade the
+    // product in rather than hard-cutting — fewer and gentler, not zero.
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       intro.style.display = 'none';
       win.style.display = 'none';
-      if (frameBorder) {
-        frameBorder.style.display = 'none';
-      }
-      frame.style.clipPath = 'none';
-      frame.style.transform = 'none';
       frame.style.pointerEvents = 'auto';
       requestAnimationFrame(() => {
         frame.style.transition = 'opacity 260ms ease-out';
@@ -221,11 +238,12 @@ export function LogoMorphStage({
 
     let total = 0;
     let wrapTop = 0;
-    // The window's rect in px (matching the card's CSS: top 34vh, bottom 8vh, centred,
-    // width min(760, 92vw)), so the reveal's clip-path and the frame overlay grow from
-    // exactly its edges to full-bleed. Measured on resize only — the loop stays
-    // layout-free.
+    // The tour window's rect in px (matching the card's CSS: top 34vh, bottom 8vh,
+    // centred, width min(760, 92vw)) and the product's panel metrics — so the shell
+    // grows from exactly the window's edges to the product's real layout. Measured on
+    // resize only; the loop stays layout-free above the shell's own contained reflow.
     let clip = { top: 0, right: 0, bottom: 0, left: 0 };
+    let shell = { sidebar: 0, preview: 0, topbar: PRODUCT_TOPBAR_PX };
     const measure = () => {
       total = Math.max(0, wrap.offsetHeight - window.innerHeight);
       wrapTop = wrap.getBoundingClientRect().top + window.scrollY;
@@ -234,6 +252,11 @@ export function LogoMorphStage({
       const winW = Math.min(760, vw * 0.92);
       const side = (vw - winW) / 2;
       clip = { top: vh * 0.34, right: side, bottom: vh * 0.08, left: side };
+      shell = {
+        sidebar: vw >= SIDEBAR_BP ? SIDEBAR_W : 0,
+        preview: vw >= PREVIEW_BP ? PREVIEW_W : 0,
+        topbar: PRODUCT_TOPBAR_PX,
+      };
     };
 
     const mark = markRef.current;
@@ -241,11 +264,13 @@ export function LogoMorphStage({
 
     // The headline shrinks and rises into a compact title above the window (and clears
     // in the reveal); the mark and CTA fade as it goes, leaving just the headline +
-    // tagline. Scaling about the viewport centre keeps it centred as it shrinks.
+    // tagline. Scaling about the viewport centre keeps it centred as it shrinks. It
+    // fades out early in the reveal (`HERO_REVEAL_FADE`), well before the product
+    // materialises, so it never ghosts over the app.
     const updateHero = ({ form, reveal }: { form: number; reveal: number }) => {
       const scale = 1 - (1 - HERO_SCALE) * form;
       intro.style.transform = `translateY(${-(HERO_RISE_VH * form + REVEAL_RISE_VH * reveal)}vh) scale(${scale})`;
-      intro.style.opacity = `${1 - reveal}`;
+      intro.style.opacity = `${1 - smoothstep(clamp01(reveal / HERO_REVEAL_FADE))}`;
       intro.style.pointerEvents = form > 0.05 ? 'none' : 'auto';
       if (mark) {
         mark.style.opacity = `${1 - form}`;
@@ -256,52 +281,47 @@ export function LogoMorphStage({
       }
     };
 
-    // The simple window forms around the chat as Korde starts (`form`), holds through the
-    // conversation, then in the reveal hands its chat to the product's: it stays put
-    // (aligned) and fades — blurred — as the product resolves in over the same rect, so
-    // the messages never jump. Gone by the time the product is opaque.
+    // The window is the shell. `form` fades and lifts it in as Korde starts (Act 1);
+    // `reveal` then grows it into the product (Act 2): its frame expands to full-bleed
+    // (`open`) and its top bar + side columns unfold to the product's real metrics
+    // (`panels`) around the still-readable chat, *finishing* the shape by `GROW_END`.
+    // Only then does it dissolve in lockstep with the live product crossfading in over
+    // the matched shape (`materialize`) — so the window *becomes* the app, the same chat
+    // lines sharpening into the real thread, never a curtain over a static product.
     const updateWindow = ({ form, reveal }: { form: number; reveal: number }) => {
-      const gone = smoothstep(clamp01(reveal / REVEAL_WIN_GONE));
-      win.style.opacity = `${form * (1 - gone)}`;
-      win.style.transform = `translate(-50%, ${(1 - form) * 3}vh) scale(${0.96 + 0.04 * form})`;
-      win.style.filter = gone > 0 && gone < 1 ? `blur(${5 * gone}px)` : 'none';
-    };
+      const open = smoothstep(clamp01(reveal / GROW_END));
+      const grow = 1 - open;
+      const panels = smoothstep(clamp01((reveal - PANELS_START) / (PANELS_END - PANELS_START)));
+      const materialize = smoothstep(
+        clamp01((reveal - MATERIALIZE_START) / (MATERIALIZE_END - MATERIALIZE_START)),
+      );
 
-    // The reveal grows the window into the product. The product is full-bleed at final
-    // layout throughout; a `clip-path` opens it from the window's rect to full-bleed with
-    // an ease-in-out (so it never scales or reflows), while its content resolves in
-    // (opacity, blurred over the handoff). The frame overlay is a hollow bordered box
-    // that grows on exactly the same rect — the visible window frame expanding — and
-    // fades out over the last stretch as its edges reach the viewport.
-    const updateReveal = (reveal: number) => {
-      const open = smoothstep(reveal);
-      const rest = 1 - open;
-      const resolve = smoothstep(clamp01(reveal / REVEAL_RESOLVE));
-      frame.style.opacity = `${resolve}`;
-      frame.style.filter = resolve > 0 && resolve < 1 ? `blur(${3 * (1 - resolve)}px)` : 'none';
-      if (open >= 1) {
-        frame.style.clipPath = 'none';
-        frame.style.pointerEvents = 'auto';
-      } else {
-        const t = clip.top * rest;
-        const r = clip.right * rest;
-        const b = clip.bottom * rest;
-        const l = clip.left * rest;
-        frame.style.clipPath = `inset(${t}px ${r}px ${b}px ${l}px round ${WINDOW_RADIUS_PX * rest}px)`;
-        frame.style.pointerEvents = 'none';
+      win.style.top = `${clip.top * grow}px`;
+      win.style.right = `${clip.right * grow}px`;
+      win.style.bottom = `${clip.bottom * grow}px`;
+      win.style.left = `${clip.left * grow}px`;
+      win.style.borderRadius = `${WINDOW_RADIUS_PX * grow}px`;
+      win.style.opacity = `${form * (1 - materialize)}`;
+      win.style.transform = `translateY(${(1 - form) * 3}vh)`;
+      win.style.filter = materialize > 0 && materialize < 1 ? `blur(${4 * materialize}px)` : 'none';
+      win.style.pointerEvents = materialize > 0.5 ? 'none' : 'auto';
+
+      if (skelTop) {
+        skelTop.style.height = `${mix({ a: TOUR_TOPBAR_PX, b: shell.topbar, t: panels })}px`;
+      }
+      if (skelLeft) {
+        skelLeft.style.width = `${shell.sidebar * panels}px`;
+        skelLeft.style.opacity = `${panels}`;
+      }
+      if (skelRight) {
+        skelRight.style.width = `${shell.preview * panels}px`;
+        skelRight.style.opacity = `${panels}`;
       }
 
-      if (frameBorder) {
-        // Fades in with the window's own border as it takes over, out as it hits full-bleed.
-        const shown =
-          smoothstep(clamp01(reveal / 0.06)) * (1 - smoothstep(clamp01((reveal - 0.7) / 0.3)));
-        frameBorder.style.opacity = `${shown}`;
-        frameBorder.style.top = `${clip.top * rest}px`;
-        frameBorder.style.right = `${clip.right * rest}px`;
-        frameBorder.style.bottom = `${clip.bottom * rest}px`;
-        frameBorder.style.left = `${clip.left * rest}px`;
-        frameBorder.style.borderRadius = `${WINDOW_RADIUS_PX * rest}px`;
-      }
+      frame.style.opacity = `${materialize}`;
+      frame.style.filter =
+        materialize > 0 && materialize < 1 ? `blur(${8 * (1 - materialize)}px)` : 'none';
+      frame.style.pointerEvents = materialize >= 1 ? 'auto' : 'none';
     };
 
     let raf = 0;
@@ -328,7 +348,6 @@ export function LogoMorphStage({
       );
       updateHero({ form: formHero, reveal });
       updateWindow({ form: formWin, reveal });
-      updateReveal(reveal);
 
       const next = playbackAt(tourProgress);
       const prev = tourStateRef.current;
@@ -404,19 +423,29 @@ export function LogoMorphStage({
           </button>
         </div>
 
-        {/* The simple window that forms around the conversation. It's a plain framed
-            card — a title bar and the chat — so it reads as a window without pretending
-            to be the whole product yet; that arrives when it expands in the reveal. */}
+        {/* The window is the shell that grows into the product. It forms around Korde's
+            tour as a plain framed card — a title bar and the chat — then, in the reveal,
+            its frame expands to full-bleed while its top bar and side columns unfold to
+            the product's real layout around the chat. The live product then crossfades
+            in over the matched shape (see `frame`), and this dissolves behind it. */}
         <div
           ref={windowRef}
-          className="absolute top-[34vh] bottom-[8vh] left-1/2 z-20 flex w-[min(760px,92vw)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
+          className="absolute z-20 flex flex-col overflow-hidden border border-border bg-card shadow-2xl will-change-transform"
           style={{
+            top: '34vh',
+            bottom: '8vh',
+            left: 'calc((100% - min(760px, 92vw)) / 2)',
+            right: 'calc((100% - min(760px, 92vw)) / 2)',
+            borderRadius: `${WINDOW_RADIUS_PX}px`,
             opacity: 0,
-            transformOrigin: 'center',
-            transform: 'translate(-50%, 3vh) scale(0.96)',
+            transform: 'translateY(3vh)',
           }}
         >
-          <div className="flex h-9 shrink-0 items-center gap-2 border-border border-b px-4">
+          <div
+            ref={skelTopRef}
+            className="flex shrink-0 items-center gap-2 border-border border-b px-4"
+            style={{ height: TOUR_TOPBAR_PX }}
+          >
             <span className="flex gap-1.5" aria-hidden>
               <span className="size-2.5 rounded-full bg-muted-foreground/25" />
               <span className="size-2.5 rounded-full bg-muted-foreground/25" />
@@ -424,75 +453,78 @@ export function LogoMorphStage({
             </span>
             <span className="ml-1 text-muted-foreground text-xs">#welcome</span>
           </div>
-          {/* The conversation, bottom-anchored so the newest message and the typing
-              row sit at the reading line with history above — a real chat, played by
-              scroll. Pointer-events on so the reactions and mention tags are live. */}
-          <div className="flex min-h-0 flex-1 flex-col justify-end overflow-hidden px-4 pt-4 pb-6">
-            {mounted ? (
-              <WorkspaceProvider
-                people={PEOPLE}
-                currentUserId="you"
-                mentionSuggestions={MENTION_SUGGESTIONS}
-              >
-                <div className="pointer-events-auto flex w-full flex-col">
-                  {TOUR_MESSAGES.slice(0, tour.landed).map((message) => (
-                    <EnteringMessage key={message.id}>
-                      <ChatMessage message={message} />
-                    </EnteringMessage>
-                  ))}
-                  {tour.typingId ? (
-                    <ThreadTypingRow key={tour.typingId} ids={[tour.typingId]} />
-                  ) : null}
-                  {tour.cta ? (
-                    <div className="flex animate-in justify-center pt-1 slide-in-from-bottom-3 duration-500">
-                      <button
-                        type="button"
-                        onClick={revealProduct}
-                        className={cn(buttonVariants({ size: 'lg' }), 'gap-2 shadow-lg')}
-                      >
-                        Try it out
-                        <ArrowDown className="size-4" />
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              </WorkspaceProvider>
-            ) : null}
+          <div className="flex min-h-0 flex-1">
+            {/* The side columns open to the product's real panel widths as the window
+                grows — muted placeholders the live UI paints over when it materialises. */}
+            <div
+              ref={skelLeftRef}
+              aria-hidden
+              className="shrink-0 overflow-hidden border-border border-r bg-muted/20"
+              style={{ width: 0, opacity: 0 }}
+            />
+            {/* The conversation, bottom-anchored and width-capped so the newest message
+                and the typing row sit at the reading line — a real chat, played by
+                scroll — and land exactly where the product's #welcome thread will as the
+                window grows. Pointer-events on so reactions and mention tags are live. */}
+            <div className="flex min-h-0 flex-1 flex-col justify-end overflow-hidden px-5 pt-6 pb-6">
+              {mounted ? (
+                <WorkspaceProvider
+                  people={PEOPLE}
+                  currentUserId="you"
+                  mentionSuggestions={MENTION_SUGGESTIONS}
+                >
+                  {/* Left-aligned + width-capped to match the product's own chat
+                      (`px-5`, `max-w-44rem`, left-aligned) so, as the window grows, the
+                      messages sit exactly where the live thread's do — the crossfade
+                      reinforces the same lines instead of ghosting a shifted copy. */}
+                  <div className="pointer-events-auto flex w-full max-w-[44rem] flex-col">
+                    {TOUR_MESSAGES.slice(0, tour.landed).map((message) => (
+                      <EnteringMessage key={message.id}>
+                        <ChatMessage message={message} />
+                      </EnteringMessage>
+                    ))}
+                    {tour.typingId ? (
+                      <ThreadTypingRow key={tour.typingId} ids={[tour.typingId]} />
+                    ) : null}
+                    {tour.cta ? (
+                      <div className="flex animate-in justify-center pt-1 slide-in-from-bottom-3 duration-500">
+                        <button
+                          type="button"
+                          onClick={revealProduct}
+                          className={cn(buttonVariants({ size: 'lg' }), 'gap-2 shadow-lg')}
+                        >
+                          Try it out
+                          <ArrowDown className="size-4" />
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </WorkspaceProvider>
+              ) : null}
+            </div>
+            <div
+              ref={skelRightRef}
+              aria-hidden
+              className="shrink-0 overflow-hidden border-border border-l bg-muted/20"
+              style={{ width: 0, opacity: 0 }}
+            />
           </div>
         </div>
 
-        {/* The product. During the reveal a `clip-path` grows it from the window's rect
-            to full-bleed while its content resolves in — the window growing into the app. */}
+        {/* The live product. It stays hidden until the shell above has grown into its
+            shape, then crossfades in over it (blurred over the hand-off) — the window
+            *becoming* the app, not a curtain lifting on a static screenshot. */}
         <div
           ref={frameRef}
           className="tour-frame absolute inset-0 z-30 overflow-hidden bg-card"
           style={{
             opacity: 0,
             pointerEvents: 'none',
-            clipPath: 'inset(34vh calc((100% - min(760px, 92vw)) / 2) 8vh round 16px)',
-            willChange: 'clip-path, opacity',
+            willChange: 'opacity, filter',
           }}
         >
           {children}
         </div>
-
-        {/* The visible window frame: a hollow bordered box that grows on the same rect as
-            the clip, so the eye reads the window *expanding* to full-screen rather than a
-            curtain dropping. It fades out as its edges reach the viewport. */}
-        <div
-          ref={frameBorderRef}
-          aria-hidden
-          className="pointer-events-none absolute z-40 border border-border/70"
-          style={{
-            opacity: 0,
-            top: '34vh',
-            bottom: '8vh',
-            left: 'calc((100% - min(760px, 92vw)) / 2)',
-            right: 'calc((100% - min(760px, 92vw)) / 2)',
-            borderRadius: '16px',
-            boxShadow: '0 24px 60px rgb(0 0 0 / 0.35)',
-          }}
-        />
       </div>
     </div>
   );
