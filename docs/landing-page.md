@@ -14,9 +14,11 @@ visitors who couldn't tell what was happening or find their way back. Instead th
 reveal (`LogoMorphStage`) is two acts on one scroll track:
 
 **Act 1 — Korde onboards you.** As you scroll, the hero (mark + headline) scrolls up and
-clears, and the agent types you a tour: the `#welcome` messages arrive one by one,
-*scrubbed to the wheel* (each scroll pulls the next message out of Korde), **centred on
-screen**, ending on a **"Try it out"** beat. The guidance is in-character — the agent
+clears, and the agent gives you a tour: the `#welcome` messages, **centred on screen** and
+*scrubbed to the wheel* — the column is tied to `window.scrollY`, so each message **rises up
+from below** into a read line as you scroll (no fade-in pop), and messages are spaced far
+enough apart, with a per-message dwell, that each gets its own moment before the next
+climbs in. It ends on a **"Try it out"** beat. The guidance is in-character — the agent
 introducing itself and naming the three panels *is* the pitch, not chrome bolted on.
 Crucially the tour bubbles **are** the `#welcome` thread (rendered with the real
 `ChatMessage`), so there's one source of truth for that copy and the conversation is
