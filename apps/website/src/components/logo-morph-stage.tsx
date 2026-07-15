@@ -41,10 +41,18 @@ const HERO_SCALE = 0.82;
 const HERO_FORM_END = 0.05;
 const WIN_FORM_START = 0.04;
 const WIN_FORM_END = 0.15;
-// In the reveal, the heading clears and the window drifts up and fades out as the
-// product rises over it — the window is gone by this fraction of the reveal.
+// The reveal metamorphoses the simple window into the product — a continuity
+// transition (the same framed rectangle growing to full-bleed). It's two phases:
+//   1. a short content crossfade (tour chat → live product) inside the fixed window
+//      rect, blurred to blend the two (per the animation standards' crossfade masking),
+//   2. then a `clip-path` open from the window rect to full-bleed — the window growing
+//      into the whole app, revealing the panels from the centre out.
+// The heading rises and clears over the reveal.
 const REVEAL_RISE_VH = 12;
-const REVEAL_WIN_FADE = 0.5;
+const REVEAL_CROSSFADE = 0.16;
+const WINDOW_RADIUS_PX = 16;
+// How long "Tell me more" takes to play the whole tour — long enough to read each line.
+const TOUR_PLAY_MS = 4200;
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 const smoothstep = (value: number) => {
@@ -130,32 +138,29 @@ export function LogoMorphStage({
     setMounted(true);
   }, []);
 
-  // Drives the scroll to the end of the track, so the reveal finishes and the
-  // product becomes interactive — the CTA does what scrolling down does. Native
-  // `behavior: 'smooth'` is too quick to read the transition, so this eases over
-  // ~1.8s (and yields the moment the visitor takes the wheel).
-  const revealProduct = () => {
-    const wrap = wrapRef.current;
-    if (!wrap) {
-      return;
-    }
+  // Eases the page to a scroll target and yields the instant the visitor takes the
+  // wheel. Native `behavior: 'smooth'` is too quick to read these transitions, so this
+  // hand-rolls a smoothstep over `durationMs` — the scroll *is* the animation clock.
+  const easeScrollTo = ({ target, durationMs }: { target: number; durationMs: number }) => {
     const start = window.scrollY;
-    const distance = Math.max(0, wrap.offsetHeight - window.innerHeight) - start;
-    if (distance <= 0) {
+    const distance = target - start;
+    if (Math.abs(distance) < 1) {
       return;
     }
     let cancelled = false;
     const cancel = () => {
       cancelled = true;
     };
+    const stop = () => {
+      window.removeEventListener('wheel', cancel);
+      window.removeEventListener('touchstart', cancel);
+    };
     window.addEventListener('wheel', cancel, { passive: true });
     window.addEventListener('touchstart', cancel, { passive: true });
-    const durationMs = 1800;
     let startedAt = 0;
     const step = (now: number) => {
       if (cancelled) {
-        window.removeEventListener('wheel', cancel);
-        window.removeEventListener('touchstart', cancel);
+        stop();
         return;
       }
       startedAt = startedAt || now;
@@ -165,11 +170,38 @@ export function LogoMorphStage({
       if (t < 1) {
         requestAnimationFrame(step);
       } else {
-        window.removeEventListener('wheel', cancel);
-        window.removeEventListener('touchstart', cancel);
+        stop();
       }
     };
     requestAnimationFrame(step);
+  };
+
+  const trackMetrics = () => {
+    const wrap = wrapRef.current;
+    if (!wrap) {
+      return null;
+    }
+    const total = Math.max(0, wrap.offsetHeight - window.innerHeight);
+    const wrapTop = wrap.getBoundingClientRect().top + window.scrollY;
+    return { total, wrapTop };
+  };
+
+  // "Tell me more" plays Korde's tour: eases to the end of the tour track (the "Try it
+  // out" beat), so the whole conversation arrives message by message as it scrolls —
+  // slow enough to read. From there "Try it out" reveals the product.
+  const playTour = () => {
+    const m = trackMetrics();
+    if (m) {
+      easeScrollTo({ target: m.wrapTop + m.total * TOUR_FRACTION, durationMs: TOUR_PLAY_MS });
+    }
+  };
+
+  // "Try it out" finishes the track: the window metamorphoses into the full product.
+  const revealProduct = () => {
+    const m = trackMetrics();
+    if (m) {
+      easeScrollTo({ target: m.wrapTop + m.total, durationMs: 1800 });
+    }
   };
 
   useIsomorphicLayoutEffect(() => {
@@ -186,7 +218,8 @@ export function LogoMorphStage({
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       intro.style.display = 'none';
       win.style.display = 'none';
-      frame.style.transform = 'none';
+      frame.style.clipPath = 'none';
+      frame.style.filter = 'none';
       frame.style.pointerEvents = 'auto';
       requestAnimationFrame(() => {
         frame.style.transition = 'opacity 260ms ease-out';
@@ -206,9 +239,18 @@ export function LogoMorphStage({
 
     let total = 0;
     let wrapTop = 0;
+    // The window's rect in px (matching its CSS: top 34vh, bottom 8vh, centred, width
+    // min(760, 92vw)), so the reveal's clip-path can open from exactly the window's edges
+    // to full-bleed. Measured on resize only — the scroll loop stays layout-free.
+    let clip = { top: 0, right: 0, bottom: 0, left: 0 };
     const measure = () => {
       total = Math.max(0, wrap.offsetHeight - window.innerHeight);
       wrapTop = wrap.getBoundingClientRect().top + window.scrollY;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const winW = Math.min(760, vw * 0.92);
+      const side = (vw - winW) / 2;
+      clip = { top: vh * 0.34, right: side, bottom: vh * 0.08, left: side };
     };
 
     const mark = markRef.current;
@@ -231,31 +273,47 @@ export function LogoMorphStage({
       }
     };
 
-    // The simple window forms around the chat: chrome fades and scales in from just
-    // below as Korde starts (`form`), holds through the conversation, then in the reveal
-    // drifts up and fades as the product rises over it. Its fade is faster than the
-    // product's rise (mostly gone by REVEAL_WIN_FADE) so the little card doesn't stick
-    // out above the rising window — the two never show the same chat side by side.
+    // The simple window forms around the chat (`form`: chrome fades and scales in from
+    // just below as Korde starts, holding through the conversation). In the reveal it
+    // hands its content to the product: the tour chat fades — blurred, to blend the two
+    // over the short crossfade — as the product resolves in in the same rect.
     const updateWindow = ({ form, reveal }: { form: number; reveal: number }) => {
-      const gone = smoothstep(clamp01(reveal / REVEAL_WIN_FADE));
-      const y = (1 - form) * 3 - REVEAL_RISE_VH * reveal;
-      const scale = 0.96 + 0.04 * form + 0.04 * gone;
+      const gone = smoothstep(clamp01(reveal / REVEAL_CROSSFADE));
+      const y = (1 - form) * 3;
+      const scale = 0.96 + 0.04 * form;
       win.style.opacity = `${form * (1 - gone)}`;
       win.style.transform = `translate(-50%, ${y}vh) scale(${scale})`;
+      win.style.filter = gone > 0 && gone < 1 ? `blur(${3 * gone}px)` : 'none';
     };
 
-    // The reveal is the pre-#34 slide-in: the full product rises up from below to
-    // full-bleed — opaque, so it *wipes over* the window rather than cross-fading two
-    // copies of the same chat (which ghost). It sheds its rounding + shadow as it lands
-    // and becomes interactive at rest.
+    // The metamorphosis. Phase 1 (`fade`, over REVEAL_CROSSFADE): the product resolves
+    // in inside the window's rect — blurred, to blend the tour→live chat crossfade — so
+    // the container never jumps. Phase 2 (`open`): a `clip-path` inset opens from that
+    // rect to full-bleed with an ease-in-out, corners squaring off, revealing the side
+    // panels from the centre out — the little window growing into the whole app. A
+    // drop-shadow rides the clipped edge like a floating window and relaxes as it lands.
     const updateReveal = (reveal: number) => {
-      const ease = smoothstep(reveal);
-      const rest = 1 - ease;
-      frame.style.opacity = '1';
-      frame.style.transform = `translateY(${100 * rest}vh) scale(${0.96 + 0.04 * ease})`;
-      frame.style.borderRadius = `${20 * rest}px`;
-      frame.style.boxShadow = `0 ${8 * rest}px ${60 * rest}px rgb(0 0 0 / ${0.22 * rest})`;
-      frame.style.pointerEvents = ease > 0.99 ? 'auto' : 'none';
+      const fade = smoothstep(clamp01(reveal / REVEAL_CROSSFADE));
+      const open = smoothstep(clamp01((reveal - REVEAL_CROSSFADE) / (1 - REVEAL_CROSSFADE)));
+      // Landed: drop the clip/filter entirely so the product holds no compositing layer.
+      if (open >= 1) {
+        frame.style.opacity = '1';
+        frame.style.clipPath = 'none';
+        frame.style.filter = 'none';
+        frame.style.pointerEvents = 'auto';
+        return;
+      }
+      const rest = 1 - open;
+      const top = clip.top * rest;
+      const right = clip.right * rest;
+      const bottom = clip.bottom * rest;
+      const left = clip.left * rest;
+      const radius = WINDOW_RADIUS_PX * rest;
+      frame.style.opacity = `${fade}`;
+      frame.style.clipPath = `inset(${top}px ${right}px ${bottom}px ${left}px round ${radius}px)`;
+      const blur = fade > 0 && fade < 1 ? `blur(${3 * (1 - fade)}px) ` : '';
+      frame.style.filter = `${blur}drop-shadow(0 ${18 * rest}px ${40 * rest}px rgb(0 0 0 / ${0.32 * rest}))`;
+      frame.style.pointerEvents = open > 0.99 ? 'auto' : 'none';
     };
 
     let raf = 0;
@@ -316,11 +374,17 @@ export function LogoMorphStage({
 
   return (
     <div ref={wrapRef} className="relative" style={{ height: `${WRAP_VH}vh` }}>
-      {/* On the landing the chat lives inside a scrollable page, so upward scroll
-          past the top of the messages must return to the hero — the shared
-          scroller's `overscroll-contain` (right for the real app) would trap it. */}
+      {/* Landing-only overrides on the shared chat scroller (scoped to `.tour-frame`):
+          - relax `overscroll-contain` so scrolling up past the top of the messages
+            rewinds the reveal instead of trapping the wheel (right for the real app);
+          - bottom-anchor the messages so a short thread sits at the reading line like a
+            real chat — and, crucially, aligned with the tour window's bottom-anchored
+            chat, so the window→product metamorphosis hands off without the messages
+            jumping position. */}
       <style>
-        {'.tour-frame [data-slot="message-scroller-viewport"]{overscroll-behavior:auto}'}
+        {
+          '.tour-frame [data-slot="message-scroller-viewport"]{overscroll-behavior:auto}.tour-frame [data-slot="message-scroller-content"]{justify-content:flex-end}'
+        }
       </style>
       <div className="sticky top-0 h-svh overflow-hidden bg-background">
         <div
@@ -346,10 +410,10 @@ export function LogoMorphStage({
           <button
             ref={heroCtaRef}
             type="button"
-            onClick={revealProduct}
+            onClick={playTour}
             className={cn(buttonVariants({ size: 'lg' }), 'mt-8 gap-2')}
           >
-            Try it now
+            Tell me more
             <ArrowDown className="size-4" />
           </button>
         </div>
@@ -411,11 +475,18 @@ export function LogoMorphStage({
           </div>
         </div>
 
-        {/* The little window expands into the full product here. */}
+        {/* The product. During the reveal a `clip-path` opens it from the window's rect
+            to full-bleed — the metamorphosis. Full-bleed at final layout throughout (the
+            clip does the growing, so its content never scales or reflows). */}
         <div
           ref={frameRef}
           className="tour-frame absolute inset-0 z-30 overflow-hidden bg-card"
-          style={{ opacity: 0, transformOrigin: 'center', pointerEvents: 'none' }}
+          style={{
+            opacity: 0,
+            pointerEvents: 'none',
+            clipPath: 'inset(34vh calc((100% - min(760px, 92vw)) / 2) 8vh round 16px)',
+            willChange: 'clip-path, opacity, filter',
+          }}
         >
           {children}
         </div>

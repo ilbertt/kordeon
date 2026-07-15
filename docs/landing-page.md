@@ -7,11 +7,14 @@ components rather than throwaway markup: each is a candidate to graduate into `@
 and power the actual product, so shared behaviour lives in the component, not at the
 call site.
 
-## The reveal is a window forming, then a slide-in
+## The reveal is a window forming, then metamorphosing into the product
 
 Scroll doesn't silently zoom a window in — that read as a hijack to first-time
 visitors who couldn't tell what was happening or find their way back. Instead the
-reveal (`LogoMorphStage`) is two acts on one scroll track:
+reveal (`LogoMorphStage`) is two acts on one scroll track, following the project's
+animation standards (transform / opacity / clip-path only, strong ease-in-out for
+on-screen morphing, blur to mask an imperfect crossfade — see
+[`.agents/skills/review-animations`](../.agents/skills/review-animations)).
 
 **Act 1 — a window forms around Korde's tour.** The headline doesn't clear — it *stays as
 the title*. On the first scroll it shrinks and rises into a compact caption at the top
@@ -27,23 +30,29 @@ the pace) sends the line it's typing: the message opens up from the typing row �
 expands from zero, pushing the history above it up (height and a short lift, no fade) — and
 the row starts on the next one. The conversation is bottom-anchored, so the newest message
 and the typing row sit at the reading line, like a chat scrolled to its latest. A trailing
-beat swaps the typing row for a **"Try it out"** button. The guidance is in-character — the
-agent introducing itself and pitching kordeon *is* the pitch, not chrome bolted on. Because
-the tour plays before the product is in, the copy takes the **broad angle** and can't point
-at panels ("on the left…"): Korde sells the differentiators by concept, not deixis —
-work-as-threads, plan-together-first, build-live, agents-as-teammates. Crucially the tour
-bubbles **are** the `#welcome` thread (rendered with the real `ChatMessage`), so there's one
-source of truth for that copy — reactions included: the pills are live, so a visitor can
-react for fun (nothing persists), same as inside the product.
+beat swaps the typing row for a **"Try it out"** button; the hero's own CTA is **"Tell me
+more"**, which plays the whole tour by easing the scroll to that beat. The guidance is
+in-character — the agent introducing itself and pitching kordeon *is* the pitch, not chrome
+bolted on. Because the tour plays before the product is in, the copy takes the **broad
+angle** and can't point at panels ("on the left…"): Korde sells the differentiators by
+concept, not deixis — work-as-threads, plan-together-first, build-live, agents-as-teammates.
+Crucially the tour bubbles **are** the `#welcome` thread (rendered with the real
+`ChatMessage`), so there's one source of truth for that copy — reactions included: the pills
+are live, so a visitor can react for fun (nothing persists), same as inside the product.
 
-**Act 2 — the product rises over the window.** Click "Try it out" (or keep scrolling) and
-the full product slides up from below to full-bleed — the pre-#34 reveal, a screenshot
-sliding into view — into the live thread (the same messages). It's **opaque and rises over**
-the simple window rather than cross-fading into it: two copies of the same chat at different
-positions would ghost, so the product wipes over the window while the window fades out under
-it (`REVEAL_WIN_FADE`, gone before it's fully covered). It starts fully off-screen so it
-stays hidden behind the tour until it's called, and it's the same on every viewport.
-`TOUR_FRACTION` splits the track between the two acts.
+**Act 2 — the window metamorphoses into the product.** Click "Try it out" (or keep
+scrolling) and the simple window becomes the full product — a **continuity transition**, the
+same framed rectangle growing to full-bleed. Two phases: first a short blurred crossfade
+(`REVEAL_CROSSFADE`) swaps the tour chat for the live product *inside the fixed window rect*
+— blurred to blend the two, so the container never jumps; then a **`clip-path` inset opens**
+from that rect to full-bleed with an ease-in-out, corners squaring off, revealing the side
+panels from the centre out. Because `clip-path` doesn't reflow or distort, the product's
+content never scales — the clip does the growing. The window's rect is measured on resize so
+the clip opens from exactly its edges. The handoff is seamless only because the product
+shows `#welcome` **statically** (the tour already played it, so `AppShell` passes
+`animate={false}` for that channel) and the landing **bottom-anchors** the chat (a scoped
+`.tour-frame` override) so the product's messages sit where the tour's did — same content,
+same place. `TOUR_FRACTION` splits the track between the two acts.
 
 **Getting back out.** Once inside, the mark in the product's top bar returns you to the
 hero (it scrolls the track back up and resets the deep-linked channel), and the landing

@@ -162,7 +162,11 @@ export function AppShell({ activeSlug }: { activeSlug: string }) {
               key={channel.slug}
               channel={channel}
               active={channel.slug === activeSlug}
-              animate
+              // #welcome is the tour's thread — the scroll-driven intro already played
+              // it, so the product shows it in full rather than replaying it (which
+              // would mismatch the window→product metamorphosis). Other channels animate
+              // in when the visitor navigates to them.
+              animate={channel.slug !== ChannelSlug.Welcome}
               renderComposerPrompt={renderComposerPrompt}
               renderIcon={renderChannelIcon}
               renderMessageExtra={renderMessageExtra}
