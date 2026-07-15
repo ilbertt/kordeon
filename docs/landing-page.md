@@ -7,50 +7,43 @@ components rather than throwaway markup: each is a candidate to graduate into `@
 and power the actual product, so shared behaviour lives in the component, not at the
 call site.
 
-## The reveal is a window forming, then metamorphosing into the product
+## The reveal is a window forming, then a slide-in
 
 Scroll doesn't silently zoom a window in — that read as a hijack to first-time
 visitors who couldn't tell what was happening or find their way back. Instead the
-reveal (`LogoMorphStage`) is two acts on one scroll track, following the project's
-animation standards (transform / opacity / clip-path only, strong ease-in-out for
-on-screen morphing, blur to mask an imperfect crossfade — see
-[`.agents/skills/review-animations`](../.agents/skills/review-animations)).
-
-The through-line: **there is only ever one window, and it is the product window.** In the
-tour it's the product clipped down to a small centred card so only the chat shows — the
-tour plays *inside the real `#welcome` thread*, not a stand-in. The reveal just opens the
-clip, so the same window grows into the full app. No second element, no crossfade of two
-chats — the thing the earlier "simple window fades out, product fades in" version got wrong.
+reveal (`LogoMorphStage`) is two acts on one scroll track:
 
 **Act 1 — a window forms around Korde's tour.** The headline doesn't clear — it *stays as
 the title*. On the first scroll it shrinks and rises into a compact caption at the top
-(the mark and CTA fade with it), and the **window** forms below it: the product, held to a
-small rect by a `clip-path`, fading and rising in as Korde starts. A lightweight overlay
-gives it a window's chrome — a `#welcome` title bar and, at the end, the CTA. The rise is
+(the mark and CTA fade with it), and a **simple window** — a titled, bordered card —
+forms below it: the chrome fades and scales in as Korde starts talking. The rise is
 staggered *ahead* of the window forming (`HERO_FORM_END` before `WIN_FORM_START`) so the
-headline clears the window's top before it appears. Inside, the tour plays like a real chat
-— **scroll is the clock**. Each scroll beat (`PER_MSG_VH`, generous so the reader sets the
-pace) reveals the next message; the typing indicator trails the last one, always naming
-who's next ("Maya is typing" before Maya speaks). It's driven by a tiny store
-(`use-tour-reveal`): `LogoMorphStage`'s scroll loop writes the revealed count + typist, and
-the product's welcome `Thread` reads it as a playback `override` (`useThreadPlayback`),
-bypassing its own timer. So the messages, reactions (live — react for fun, nothing
-persists) and typing row are all the *real product's*, just clocked by scroll. The hero CTA
-is **"Tell me more"**, which plays the whole tour by easing the scroll to the "Try it out"
-beat. Because the panels aren't on screen yet, the copy takes the **broad angle** and can't
-point at them ("on the left…"): Korde sells the differentiators by concept, not deixis —
-work-as-threads, plan-together-first, build-live, agents-as-teammates.
+headline has cleared the window's top before the card appears, instead of the two crossing
+through each other. Inside, the agent's tour plays out like a real chat — **scroll is the
+clock**. The typing indicator is *pinned at the bottom the whole time* — it never leaves,
+as if Korde is always ready to send the next line (it even previews who's next: "Maya is
+typing" before Maya speaks). Each scroll beat (`PER_MSG_VH`, generous so the reader sets
+the pace) sends the line it's typing: the message opens up from the typing row — its slot
+expands from zero, pushing the history above it up (height and a short lift, no fade) — and
+the row starts on the next one. The conversation is bottom-anchored, so the newest message
+and the typing row sit at the reading line, like a chat scrolled to its latest. A trailing
+beat swaps the typing row for a **"Try it out"** button. The guidance is in-character — the
+agent introducing itself and pitching kordeon *is* the pitch, not chrome bolted on. Because
+the tour plays before the product is in, the copy takes the **broad angle** and can't point
+at panels ("on the left…"): Korde sells the differentiators by concept, not deixis —
+work-as-threads, plan-together-first, build-live, agents-as-teammates. Crucially the tour
+bubbles **are** the `#welcome` thread (rendered with the real `ChatMessage`), so there's one
+source of truth for that copy — reactions included: the pills are live, so a visitor can
+react for fun (nothing persists), same as inside the product.
 
-**Act 2 — the window grows into the product.** Click "Try it out" (or keep scrolling) and
-the `clip-path` inset opens from the window's rect to full-bleed with an ease-in-out,
-corners squaring off — the **same window growing**, its panels (sidebar, header, composer,
-preview) resolving in with their real content from the centre out. Because `clip-path`
-doesn't reflow or distort, nothing scales or crossfades: it's one continuous element, so
-there's no ghost and no "black curtain" — just the product arriving. The window's rect is
-measured on resize so the clip opens from exactly its edges; the landing caps the chat width
-and **bottom-anchors** it (scoped `.tour-frame` overrides) so the messages sit cleanly
-inside the small window and don't reflow as it grows. `TOUR_FRACTION` splits the track
-between the two acts.
+**Act 2 — the product rises over the window.** Click "Try it out" (or keep scrolling) and
+the full product slides up from below to full-bleed — the pre-#34 reveal, a screenshot
+sliding into view — into the live thread (the same messages). It's **opaque and rises over**
+the simple window rather than cross-fading into it: two copies of the same chat at different
+positions would ghost, so the product wipes over the window while the window fades out under
+it (`REVEAL_WIN_FADE`, gone before it's fully covered). It starts fully off-screen so it
+stays hidden behind the tour until it's called, and it's the same on every viewport.
+`TOUR_FRACTION` splits the track between the two acts.
 
 **Getting back out.** Once inside, the mark in the product's top bar returns you to the
 hero (it scrolls the track back up and resets the deep-linked channel), and the landing

@@ -67,23 +67,16 @@ export type TypingState = { ids: string[] };
 // composing the next one (null between/after). While `playing` is false the
 // thread is static — the resting state for reduced-motion, no-JS, and once the
 // playback has finished.
-// An external driver (the landing's scroll-timed tour) can supply the revealed
-// count and who's typing directly, in which case the internal timeline is skipped
-// entirely — the thread becomes a pure function of the caller's `override`.
-export type PlaybackOverride = { count: number; typingIds: string[] };
-
 export function useThreadPlayback({
   messages,
   active,
   animate,
   rootRef,
-  override,
 }: {
   messages: Message[];
   active: boolean;
   animate: boolean;
   rootRef: React.RefObject<HTMLElement | null>;
-  override?: PlaybackOverride | null;
 }): { revealCount: number; typing: TypingState | null; playing: boolean } {
   const total = messages.length;
   // Read the latest messages without making them an effect dependency: the array
@@ -98,12 +91,11 @@ export function useThreadPlayback({
   const playedRef = useRef(false);
 
   const shouldAnimate = useCallback(() => {
-    // An external override owns the timeline — the internal one stands down.
-    if (override || !animate || playedRef.current || total <= 1) {
+    if (!animate || playedRef.current || total <= 1) {
       return false;
     }
     return !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  }, [animate, total, override]);
+  }, [animate, total]);
 
   // Collapse to the first message before paint the moment the channel is active,
   // so the full thread never flashes; the timeline below waits for it to scroll
@@ -206,13 +198,5 @@ export function useThreadPlayback({
     };
   }, [active, shouldAnimate, total, rootRef]);
 
-  if (override) {
-    const count = Math.min(Math.max(0, override.count), total);
-    return {
-      revealCount: count,
-      typing: override.typingIds.length ? { ids: override.typingIds } : null,
-      playing: count < total,
-    };
-  }
   return { revealCount: playing ? revealCount : total, typing, playing };
 }

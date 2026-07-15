@@ -30,7 +30,6 @@ import {
 import { GithubStar } from './github-star';
 import { PreviewContent } from './preview-content';
 import { clearActiveChannel } from './use-active-slug';
-import { useTourReveal } from './use-tour-reveal';
 
 const EMAIL_PATTERN = /[^\s@]+@[^\s@]+\.[^\s@]+/;
 const KORDE_REPLY_DELAY_MS = 700;
@@ -124,9 +123,6 @@ export function AppShell({ activeSlug }: { activeSlug: string }) {
   const visitorEmail = useVisitorEmail();
   const askPlaceholder = visitorEmail ? undefined : WAITLIST_PLACEHOLDER;
 
-  // The tour's scroll-driven playback for the #welcome thread (see use-tour-reveal).
-  const welcomeReveal = useTourReveal();
-
   // Visitor-created channels are appended to the seeded list; they live only in
   // this session (see the dynamic registry in ./data).
   const dynamicChannels = useSyncExternalStore(
@@ -161,18 +157,12 @@ export function AppShell({ activeSlug }: { activeSlug: string }) {
           // Only the dedicated waitlist channel ribs a message that isn't an
           // email; everywhere else such a message just lands in silence.
           const rib = channel.slug === ChannelSlug.Pricing;
-          const isWelcome = channel.slug === ChannelSlug.Welcome;
           return (
             <Thread
               key={channel.slug}
               channel={channel}
               active={channel.slug === activeSlug}
-              // #welcome is the tour's thread: the scroll-driven intro plays *inside* it
-              // (the window that forms around the chat is this product window, clipped
-              // small), so its playback is driven externally instead of on a timer. Other
-              // channels animate in when the visitor navigates to them.
-              animate={!isWelcome}
-              reveal={isWelcome ? welcomeReveal : undefined}
+              animate
               renderComposerPrompt={renderComposerPrompt}
               renderIcon={renderChannelIcon}
               renderMessageExtra={renderMessageExtra}
